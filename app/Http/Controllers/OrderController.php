@@ -351,8 +351,15 @@ class OrderController extends Controller
                 ]);
             }
 
-            // Cancel/Return: reverse income transaction
+            // Cancel/Return: reverse income + restore stock
             if (in_array($status, ['cancelled', 'returned', 'refunded'])) {
+                // Restore stock
+                foreach ($order->items as $item) {
+                    if ($item->product_id) {
+                        \App\Models\Product::where('id', $item->product_id)
+                            ->increment('stock', $item->quantity);
+                    }
+                }
                 if ($order->paid_amount > 0) {
                     Transaction::create([
                         'business_id'      => auth()->user()->business_id,
