@@ -148,7 +148,7 @@ class WooCommerceController extends Controller
 
         try {
             $service = new WooCommerceService($wooSettings);
-            $service->handleWebhook($topic, $request->all(), $wooSettings->business_id);
+            $service->handleWebhook($topic ?? 'unknown', $request->all(), $wooSettings->business_id);
             return response()->json(['message' => 'Webhook processed']);
         } catch (\Exception $e) {
             Log::error('Webhook processing error', ['error' => $e->getMessage()]);
