@@ -277,36 +277,46 @@ class SteadfastController extends Controller
     // =============================================
     // WEBHOOK (Steadfast → Our App)
     // =============================================
-    public function webhook(Request $request)
-    {
-        // Verify bearer token
-        $token   = $request->header('Authorization');
-        $setting = CourierSetting::where('provider', 'steadfast')->first();
+   public function webhook(Request $request)
+{
+    $payload = $request->all();
 
-        $bearerToken = $setting?->config['webhook_token'] ?? config('app.key');
+    // Log incoming webhook
+    Log::info('Steadfast webhook received', $payload);
 
-        if ($token !== 'Bearer ' . $bearerToken) {
-            Log::warning('Steadfast webhook: unauthorized', ['token' => $token]);
-            return response()->json(['error' => 'Unauthorized'], 401);
-        }
+    // Validate required fields
+    if (!isset($payload['notification_type'])) {
+        return response()->json(['status' => 'error', 'message' => 'Invalid payload'], 400);
+    }
 
-        $payload = $request->all();
+    // Handle delivery status update
+    if ($payload['notification_type'] === 'delivery_status') {
 
-        // Required fields
         if (!isset($payload['consignment_id'], $payload['status'])) {
-            return response()->json(['error' => 'Invalid payload'], 400);
+            return response()->json(['status' => 'error', 'message' => 'Invalid consignment ID'], 400);
         }
 
-        // Find shipment
+        // Find shipment by consignment_id stored in notes
         $shipment = Shipment::where('courier_name', 'Steadfast')
             ->where('notes', 'LIKE', '%' . $payload['consignment_id'] . '%')
             ->first();
 
+        // Also try by invoice/order number
+        if (!$shipment && isset($payload['invoice'])) {
+            $order = \App\Models\Order::where('order_number', $payload['invoice'])->first();
+            if ($order) {
+                $shipment = Shipment::where('order_id', $order->id)
+                    ->where('courier_name', 'Steadfast')
+                    ->first();
+            }
+        }
+
         if ($shipment) {
-            $newStatus = SteadfastService::mapStatus($payload['status']);
+            $newStatus = SteadfastService::mapStatus(strtolower($payload['status']));
             $shipment->update(['status' => $newStatus]);
 
-            if ($newStatus === 'delivered') {
+            // Auto update order if delivered
+            if (strtolower($payload['status']) === 'delivered') {
                 $shipment->update(['delivered_at' => now()]);
                 $shipment->order->update([
                     'status'         => 'delivered',
@@ -314,15 +324,29 @@ class SteadfastController extends Controller
                     'due_amount'     => 0,
                     'payment_status' => 'paid',
                 ]);
-            } elseif ($newStatus === 'cancelled') {
+            }
+
+            // Auto update order if cancelled
+            if (strtolower($payload['status']) === 'cancelled') {
                 $shipment->order->update(['status' => 'processing']);
             }
         }
-
-        Log::info('Steadfast webhook processed', $payload);
-        return response()->json(['status' => 'success'], 200);
     }
 
+    // Handle tracking update
+    if ($payload['notification_type'] === 'tracking_update') {
+        Log::info('Steadfast tracking update', [
+            'consignment_id'  => $payload['consignment_id'] ?? null,
+            'tracking_message'=> $payload['tracking_message'] ?? null,
+        ]);
+        // Can store tracking history here in future
+    }
+
+    return response()->json([
+        'status'  => 'success',
+        'message' => 'Webhook received successfully.',
+    ], 200);
+}
     // =============================================
     // GET BALANCE (AJAX)
     // =============================================
