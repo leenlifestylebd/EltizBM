@@ -126,10 +126,16 @@ class WooCommerceController extends Controller
 
         Log::info('WooCommerce webhook received', ['topic' => $topic, 'source' => $source]);
 
-        // Find business by store URL
-        $wooSettings = WoocommerceSetting::where('store_url', 'like', '%' . parse_url($source, PHP_URL_HOST) . '%')
-            ->where('is_active', true)
-            ->first();
+        // Find business by store URL or first active
+        if ($source) {
+            $wooSettings = WoocommerceSetting::where('store_url', 'like', '%' . parse_url($source, PHP_URL_HOST) . '%')
+                ->where('is_active', true)
+                ->first();
+        }
+
+        if (!$wooSettings) {
+            $wooSettings = WoocommerceSetting::where('is_active', true)->first();
+        }
 
         if (!$wooSettings) {
             Log::warning('WooCommerce webhook: no matching store found for ' . $source);
