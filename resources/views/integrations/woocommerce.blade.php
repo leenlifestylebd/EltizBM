@@ -82,6 +82,17 @@
                        placeholder="cs_xxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxx">
             </div>
 
+            <div>
+                <label class="block text-xs font-medium text-gray-700 dark:text-slate-300 mb-1.5">
+                    Webhook Secret <span class="text-xs text-gray-400">(optional)</span>
+                </label>
+                <input type="text" name="webhook_secret"
+                       value="{{ old('webhook_secret', $wooSettings->webhook_secret ?? '') }}"
+                       class="w-full px-3 py-2.5 text-sm border border-gray-200 dark:border-slate-600 rounded-lg bg-white dark:bg-slate-700 text-gray-900 dark:text-white focus:outline-none focus:ring-2 focus:ring-blue-500 font-mono"
+                       placeholder="WooCommerce webhook secret key">
+                <p class="text-xs text-gray-400 dark:text-slate-500 mt-1">WooCommerce → Webhooks → Secret field থেকে copy করো</p>
+            </div>
+
             {{-- How to get keys --}}
             <div class="bg-blue-50 dark:bg-blue-900/20 border border-blue-100 dark:border-blue-800 rounded-lg p-3">
                 <p class="text-xs font-semibold text-blue-700 dark:text-blue-400 mb-1">How to get API keys?</p>
