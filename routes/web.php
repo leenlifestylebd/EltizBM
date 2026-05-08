@@ -176,6 +176,76 @@ Route::middleware(['auth', 'business'])->group(function () {
     Route::get('/production', [EmployeeController::class, 'productionOverview'])->name('production.index');
     Route::get('/attendance', [EmployeeController::class, 'attendanceOverview'])->name('attendance.index');
 
+    // ---- PRODUCTION SYSTEM ----
+    Route::prefix('production')->name('production.')->group(function () {
+        Route::get('/',                [App\Http\Controllers\ProductionController::class, 'index'])->name('index');
+        Route::post('/',               [App\Http\Controllers\ProductionController::class, 'store'])->name('store');
+        Route::delete('/{entry}',      [App\Http\Controllers\ProductionController::class, 'destroy'])->name('destroy');
+        Route::get('/rates',           [App\Http\Controllers\ProductionController::class, 'rates'])->name('rates');
+        Route::post('/rates',          [App\Http\Controllers\ProductionController::class, 'storeRate'])->name('rates.store');
+        Route::put('/rates/{rate}',    [App\Http\Controllers\ProductionController::class, 'updateRate'])->name('rates.update');
+        Route::delete('/rates/{rate}', [App\Http\Controllers\ProductionController::class, 'destroyRate'])->name('rates.destroy');
+        Route::get('/payroll',         [App\Http\Controllers\ProductionController::class, 'payroll'])->name('payroll');
+        Route::post('/payment',        [App\Http\Controllers\ProductionController::class, 'storePayment'])->name('payment.store');
+        Route::get('/my-dashboard',    [App\Http\Controllers\ProductionController::class, 'workerDashboard'])->name('worker.dashboard');
+    });
+
+    // ---- PRODUCTION SYSTEM ----
+    Route::prefix('production')->name('production.')->group(function () {
+        Route::get('/',                [App\Http\Controllers\ProductionController::class, 'index'])->name('index');
+        Route::post('/',               [App\Http\Controllers\ProductionController::class, 'store'])->name('store');
+        Route::delete('/{entry}',      [App\Http\Controllers\ProductionController::class, 'destroy'])->name('destroy');
+        Route::get('/rates',           [App\Http\Controllers\ProductionController::class, 'rates'])->name('rates');
+        Route::post('/rates',          [App\Http\Controllers\ProductionController::class, 'storeRate'])->name('rates.store');
+        Route::put('/rates/{rate}',    [App\Http\Controllers\ProductionController::class, 'updateRate'])->name('rates.update');
+        Route::delete('/rates/{rate}', [App\Http\Controllers\ProductionController::class, 'destroyRate'])->name('rates.destroy');
+        Route::get('/payroll',         [App\Http\Controllers\ProductionController::class, 'payroll'])->name('payroll');
+        Route::post('/payment',        [App\Http\Controllers\ProductionController::class, 'storePayment'])->name('payment.store');
+        Route::get('/my-dashboard',    [App\Http\Controllers\ProductionController::class, 'workerDashboard'])->name('worker.dashboard');
+    });
+
+    // ---- PRODUCTION SYSTEM ----
+    Route::prefix('production')->name('production.')->group(function () {
+        Route::get('/',                [App\Http\Controllers\ProductionController::class, 'index'])->name('index');
+        Route::post('/',               [App\Http\Controllers\ProductionController::class, 'store'])->name('store');
+        Route::delete('/{entry}',      [App\Http\Controllers\ProductionController::class, 'destroy'])->name('destroy');
+        Route::get('/rates',           [App\Http\Controllers\ProductionController::class, 'rates'])->name('rates');
+        Route::post('/rates',          [App\Http\Controllers\ProductionController::class, 'storeRate'])->name('rates.store');
+        Route::put('/rates/{rate}',    [App\Http\Controllers\ProductionController::class, 'updateRate'])->name('rates.update');
+        Route::delete('/rates/{rate}', [App\Http\Controllers\ProductionController::class, 'destroyRate'])->name('rates.destroy');
+        Route::get('/payroll',         [App\Http\Controllers\ProductionController::class, 'payroll'])->name('payroll');
+        Route::post('/payment',        [App\Http\Controllers\ProductionController::class, 'storePayment'])->name('payment.store');
+        Route::get('/my-dashboard',    [App\Http\Controllers\ProductionController::class, 'workerDashboard'])->name('worker.dashboard');
+    });
+
+    // ---- PRODUCTION SYSTEM ----
+    Route::prefix('production')->name('production.')->group(function () {
+        Route::get('/',                [App\Http\Controllers\ProductionController::class, 'index'])->name('index');
+        Route::post('/',               [App\Http\Controllers\ProductionController::class, 'store'])->name('store');
+        Route::delete('/{entry}',      [App\Http\Controllers\ProductionController::class, 'destroy'])->name('destroy');
+        Route::get('/rates',           [App\Http\Controllers\ProductionController::class, 'rates'])->name('rates');
+        Route::post('/rates',          [App\Http\Controllers\ProductionController::class, 'storeRate'])->name('rates.store');
+        Route::put('/rates/{rate}',    [App\Http\Controllers\ProductionController::class, 'updateRate'])->name('rates.update');
+        Route::delete('/rates/{rate}', [App\Http\Controllers\ProductionController::class, 'destroyRate'])->name('rates.destroy');
+        Route::get('/payroll',         [App\Http\Controllers\ProductionController::class, 'payroll'])->name('payroll');
+        Route::post('/payment',        [App\Http\Controllers\ProductionController::class, 'storePayment'])->name('payment.store');
+        Route::get('/my-dashboard',    [App\Http\Controllers\ProductionController::class, 'workerDashboard'])->name('worker.dashboard');
+    });
+
+    // ---- PRODUCTION SYSTEM ----
+    Route::prefix('production')->name('production.')->group(function () {
+        Route::get('/',                [App\Http\Controllers\ProductionController::class, 'index'])->name('index');
+        Route::post('/',               [App\Http\Controllers\ProductionController::class, 'store'])->name('store');
+        Route::delete('/{entry}',      [App\Http\Controllers\ProductionController::class, 'destroy'])->name('destroy');
+        Route::get('/rates',           [App\Http\Controllers\ProductionController::class, 'rates'])->name('rates');
+        Route::post('/rates',          [App\Http\Controllers\ProductionController::class, 'storeRate'])->name('rates.store');
+        Route::put('/rates/{rate}',    [App\Http\Controllers\ProductionController::class, 'updateRate'])->name('rates.update');
+        Route::delete('/rates/{rate}', [App\Http\Controllers\ProductionController::class, 'destroyRate'])->name('rates.destroy');
+        Route::get('/payroll',         [App\Http\Controllers\ProductionController::class, 'payroll'])->name('payroll');
+        Route::post('/payment',        [App\Http\Controllers\ProductionController::class, 'storePayment'])->name('payment.store');
+        Route::get('/my-dashboard',    [App\Http\Controllers\ProductionController::class, 'workerDashboard'])->name('worker.dashboard');
+    });
+
     // ---- TASKS ----
     Route::resource('tasks', TaskController::class);
 
