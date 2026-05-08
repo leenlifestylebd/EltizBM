@@ -162,35 +162,64 @@ class WooCommerceService
     // SYNC VARIANTS
     // =============================================
     protected function syncVariants(int $wooProductId, int $localProductId, int $businessId): void
-    {
-        try {
-            $response = $this->client()->get($this->baseUrl . "products/{$wooProductId}/variations", [
-                'per_page' => 100,
-            ]);
+{
+    try {
+        $response = $this->client()->get($this->baseUrl . "products/{$wooProductId}/variations", [
+            'per_page' => 100,
+        ]);
 
-            if (!$response->successful()) return;
+        if (!$response->successful()) return;
 
-            foreach ($response->json() as $variant) {
-                $attributes = collect($variant['attributes'])->mapWithKeys(
-                    fn($a) => [$a['name'] => $a['option']]
-                )->toArray();
+        // Get parent product info
+        $parent = Product::find($localProductId);
+        if (!$parent) return;
 
-                ProductVariant::updateOrCreate(
-                    ['woo_variant_id' => $variant['id']],
-                    [
-                        'product_id' => $localProductId,
-                        'name'       => collect($variant['attributes'])->pluck('option')->implode(' / '),
-                        'sku'        => $variant['sku'] ?: 'VAR-' . $variant['id'],
-                        'price'      => floatval($variant['regular_price'] ?: $variant['price'] ?: 0),
-                        'stock'      => $variant['stock_quantity'] ?? 0,
-                        'attributes' => $attributes,
-                    ]
-                );
-            }
-        } catch (\Exception $e) {
-            Log::warning('Variant sync failed', ['product' => $wooProductId, 'error' => $e->getMessage()]);
+        foreach ($response->json() as $variant) {
+            $attributes = collect($variant['attributes'])->mapWithKeys(
+                fn($a) => [$a['name'] => $a['option']]
+            )->toArray();
+
+            $variantName = $parent->name . ' - ' . collect($variant['attributes'])->pluck('option')->implode(' / ');
+
+            // Create as separate product
+            Product::updateOrCreate(
+                ['woo_product_id' => $variant['id']],
+                [
+                    'business_id'     => $businessId,
+                    'name'            => $variantName,
+                    'sku'             => $variant['sku'] ?: 'VAR-' . $variant['id'],
+                    'price'           => floatval($variant['regular_price'] ?: $variant['price'] ?: 0),
+                    'cost_price'      => $parent->cost_price ?? 0,
+                    'stock'           => $variant['stock_quantity'] ?? 0,
+                    'unit'            => $parent->unit ?? 'pcs',
+                    'category_id'     => $parent->category_id,
+                    'brand_id'        => $parent->brand_id,
+                    'images'          => $variant['image']['src'] ? [$variant['image']['src']] : $parent->images,
+                    'is_active'       => true,
+                    'track_stock'     => true,
+                    'low_stock_alert' => $parent->low_stock_alert ?? 5,
+                    'woo_product_id'  => $variant['id'],
+                    'woo_synced_at'   => now(),
+                ]
+            );
+
+            // Also keep in product_variants for reference
+            ProductVariant::updateOrCreate(
+                ['woo_variant_id' => $variant['id']],
+                [
+                    'product_id' => $localProductId,
+                    'name'       => collect($variant['attributes'])->pluck('option')->implode(' / '),
+                    'sku'        => $variant['sku'] ?: 'VAR-' . $variant['id'],
+                    'price'      => floatval($variant['regular_price'] ?: $variant['price'] ?: 0),
+                    'stock'      => $variant['stock_quantity'] ?? 0,
+                    'attributes' => $attributes,
+                ]
+            );
         }
+    } catch (\Exception $e) {
+        Log::warning('Variant sync failed', ['product' => $wooProductId, 'error' => $e->getMessage()]);
     }
+}
 
     // =============================================
     // SYNC STOCK: Fulfillo → WooCommerce
