@@ -121,7 +121,7 @@ class WooCommerceController extends Controller
     public function webhook(Request $request)
     {
         $topic     = $request->header('X-WC-Webhook-Topic');
-      //  $signature = $request->header('X-WC-Webhook-Signature');
+       $signature = $request->header('X-WC-Webhook-Signature');
         $source    = $request->header('X-WC-Webhook-Source');
 
         Log::info('WooCommerce webhook received', ['topic' => $topic, 'source' => $source]);
@@ -136,11 +136,11 @@ class WooCommerceController extends Controller
             return response()->json(['message' => 'Store not found'], 404);
         }
 
-        // Verify signature
-        if ($wooSettings->webhook_secret) {
+        // Verify signature (optional)
+        if ($wooSettings->webhook_secret && $signature) {
             $payload   = $request->getContent();
             $hash      = base64_encode(hash_hmac('sha256', $payload, $wooSettings->webhook_secret, true));
-            if (!hash_equals($hash, $signature ?? '')) {
+            if (!hash_equals($hash, $signature)) {
                 Log::warning('WooCommerce webhook: invalid signature');
                 return response()->json(['message' => 'Invalid signature'], 401);
             }
