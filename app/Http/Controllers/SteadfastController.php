@@ -1,0 +1,337 @@
+<?php
+
+namespace App\Http\Controllers;
+
+use App\Models\Order;
+use App\Models\Shipment;
+use App\Models\CourierSetting;
+use App\Services\SteadfastService;
+use Illuminate\Http\Request;
+use Illuminate\Support\Facades\Log;
+
+class SteadfastController extends Controller
+{
+    // =============================================
+    // GET SERVICE INSTANCE
+    // =============================================
+    private function getService(): ?SteadfastService
+    {
+        $setting = CourierSetting::where('business_id', auth()->user()->business_id)
+            ->where('provider', 'steadfast')
+            ->where('is_active', true)
+            ->first();
+
+        if (!$setting || !$setting->api_key || !$setting->api_secret) {
+            return null;
+        }
+
+        return new SteadfastService($setting->api_key, $setting->api_secret);
+    }
+
+    // =============================================
+    // STEADFAST DASHBOARD
+    // =============================================
+    public function index()
+    {
+        $bizId   = auth()->user()->business_id;
+        $service = $this->getService();
+
+        $balance         = null;
+        $isConnected     = $service !== null;
+
+        if ($service) {
+            $balanceRes = $service->getBalance();
+            $balance    = $balanceRes['current_balance'] ?? null;
+        }
+
+        // Recent steadfast shipments
+        $shipments = Shipment::where('business_id', $bizId)
+            ->where('courier_name', 'Steadfast')
+            ->with('order')
+            ->orderByDesc('created_at')
+            ->paginate(20);
+
+        // Orders ready to send (confirmed/processing, not yet shipped)
+        $readyOrders = Order::where('business_id', $bizId)
+            ->whereIn('status', ['confirmed', 'processing'])
+            ->whereDoesntHave('shipments', fn($q) => $q->where('courier_name', 'Steadfast'))
+            ->with('customer')
+            ->orderByDesc('created_at')
+            ->paginate(20);
+
+        return view('integrations.steadfast.index', compact(
+            'isConnected', 'balance', 'shipments', 'readyOrders'
+        ));
+    }
+
+    // =============================================
+    // SEND SINGLE ORDER TO STEADFAST
+    // =============================================
+    public function sendOrder(Request $request, Order $order)
+    {
+        abort_if($order->business_id !== auth()->user()->business_id, 403);
+
+        $service = $this->getService();
+        if (!$service) {
+            return back()->with('error', 'Steadfast is not connected. Go to Integrations → Courier Providers.');
+        }
+
+        $response = $service->placeOrder([
+            'invoice'           => $order->order_number,
+            'recipient_name'    => $order->customer_name,
+            'recipient_phone'   => $order->customer_phone,
+            'recipient_address' => trim(implode(', ', array_filter([
+                $order->shipping_address,
+                $order->shipping_area,
+                $order->shipping_district,
+            ]))),
+            'cod_amount'        => $order->due_amount > 0 ? $order->due_amount : 0,
+            'note'              => $order->notes,
+        ]);
+
+        if (($response['status'] ?? 0) === 200) {
+            $consignment = $response['consignment'];
+
+            Shipment::create([
+                'business_id'  => auth()->user()->business_id,
+                'order_id'     => $order->id,
+                'courier_name' => 'Steadfast',
+                'tracking_id'  => $consignment['tracking_code'],
+                'status'       => 'pending',
+                'charge'       => 0,
+                'cod_amount'   => $consignment['cod_amount'] ?? 0,
+                'notes'        => 'Consignment ID: ' . $consignment['consignment_id'],
+                'shipped_at'   => now(),
+            ]);
+
+            $order->update(['status' => 'shipped']);
+
+            return back()->with('success', "✅ Sent to Steadfast! Tracking: {$consignment['tracking_code']}");
+        }
+
+        return back()->with('error', '❌ Failed: ' . ($response['message'] ?? 'Unknown error'));
+    }
+
+    // =============================================
+    // BULK SEND ORDERS
+    // =============================================
+    public function bulkSend(Request $request)
+    {
+        $request->validate(['order_ids' => 'required|array|min:1|max:500']);
+
+        $bizId   = auth()->user()->business_id;
+        $service = $this->getService();
+
+        if (!$service) {
+            return back()->with('error', 'Steadfast is not connected.');
+        }
+
+        $orders = Order::where('business_id', $bizId)
+            ->whereIn('id', $request->order_ids)
+            ->get();
+
+        if ($orders->isEmpty()) {
+            return back()->with('error', 'No orders found.');
+        }
+
+        // Build data for bulk API
+        $bulkData = $orders->map(fn($order) => [
+            'invoice'           => $order->order_number,
+            'recipient_name'    => $order->customer_name,
+            'recipient_phone'   => $order->customer_phone ?? '01000000000',
+            'recipient_address' => trim(implode(', ', array_filter([
+                $order->shipping_address,
+                $order->shipping_area,
+                $order->shipping_district,
+            ]))) ?: 'N/A',
+            'cod_amount'        => $order->due_amount > 0 ? $order->due_amount : 0,
+            'note'              => $order->notes,
+        ])->toArray();
+
+        $results = $service->bulkCreate($bulkData);
+
+        // Process results
+        $success = 0;
+        $failed  = 0;
+
+        foreach ($results as $result) {
+            if (($result['status'] ?? '') === 'success' && $result['consignment_id']) {
+                // Find matching order
+                $order = $orders->firstWhere('order_number', $result['invoice']);
+                if ($order) {
+                    Shipment::create([
+                        'business_id'  => $bizId,
+                        'order_id'     => $order->id,
+                        'courier_name' => 'Steadfast',
+                        'tracking_id'  => $result['tracking_code'],
+                        'status'       => 'pending',
+                        'charge'       => 0,
+                        'cod_amount'   => $result['cod_amount'] ?? 0,
+                        'notes'        => 'Consignment ID: ' . $result['consignment_id'],
+                        'shipped_at'   => now(),
+                    ]);
+                    $order->update(['status' => 'shipped']);
+                    $success++;
+                }
+            } else {
+                $failed++;
+            }
+        }
+
+        $msg = "✅ {$success} orders sent to Steadfast successfully!";
+        if ($failed > 0) $msg .= " ❌ {$failed} failed.";
+
+        return back()->with('success', $msg);
+    }
+
+    // =============================================
+    // CHECK STATUS (AJAX)
+    // =============================================
+    public function checkStatus(Request $request)
+    {
+        $service = $this->getService();
+        if (!$service) {
+            return response()->json(['error' => 'Not connected'], 400);
+        }
+
+        $type  = $request->type ?? 'tracking';
+        $value = $request->value;
+
+        $result = match($type) {
+            'consignment' => $service->statusByConsignmentId($value),
+            'invoice'     => $service->statusByInvoice($value),
+            default       => $service->statusByTrackingCode($value),
+        };
+
+        // Auto-update shipment status
+        if (isset($result['delivery_status'])) {
+            $shipment = Shipment::where('courier_name', 'Steadfast')
+                ->where(fn($q) => $q->where('tracking_id', $value))
+                ->where('business_id', auth()->user()->business_id)
+                ->first();
+
+            if ($shipment) {
+                $newStatus = SteadfastService::mapStatus($result['delivery_status']);
+                $shipment->update(['status' => $newStatus]);
+
+                // Auto mark order delivered + COD paid
+                if ($newStatus === 'delivered') {
+                    $shipment->order->update([
+                        'status'         => 'delivered',
+                        'paid_amount'    => $shipment->order->total,
+                        'due_amount'     => 0,
+                        'payment_status' => 'paid',
+                    ]);
+                }
+            }
+        }
+
+        return response()->json($result);
+    }
+
+    // =============================================
+    // SYNC ALL STEADFAST SHIPMENTS STATUS
+    // =============================================
+    public function syncStatus()
+    {
+        $bizId   = auth()->user()->business_id;
+        $service = $this->getService();
+
+        if (!$service) {
+            return back()->with('error', 'Steadfast is not connected.');
+        }
+
+        $shipments = Shipment::where('business_id', $bizId)
+            ->where('courier_name', 'Steadfast')
+            ->whereNotIn('status', ['delivered', 'cancelled'])
+            ->whereNotNull('tracking_id')
+            ->get();
+
+        $updated = 0;
+
+        foreach ($shipments as $shipment) {
+            $result = $service->statusByTrackingCode($shipment->tracking_id);
+
+            if (isset($result['delivery_status'])) {
+                $newStatus = SteadfastService::mapStatus($result['delivery_status']);
+
+                if ($newStatus !== $shipment->status) {
+                    $shipment->update(['status' => $newStatus]);
+
+                    if ($newStatus === 'delivered') {
+                        $shipment->order->update([
+                            'status'         => 'delivered',
+                            'paid_amount'    => $shipment->order->total,
+                            'due_amount'     => 0,
+                            'payment_status' => 'paid',
+                        ]);
+                    }
+                    $updated++;
+                }
+            }
+        }
+
+        return back()->with('success', "✅ Synced! {$updated} shipments updated.");
+    }
+
+    // =============================================
+    // WEBHOOK (Steadfast → Our App)
+    // =============================================
+    public function webhook(Request $request)
+    {
+        // Verify bearer token
+        $token   = $request->header('Authorization');
+        $setting = CourierSetting::where('provider', 'steadfast')->first();
+
+        $bearerToken = $setting?->config['webhook_token'] ?? config('app.key');
+
+        if ($token !== 'Bearer ' . $bearerToken) {
+            Log::warning('Steadfast webhook: unauthorized', ['token' => $token]);
+            return response()->json(['error' => 'Unauthorized'], 401);
+        }
+
+        $payload = $request->all();
+
+        // Required fields
+        if (!isset($payload['consignment_id'], $payload['status'])) {
+            return response()->json(['error' => 'Invalid payload'], 400);
+        }
+
+        // Find shipment
+        $shipment = Shipment::where('courier_name', 'Steadfast')
+            ->where('notes', 'LIKE', '%' . $payload['consignment_id'] . '%')
+            ->first();
+
+        if ($shipment) {
+            $newStatus = SteadfastService::mapStatus($payload['status']);
+            $shipment->update(['status' => $newStatus]);
+
+            if ($newStatus === 'delivered') {
+                $shipment->update(['delivered_at' => now()]);
+                $shipment->order->update([
+                    'status'         => 'delivered',
+                    'paid_amount'    => $payload['cod_amount'] ?? $shipment->order->total,
+                    'due_amount'     => 0,
+                    'payment_status' => 'paid',
+                ]);
+            } elseif ($newStatus === 'cancelled') {
+                $shipment->order->update(['status' => 'processing']);
+            }
+        }
+
+        Log::info('Steadfast webhook processed', $payload);
+        return response()->json(['status' => 'success'], 200);
+    }
+
+    // =============================================
+    // GET BALANCE (AJAX)
+    // =============================================
+    public function getBalance()
+    {
+        $service = $this->getService();
+        if (!$service) {
+            return response()->json(['error' => 'Not connected'], 400);
+        }
+        return response()->json($service->getBalance());
+    }
+}

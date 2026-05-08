@@ -1,0 +1,217 @@
+<?php
+
+namespace App\Http\Controllers;
+
+use App\Models\Order;
+use App\Models\OrderItem;
+use App\Models\Product;
+use App\Models\Customer;
+use App\Models\Transaction;
+use App\Models\Category;
+use App\Jobs\SyncWooCommerceStock;
+use App\Models\WoocommerceSetting;
+use Illuminate\Http\Request;
+use Illuminate\Support\Str;
+use Illuminate\Support\Facades\DB;
+
+class PosController extends Controller
+{
+    // =============================================
+    // POS PAGE
+    // =============================================
+    public function index()
+    {
+        $bizId = auth()->user()->business_id;
+
+        // Load all active products with necessary fields for POS
+        $products = Product::where('business_id', $bizId)
+            ->where('is_active', true)
+            ->where('type', 'simple') // POS handles simple products only
+            ->select('id','name','sku','barcode','price','sale_price','cost_price','stock','images','unit','category_id')
+            ->orderBy('name')
+            ->get()
+            ->map(fn($p) => [
+                'id'          => $p->id,
+                'name'        => $p->name,
+                'sku'         => $p->sku,
+                'barcode'     => $p->barcode,
+                'price'       => floatval($p->sale_price ?? $p->price),
+                'cost_price'  => floatval($p->cost_price),
+                'stock'       => $p->stock,
+                'unit'        => $p->unit,
+                'category_id' => $p->category_id,
+                'image'       => $p->images ? \Illuminate\Support\Facades\Storage::url($p->images[0]) : null,
+            ]);
+
+        $categories = Category::where('business_id', $bizId)
+            ->where('is_active', true)
+            ->orderBy('name')
+            ->get();
+
+        return view('pos.index', compact('products', 'categories'));
+    }
+
+    // =============================================
+    // CHECKOUT (AJAX)
+    // =============================================
+    public function checkout(Request $request)
+    {
+        $request->validate([
+            'items'          => 'required|array|min:1',
+            'items.*.product_id'   => 'required|integer',
+            'items.*.product_name' => 'required|string',
+            'items.*.price'        => 'required|numeric|min:0',
+            'items.*.quantity'     => 'required|integer|min:1',
+            'items.*.total'        => 'required|numeric|min:0',
+            'total'          => 'required|numeric|min:0',
+            'payment_method' => 'required|string',
+        ]);
+
+        $bizId = auth()->user()->business_id;
+
+        try {
+            $order = DB::transaction(function () use ($request, $bizId) {
+
+                $subtotal   = collect($request->items)->sum('total');
+                $discount   = floatval($request->discount ?? 0);
+                $shipping   = floatval($request->shipping_charge ?? 0);
+                $total      = floatval($request->total);
+                $paid       = floatval($request->paid_amount ?? $total);
+                $due        = max(0, $total - $paid);
+
+                $payStatus  = $paid >= $total ? 'paid' : ($paid > 0 ? 'partial' : 'unpaid');
+
+                // Create order
+                $order = Order::create([
+                    'business_id'    => $bizId,
+                    'customer_id'    => $request->customer_id ?: null,
+                    'created_by'     => auth()->id(),
+                    'order_number'   => 'POS-' . strtoupper(Str::random(7)),
+                    'source'         => 'pos',
+                    'status'         => 'completed',
+                    'payment_status' => $payStatus,
+                    'payment_method' => $request->payment_method,
+                    'customer_name'  => $request->customer_name ?? 'Walk-in Customer',
+                    'customer_phone' => $request->customer_phone,
+                    'subtotal'       => $subtotal,
+                    'discount'       => $discount,
+                    'shipping_charge'=> $shipping,
+                    'total'          => $total,
+                    'paid_amount'    => $paid,
+                    'due_amount'     => $due,
+                ]);
+
+                // Create items + deduct stock
+                foreach ($request->items as $item) {
+                    OrderItem::create([
+                        'order_id'     => $order->id,
+                        'product_id'   => $item['product_id'],
+                        'product_name' => $item['product_name'],
+                        'price'        => $item['price'],
+                        'cost_price'   => $item['cost_price'] ?? 0,
+                        'quantity'     => $item['quantity'],
+                        'discount'     => $item['discount'] ?? 0,
+                        'total'        => $item['total'],
+                    ]);
+
+                    Product::where('id', $item['product_id'])
+                        ->where('track_stock', true)
+                        ->where('business_id', $bizId)
+                        ->decrement('stock', $item['quantity']);
+                }
+
+                // Income transaction
+                Transaction::create([
+                    'business_id'      => $bizId,
+                    'created_by'       => auth()->id(),
+                    'order_id'         => $order->id,
+                    'type'             => 'income',
+                    'title'            => 'POS Sale #' . $order->order_number,
+                    'amount'           => $paid,
+                    'payment_method'   => $request->payment_method,
+                    'transaction_date' => today(),
+                ]);
+
+                // Update customer due
+                if ($request->customer_id && $due > 0) {
+                    Customer::where('id', $request->customer_id)
+                        ->increment('due_amount', $due);
+                    Customer::where('id', $request->customer_id)
+                        ->increment('total_purchase', $total);
+                }
+
+                return $order;
+            });
+
+            // Push stock to WooCommerce in background if connected
+            $wooSettings = WoocommerceSetting::where('business_id', $bizId)
+                ->where('is_active', true)
+                ->where('sync_stock', true)
+                ->first();
+
+            if ($wooSettings) {
+                SyncWooCommerceStock::dispatch($bizId)->onQueue('low');
+            }
+
+            return response()->json([
+                'success'      => true,
+                'order_id'     => $order->id,
+                'order_number' => $order->order_number,
+                'message'      => 'Sale completed!',
+            ]);
+
+        } catch (\Exception $e) {
+            return response()->json([
+                'success' => false,
+                'message' => $e->getMessage(),
+            ], 500);
+        }
+    }
+
+    // =============================================
+    // RECEIPT
+    // =============================================
+    public function receipt(Order $order)
+    {
+        abort_if($order->business_id !== auth()->user()->business_id, 403);
+        $order->load('items');
+        $business = auth()->user()->business;
+        return view('pos.receipt', compact('order', 'business'));
+    }
+
+    // =============================================
+    // BARCODE SCAN (AJAX)
+    // =============================================
+    public function scanBarcode(Request $request)
+    {
+        $bizId   = auth()->user()->business_id;
+        $barcode = $request->barcode;
+
+        $product = Product::where('business_id', $bizId)
+            ->where(function ($q) use ($barcode) {
+                $q->where('barcode', $barcode)
+                  ->orWhere('sku', $barcode);
+            })
+            ->where('is_active', true)
+            ->first();
+
+        if (!$product) {
+            return response()->json(['product' => null, 'message' => 'Product not found']);
+        }
+
+        return response()->json([
+            'product' => [
+                'id'          => $product->id,
+                'name'        => $product->name,
+                'sku'         => $product->sku,
+                'barcode'     => $product->barcode,
+                'price'       => floatval($product->sale_price ?? $product->price),
+                'cost_price'  => floatval($product->cost_price),
+                'stock'       => $product->stock,
+                'unit'        => $product->unit,
+                'category_id' => $product->category_id,
+                'image'       => $product->images ? \Illuminate\Support\Facades\Storage::url($product->images[0]) : null,
+            ]
+        ]);
+    }
+}
