@@ -338,6 +338,44 @@ class OrderController extends Controller
                     'due_amount'     => 0,
                     'payment_status' => 'paid',
                 ]);
+                // Record income transaction
+                Transaction::create([
+                    'business_id'      => auth()->user()->business_id,
+                    'created_by'       => auth()->id(),
+                    'order_id'         => $order->id,
+                    'type'             => 'income',
+                    'title'            => 'COD collected for Order #' . $order->order_number,
+                    'amount'           => $order->total,
+                    'payment_method'   => 'cod',
+                    'transaction_date' => today(),
+                ]);
+            }
+
+            // Cancel/Return: reverse income transaction
+            if (in_array($status, ['cancelled', 'returned', 'refunded'])) {
+                if ($order->paid_amount > 0) {
+                    Transaction::create([
+                        'business_id'      => auth()->user()->business_id,
+                        'created_by'       => auth()->id(),
+                        'order_id'         => $order->id,
+                        'type'             => 'expense',
+                        'title'            => 'Refund for Order #' . $order->order_number,
+                        'amount'           => $order->paid_amount,
+                        'payment_method'   => $order->payment_method,
+                        'transaction_date' => today(),
+                    ]);
+                }
+                // Reset payment
+                $order->update([
+                    'paid_amount'    => 0,
+                    'due_amount'     => 0,
+                    'payment_status' => 'refunded',
+                ]);
+                // Update customer due
+                if ($order->customer_id) {
+                    Customer::where('id', $order->customer_id)
+                        ->decrement('due_amount', $order->due_amount);
+                }
             }
         }
 
