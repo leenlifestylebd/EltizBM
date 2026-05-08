@@ -14,6 +14,10 @@ return Application::configure(basePath: dirname(__DIR__))
         $middleware->alias([
             'business' => \App\Http\Middleware\BusinessMiddleware::class,
         ]);
+        $middleware->validateCsrfTokens(except: [
+            'webhooks/woocommerce',
+            'webhook/steadfast',
+        ]);
     })
     ->withExceptions(function (Exceptions $exceptions): void {
         //
