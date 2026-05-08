@@ -121,7 +121,7 @@ class WooCommerceController extends Controller
     public function webhook(Request $request)
     {
         $topic     = $request->header('X-WC-Webhook-Topic');
-        $signature = $request->header('X-WC-Webhook-Signature');
+      //  $signature = $request->header('X-WC-Webhook-Signature');
         $source    = $request->header('X-WC-Webhook-Source');
 
         Log::info('WooCommerce webhook received', ['topic' => $topic, 'source' => $source]);
