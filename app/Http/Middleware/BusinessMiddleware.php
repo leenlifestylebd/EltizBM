@@ -22,6 +22,7 @@ class BusinessMiddleware
         if ($user->role === 'employee') {
             $allowed = [
                 'production.worker.dashboard',
+                'production.store',
                 'logout',
             ];
             if (!in_array($request->route()->getName(), $allowed)) {
