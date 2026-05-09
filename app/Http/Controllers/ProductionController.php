@@ -137,13 +137,10 @@ class ProductionController extends Controller
                 'attendances'       => fn($q) => $q->whereBetween('attendance_date', [$startDate, $endDate]),
             ])
             ->get()
-            ->map(function ($emp) use ($startDate, $endDate) {
-
+            ->map(function ($emp) {
                 if ($emp->type === 'production') {
-                    // Production based salary
                     $totalEarning = $emp->productionEntries->sum('amount');
                 } else {
-                    // Fixed salary with attendance
                     $presentDays  = $emp->attendances->whereIn('status', ['present', 'half_day'])->count();
                     $workingDays  = $emp->working_days ?: 26;
                     $perDay       = $emp->salary / $workingDays;
@@ -154,8 +151,7 @@ class ProductionController extends Controller
                 $totalBonus   = $emp->payments->where('type', 'bonus')->sum('amount');
                 $totalDeduct  = $emp->payments->where('type', 'deduction')->sum('amount');
                 $totalPaid    = $emp->payments->where('type', 'salary')->sum('amount');
-
-                $netPayable = $totalEarning + $totalBonus - $totalAdvance - $totalDeduct - $totalPaid;
+                $netPayable   = $totalEarning + $totalBonus - $totalAdvance - $totalDeduct - $totalPaid;
 
                 $emp->total_earning = $totalEarning;
                 $emp->total_advance = $totalAdvance;
@@ -194,7 +190,6 @@ class ProductionController extends Controller
             'notes'          => $request->notes,
         ]);
 
-        // Record in transactions
         Transaction::create([
             'business_id'      => auth()->user()->business_id,
             'created_by'       => auth()->id(),
@@ -219,7 +214,13 @@ class ProductionController extends Controller
 
         $employee = Employee::where('business_id', $bizId)
             ->where('user_id', $userId)
-            ->firstOrFail();
+            ->first();
+
+        if (!$employee) {
+            auth()->logout();
+            return redirect()->route('login')
+                ->withErrors(['email' => 'No employee profile linked. Contact admin.']);
+        }
 
         $startDate = Carbon::parse($month . '-01')->startOfMonth();
         $endDate   = Carbon::parse($month . '-01')->endOfMonth();
