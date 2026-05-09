@@ -142,7 +142,7 @@
                                    class="w-4 h-4 text-blue-600 border-gray-300 rounded">
                         </td>
                         <td class="px-4 py-3">
-                            <a href="{{ route('orders.show', $order) }}" class="font-semibold text-blue-600 dark:text-blue-400 text-xs hover:underline">
+                            <a href="{{ $order->id ? route('orders.show', $order) : '#' }}" class="font-semibold text-blue-600 dark:text-blue-400 text-xs hover:underline">
                                 #{{ $order->order_number }}
                             </a>
                             <p class="text-xs text-gray-400 dark:text-slate-500">{{ $order->created_at->format('d M') }}</p>
@@ -192,7 +192,7 @@
                            class="w-4 h-4 text-blue-600 border-gray-300 rounded mt-0.5 flex-shrink-0">
                     <div class="flex-1 min-w-0">
                         <div class="flex items-center justify-between">
-                            <a href="{{ route('orders.show', $order) }}" class="font-semibold text-blue-600 text-sm">#{{ $order->order_number }}</a>
+                            <a href="{{ $order->id ? route('orders.show', $order) : '#' }}" class="font-semibold text-blue-600 text-sm">#{{ $order->order_number }}</a>
                             <span class="font-bold text-gray-900 dark:text-white">৳{{ number_format($order->due_amount) }}</span>
                         </div>
                         <p class="text-sm font-medium text-gray-900 dark:text-white mt-0.5">{{ $order->customer_name }}</p>
@@ -247,7 +247,7 @@
                     @endphp
                     <tr class="hover:bg-gray-50 dark:hover:bg-slate-700/30 transition-colors">
                         <td class="px-4 py-3">
-                            <a href="{{ route('orders.show', $shipment->order) }}" class="font-semibold text-blue-600 dark:text-blue-400 text-xs hover:underline">
+                            <a href="{{ $shipment->order_id ? route('orders.show', $shipment->order) : '#' }}" class="font-semibold text-blue-600 dark:text-blue-400 text-xs hover:underline">
                                 #{{ $shipment->order->order_number }}
                             </a>
                             <p class="text-xs text-gray-400 dark:text-slate-500">{{ $shipment->created_at->format('d M') }}</p>
