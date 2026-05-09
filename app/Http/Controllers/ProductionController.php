@@ -98,8 +98,11 @@ class ProductionController extends Controller
         $rate   = ProductionRate::findOrFail($request->production_rate_id);
         $amount = $rate->rate * $request->quantity;
 
+        // Get business_id from employee (worker may have different business context)
+        $employee = Employee::findOrFail($request->employee_id);
+
         ProductionEntry::create([
-            'business_id'        => auth()->user()->business_id,
+            'business_id'        => $employee->business_id,
             'employee_id'        => $request->employee_id,
             'production_rate_id' => $request->production_rate_id,
             'entry_date'         => $request->entry_date,
@@ -107,6 +110,12 @@ class ProductionController extends Controller
             'amount'             => $amount,
             'notes'              => $request->notes,
         ]);
+
+        // Redirect back to worker dashboard if employee role
+        if (auth()->user()->role === 'employee') {
+            return redirect()->route('production.worker.dashboard')
+                ->with('success', "✅ Entry added! Amount: ৳{$amount}");
+        }
 
         return back()->with('success', "Entry added! Amount: ৳{$amount}");
     }
