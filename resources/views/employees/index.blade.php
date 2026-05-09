@@ -109,7 +109,7 @@
                class="flex-1 py-1.5 text-center text-xs font-medium text-blue-600 dark:text-blue-400 bg-blue-50 dark:bg-blue-900/20 rounded-lg hover:bg-blue-100 dark:hover:bg-blue-900/30 transition-colors">
                 View
             </a>
-            <a href="{{ route('employees.production', $emp) }}"
+            <a href="{{ route('production.index') }}"
                class="flex-1 py-1.5 text-center text-xs font-medium text-green-600 dark:text-green-400 bg-green-50 dark:bg-green-900/20 rounded-lg hover:bg-green-100 dark:hover:bg-green-900/30 transition-colors">
                 Production
             </a>
