@@ -81,17 +81,41 @@
 @endif
 
 {{-- Tabs --}}
-<div class="flex gap-1 mb-4 bg-gray-100 dark:bg-slate-700 p-1 rounded-xl" x-data="{ tab: 'ready' }">
+<div class="flex gap-1 mb-4 bg-gray-100 dark:bg-slate-700 p-1 rounded-xl" x-data="{ tab: '{{ $statusFilter ? 'sent' : 'ready' }}' }">
     <button @click="tab = 'ready'"
             class="flex-1 py-2 text-xs font-medium rounded-lg transition-colors"
             :class="tab === 'ready' ? 'bg-white dark:bg-slate-800 text-gray-900 dark:text-white shadow-sm' : 'text-gray-500 dark:text-slate-400'">
-        📦 Ready to Send ({{ $readyOrders->total() }})
+        📦 Ready ({{ $readyOrders->total() }})
     </button>
     <button @click="tab = 'sent'"
             class="flex-1 py-2 text-xs font-medium rounded-lg transition-colors"
             :class="tab === 'sent' ? 'bg-white dark:bg-slate-800 text-gray-900 dark:text-white shadow-sm' : 'text-gray-500 dark:text-slate-400'">
-        🚚 Sent Shipments ({{ $shipments->total() }})
+        🚚 All Sent ({{ $shipmentCounts[''] }})
     </button>
+</div>
+
+{{-- Shipment Status Tabs --}}
+<div class="flex gap-1.5 mb-3 overflow-x-auto pb-1 scrollbar-hide">
+    @foreach([
+        [''                  , 'All',               '📦'],
+        ['pending'           , 'Pending',            '⏳'],
+        ['approval_pending'  , 'Approval Pending',   '🔍'],
+        ['delivered'         , 'Delivered',          '✅'],
+        ['partial_delivered' , 'Partly Delivered',   '📬'],
+        ['cancelled'         , 'Cancelled',          '❌'],
+        ['in_review'         , 'In Review',          '🔎'],
+    ] as [$key, $label, $icon])
+    <a href="{{ route('steadfast.index', $key ? ['shipment_status' => $key] : []) }}"
+       class="flex-shrink-0 flex items-center gap-1 px-3 py-1.5 rounded-lg text-xs font-medium transition-colors whitespace-nowrap
+              {{ $statusFilter === $key ? 'bg-blue-600 text-white' : 'bg-white dark:bg-slate-800 text-gray-600 dark:text-slate-300 border border-gray-200 dark:border-slate-700 hover:bg-gray-50' }}">
+        {{ $icon }} {{ $label }}
+        @if($shipmentCounts[$key] > 0)
+            <span class="px-1.5 py-0.5 rounded-full text-xs {{ $statusFilter === $key ? 'bg-white/20 text-white' : 'bg-gray-100 dark:bg-slate-700 text-gray-600' }}">
+                {{ $shipmentCounts[$key] }}
+            </span>
+        @endif
+    </a>
+    @endforeach
 </div>
 
 {{-- TAB: Ready to Send --}}

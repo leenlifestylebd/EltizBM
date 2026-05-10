@@ -44,12 +44,29 @@ class SteadfastController extends Controller
             $balance    = $balanceRes['current_balance'] ?? null;
         }
 
-        // Recent steadfast shipments
-        $shipments = Shipment::where('business_id', $bizId)
+        // Recent steadfast shipments with status filter
+        $statusFilter = request('shipment_status', '');
+        $shipmentsQuery = Shipment::where('business_id', $bizId)
             ->where('courier_name', 'Steadfast')
             ->with('order')
-            ->orderByDesc('created_at')
-            ->paginate(20);
+            ->orderByDesc('created_at');
+
+        if ($statusFilter) {
+            $shipmentsQuery->where('status', $statusFilter);
+        }
+
+        $shipments = $shipmentsQuery->paginate(20);
+
+        // Status counts
+        $shipmentCounts = [
+            ''                   => Shipment::where('business_id', $bizId)->where('courier_name', 'Steadfast')->count(),
+            'pending'            => Shipment::where('business_id', $bizId)->where('courier_name', 'Steadfast')->where('status', 'pending')->count(),
+            'approval_pending'   => Shipment::where('business_id', $bizId)->where('courier_name', 'Steadfast')->where('status', 'approval_pending')->count(),
+            'delivered'          => Shipment::where('business_id', $bizId)->where('courier_name', 'Steadfast')->where('status', 'delivered')->count(),
+            'partial_delivered'  => Shipment::where('business_id', $bizId)->where('courier_name', 'Steadfast')->where('status', 'partial_delivered')->count(),
+            'cancelled'          => Shipment::where('business_id', $bizId)->where('courier_name', 'Steadfast')->where('status', 'cancelled')->count(),
+            'in_review'          => Shipment::where('business_id', $bizId)->where('courier_name', 'Steadfast')->where('status', 'in_review')->count(),
+        ];
 
         // Orders ready to send (confirmed/processing, not yet shipped)
         $readyOrders = Order::where('business_id', $bizId)
@@ -60,7 +77,7 @@ class SteadfastController extends Controller
             ->paginate(20);
 
         return view('integrations.steadfast.index', compact(
-            'isConnected', 'balance', 'shipments', 'readyOrders'
+            'isConnected', 'balance', 'shipments', 'readyOrders', 'shipmentCounts', 'statusFilter'
         ));
     }
 
