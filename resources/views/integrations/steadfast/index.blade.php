@@ -206,15 +206,18 @@
 <div x-show="tab === 'sent'" x-cloak>
 
     {{-- Bulk Print Bar --}}
-    <div id="bulkPrintBar" class="hidden bg-green-50 dark:bg-green-900/20 border border-green-200 rounded-xl p-3 mb-3 flex items-center justify-between">
-        <p class="text-sm font-medium text-green-700" id="selectedCount">0 selected</p>
+    <div id="bulkPrintBar" class="hidden bg-green-50 dark:bg-green-900/20 border border-green-200 rounded-xl p-3 mb-3">
+        <div class="flex items-center justify-between mb-2">
+            <p class="text-sm font-medium text-green-700" id="selectedCount">0 selected</p>
+            <button onclick="updateSelection()" class="text-xs text-gray-400">✕ Clear</button>
+        </div>
         <div class="flex gap-2">
             <form method="POST" action="{{ route('steadfast.labels') }}" id="bulkLabelForm" target="_blank">
                 @csrf
                 <div id="bulkLabelIds"></div>
-                <button type="button" onclick="submitBulkPrint('label')" class="px-3 py-1.5 bg-green-600 text-white text-xs font-medium rounded-lg hover:bg-green-700">🏷️ Print Labels</button>
+                <button type="button" onclick="submitBulkPrint('label')" class="flex-1 px-3 py-2 bg-green-600 text-white text-xs font-medium rounded-lg hover:bg-green-700 whitespace-nowrap">🏷️ Print Labels</button>
             </form>
-            <button type="button" onclick="submitBulkPrint('invoice')" class="px-3 py-1.5 bg-blue-600 text-white text-xs font-medium rounded-lg hover:bg-blue-700">📄 Print Invoices</button>
+            <button type="button" onclick="submitBulkPrint('invoice')" class="flex-1 px-3 py-2 bg-blue-600 text-white text-xs font-medium rounded-lg hover:bg-blue-700 whitespace-nowrap">📄 Print Invoices</button>
         </div>
     </div>
 
