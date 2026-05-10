@@ -4,6 +4,7 @@ namespace App\Http\Controllers;
 
 use App\Models\Order;
 use App\Models\Shipment;
+use App\Models\Transaction;
 use App\Models\CourierSetting;
 use App\Services\SteadfastService;
 use Illuminate\Http\Request;
@@ -23,6 +24,28 @@ class SteadfastController extends Controller
         }
 
         return new SteadfastService($setting->api_key, $setting->api_secret);
+    }
+
+    private function addIncomeTransaction(Shipment $shipment, float $amount): void
+    {
+        // Check if transaction already exists for this order
+        $exists = Transaction::where('order_id', $shipment->order_id)
+            ->where('type', 'income')
+            ->where('payment_method', 'cod')
+            ->exists();
+
+        if (!$exists) {
+            Transaction::create([
+                'business_id'      => $shipment->business_id,
+                'created_by'       => 1,
+                'order_id'         => $shipment->order_id,
+                'type'             => 'income',
+                'title'            => 'COD collected - Order #' . $shipment->order->order_number,
+                'amount'           => $amount,
+                'payment_method'   => 'cod',
+                'transaction_date' => today(),
+            ]);
+        }
     }
 
     public function index()
@@ -213,12 +236,14 @@ class SteadfastController extends Controller
                 $shipment->update(['status' => $newStatus]);
 
                 if ($newStatus === 'delivered') {
+                    $amount = $shipment->order->total;
                     $shipment->order->update([
                         'status'         => 'delivered',
-                        'paid_amount'    => $shipment->order->total,
+                        'paid_amount'    => $amount,
                         'due_amount'     => 0,
                         'payment_status' => 'paid',
                     ]);
+                    $this->addIncomeTransaction($shipment, $amount);
                 }
             }
         }
@@ -239,6 +264,7 @@ class SteadfastController extends Controller
             ->where('courier_name', 'Steadfast')
             ->whereNotIn('status', ['delivered', 'cancelled'])
             ->whereNotNull('tracking_id')
+            ->with('order')
             ->get();
 
         $updated = 0;
@@ -253,12 +279,14 @@ class SteadfastController extends Controller
                     $shipment->update(['status' => $newStatus]);
 
                     if ($newStatus === 'delivered') {
+                        $amount = $shipment->order->total;
                         $shipment->order->update([
                             'status'         => 'delivered',
-                            'paid_amount'    => $shipment->order->total,
+                            'paid_amount'    => $amount,
                             'due_amount'     => 0,
                             'payment_status' => 'paid',
                         ]);
+                        $this->addIncomeTransaction($shipment, $amount);
                     }
                     $updated++;
                 }
@@ -279,7 +307,7 @@ class SteadfastController extends Controller
     public function printLabels(Request $request)
     {
         $request->validate(['shipment_ids' => 'required|array']);
-        $bizId    = auth()->user()->business_id;
+        $bizId     = auth()->user()->business_id;
         $shipments = Shipment::whereIn('id', $request->shipment_ids)
             ->where('business_id', $bizId)
             ->with(['order.items.product', 'order.business'])
@@ -313,6 +341,7 @@ class SteadfastController extends Controller
             $shipment = Shipment::where('courier_name', 'Steadfast')
                 ->where(fn($q) => $q->where('consignment_id', $payload['consignment_id'])
                     ->orWhere('notes', 'LIKE', '%' . $payload['consignment_id'] . '%'))
+                ->with('order')
                 ->first();
 
             if (!$shipment && isset($payload['invoice'])) {
@@ -320,6 +349,7 @@ class SteadfastController extends Controller
                 if ($order) {
                     $shipment = Shipment::where('order_id', $order->id)
                         ->where('courier_name', 'Steadfast')
+                        ->with('order')
                         ->first();
                 }
             }
@@ -330,12 +360,14 @@ class SteadfastController extends Controller
 
                 if (strtolower($payload['status']) === 'delivered') {
                     $shipment->update(['delivered_at' => now()]);
+                    $codAmount = $payload['cod_amount'] ?? $shipment->order->total;
                     $shipment->order->update([
                         'status'         => 'delivered',
-                        'paid_amount'    => $payload['cod_amount'] ?? $shipment->order->total,
+                        'paid_amount'    => $codAmount,
                         'due_amount'     => 0,
                         'payment_status' => 'paid',
                     ]);
+                    $this->addIncomeTransaction($shipment, $codAmount);
                 }
 
                 if (strtolower($payload['status']) === 'cancelled') {
