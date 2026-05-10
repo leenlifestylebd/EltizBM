@@ -57,7 +57,7 @@
                 @forelse($shipments as $shipment)
                 <tr class="hover:bg-gray-50 dark:hover:bg-slate-700/30 transition-colors group">
                     <td class="px-4 py-3">
-                        <a href="{{ route('orders.show', $shipment->order) }}"
+                        <a href="{{ $shipment->order_id && $shipment->order ? route('orders.show', $shipment->order) : '#' }}"
                            class="font-semibold text-blue-600 dark:text-blue-400 hover:underline text-xs">
                             #{{ $shipment->order->order_number }}
                         </a>
