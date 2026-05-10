@@ -120,6 +120,7 @@ class SteadfastController extends Controller
 
         if (($response['status'] ?? 0) === 200) {
             $consignment = $response['consignment'];
+            \Illuminate\Support\Facades\Log::info('Steadfast response', ['consignment' => $consignment]);
 
             Shipment::create([
                 'business_id'    => auth()->user()->business_id,
