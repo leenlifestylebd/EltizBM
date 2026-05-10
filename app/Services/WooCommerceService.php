@@ -187,6 +187,7 @@ class WooCommerceService
                 [
                     'business_id'     => $businessId,
                     'name'            => $variantName,
+                    'slug'            => \Illuminate\Support\Str::slug($variantName) . '-' . $variant['id'],
                     'sku'             => $variant['sku'] ?: 'VAR-' . $variant['id'],
                     'price'           => floatval($variant['regular_price'] ?: $variant['price'] ?: 0),
                     'cost_price'      => $parent->cost_price ?? 0,
