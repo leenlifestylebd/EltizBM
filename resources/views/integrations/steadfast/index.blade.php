@@ -40,7 +40,7 @@
 
 {{-- Stats Cards --}}
 <div class="grid grid-cols-2 sm:grid-cols-4 gap-3 mb-4">
-    <div class="bg-white dark:bg-slate-800 rounded-xl p-3 border border-green-100 dark:border-green-900/30" x-data="{ balance: '{{ $balance }}' }">
+    <div class="bg-white dark:bg-slate-800 rounded-xl p-3 border border-green-100 dark:border-green-900/30">
         <div class="flex items-center justify-between mb-1">
             <p class="text-xs text-gray-500 dark:text-slate-400">Balance</p>
             <button onclick="refreshBalance()" class="p-1 text-gray-400 hover:text-blue-600">
@@ -109,8 +109,6 @@
 
 {{-- Ready to Send --}}
 <div x-show="tab === 'ready'" x-data="{ selectedOrders: [] }">
-
-    {{-- Bulk Send Bar --}}
     <div x-show="selectedOrders.length > 0" x-cloak class="bg-blue-50 dark:bg-blue-900/20 border border-blue-200 rounded-xl p-3 mb-3 flex items-center justify-between">
         <p class="text-sm font-medium text-blue-700"><span x-text="selectedOrders.length"></span> selected</p>
         <form method="POST" action="{{ route('steadfast.bulk-send') }}" id="bulkSendForm">
@@ -127,8 +125,6 @@
         <a href="{{ route('orders.index') }}" class="mt-2 inline-block text-xs text-blue-600 hover:underline">View Orders →</a>
     </div>
     @else
-
-    {{-- Desktop Table --}}
     <div class="hidden md:block bg-white dark:bg-slate-800 rounded-xl border border-gray-100 dark:border-slate-700 overflow-hidden">
         <table class="w-full text-sm">
             <thead>
@@ -162,7 +158,7 @@
                         @if($isConnected)
                         <form method="POST" action="{{ route('steadfast.send-order', $order) }}">
                             @csrf
-                            <button type="submit" class="px-3 py-1.5 bg-blue-600 text-white text-xs font-medium rounded-lg hover:bg-blue-700 transition-colors">Send →</button>
+                            <button type="submit" class="px-3 py-1.5 bg-blue-600 text-white text-xs font-medium rounded-lg hover:bg-blue-700">Send →</button>
                         </form>
                         @endif
                     </td>
@@ -175,7 +171,6 @@
         @endif
     </div>
 
-    {{-- Mobile Cards --}}
     <div class="md:hidden space-y-2">
         @foreach($readyOrders as $order)
         <div class="bg-white dark:bg-slate-800 rounded-xl border border-gray-100 dark:border-slate-700 p-4">
@@ -210,6 +205,19 @@
 {{-- Sent Shipments --}}
 <div x-show="tab === 'sent'" x-cloak>
 
+    {{-- Bulk Print Bar --}}
+    <div id="bulkPrintBar" class="hidden bg-green-50 dark:bg-green-900/20 border border-green-200 rounded-xl p-3 mb-3 flex items-center justify-between">
+        <p class="text-sm font-medium text-green-700" id="selectedCount">0 selected</p>
+        <div class="flex gap-2">
+            <form method="POST" action="{{ route('steadfast.labels') }}" id="bulkLabelForm" target="_blank">
+                @csrf
+                <div id="bulkLabelIds"></div>
+                <button type="button" onclick="submitBulkPrint('label')" class="px-3 py-1.5 bg-green-600 text-white text-xs font-medium rounded-lg hover:bg-green-700">🏷️ Print Labels</button>
+            </form>
+            <button type="button" onclick="submitBulkPrint('invoice')" class="px-3 py-1.5 bg-blue-600 text-white text-xs font-medium rounded-lg hover:bg-blue-700">📄 Print Invoices</button>
+        </div>
+    </div>
+
     @if($shipments->isEmpty())
     <div class="bg-white dark:bg-slate-800 rounded-xl border border-gray-100 dark:border-slate-700 py-16 text-center">
         <p class="text-4xl mb-3">🚚</p>
@@ -222,6 +230,7 @@
         <table class="w-full text-sm">
             <thead>
                 <tr class="bg-gray-50 dark:bg-slate-700/50 border-b border-gray-100 dark:border-slate-700">
+                    <th class="px-4 py-3"><input type="checkbox" id="selectAll" onchange="toggleSelectAll()" class="w-4 h-4 rounded"></th>
                     <th class="text-left px-4 py-3 text-xs font-medium text-gray-500">Order</th>
                     <th class="text-left px-4 py-3 text-xs font-medium text-gray-500">Customer</th>
                     <th class="text-left px-4 py-3 text-xs font-medium text-gray-500">Consignment</th>
@@ -244,6 +253,9 @@
                 };
                 @endphp
                 <tr class="hover:bg-gray-50 dark:hover:bg-slate-700/30">
+                    <td class="px-4 py-3">
+                        <input type="checkbox" value="{{ $shipment->id }}" onchange="updateSelection()" class="shipment-checkbox w-4 h-4 rounded">
+                    </td>
                     <td class="px-4 py-3">
                         <a href="{{ $shipment->order_id && $shipment->order ? route('orders.show', $shipment->order) : '#' }}" class="font-semibold text-blue-600 text-xs hover:underline">
                             #{{ $shipment->order->order_number ?? '—' }}
@@ -299,12 +311,15 @@
         @endphp
         <div class="bg-white dark:bg-slate-800 rounded-xl border border-gray-100 dark:border-slate-700 p-4">
             <div class="flex items-start justify-between mb-2">
-                <div>
-                    <a href="{{ $shipment->order_id && $shipment->order ? route('orders.show', $shipment->order) : '#' }}" class="font-semibold text-blue-600 text-sm">
-                        #{{ $shipment->order->order_number ?? '—' }}
-                    </a>
-                    <p class="text-sm font-medium text-gray-900 dark:text-white mt-0.5">{{ $shipment->order->customer_name ?? '—' }}</p>
-                    <p class="text-xs text-gray-400">{{ $shipment->order->customer_phone ?? '—' }}</p>
+                <div class="flex items-start gap-2">
+                    <input type="checkbox" value="{{ $shipment->id }}" onchange="updateSelection()" class="shipment-checkbox w-4 h-4 rounded mt-1">
+                    <div>
+                        <a href="{{ $shipment->order_id && $shipment->order ? route('orders.show', $shipment->order) : '#' }}" class="font-semibold text-blue-600 text-sm">
+                            #{{ $shipment->order->order_number ?? '—' }}
+                        </a>
+                        <p class="text-sm font-medium text-gray-900 dark:text-white mt-0.5">{{ $shipment->order->customer_name ?? '—' }}</p>
+                        <p class="text-xs text-gray-400">{{ $shipment->order->customer_phone ?? '—' }}</p>
+                    </div>
                 </div>
                 <div class="text-right">
                     <span class="inline-flex px-2 py-0.5 rounded-full text-xs font-medium {{ $sc }}">
@@ -363,6 +378,44 @@
 
 @push('scripts')
 <script>
+function updateSelection() {
+    const boxes = document.querySelectorAll('.shipment-checkbox:checked');
+    const bar   = document.getElementById('bulkPrintBar');
+    const count = document.getElementById('selectedCount');
+    if (boxes.length > 0) {
+        bar.classList.remove('hidden');
+        count.textContent = boxes.length + ' selected';
+    } else {
+        bar.classList.add('hidden');
+    }
+}
+
+function toggleSelectAll() {
+    const all = document.getElementById('selectAll').checked;
+    document.querySelectorAll('.shipment-checkbox').forEach(cb => cb.checked = all);
+    updateSelection();
+}
+
+function submitBulkPrint(type) {
+    const boxes = document.querySelectorAll('.shipment-checkbox:checked');
+    if (!boxes.length) return;
+
+    if (type === 'label') {
+        const cont = document.getElementById('bulkLabelIds');
+        cont.innerHTML = '';
+        boxes.forEach(cb => {
+            const i = document.createElement('input');
+            i.type = 'hidden'; i.name = 'shipment_ids[]'; i.value = cb.value;
+            cont.appendChild(i);
+        });
+        document.getElementById('bulkLabelForm').submit();
+    } else {
+        boxes.forEach(cb => {
+            window.open('/steadfast/invoice/' + cb.value, '_blank');
+        });
+    }
+}
+
 function checkStatus(code) {
     document.getElementById('statusValue').value = code;
     document.getElementById('statusModal').classList.remove('hidden');
