@@ -76,22 +76,30 @@
             </span>
         </div>
 
-        <div class="grid grid-cols-3 gap-2 mb-3">
+        <div class="grid grid-cols-2 gap-2 mb-3">
             <div class="bg-gray-50 dark:bg-slate-700/50 rounded-lg p-2 text-center">
                 <p class="text-sm font-bold text-gray-900 dark:text-white">{{ $emp->today_production }}</p>
-                <p class="text-xs text-gray-400 dark:text-slate-500">Today</p>
+                <p class="text-xs text-gray-400 dark:text-slate-500">Today Qty</p>
             </div>
             <div class="bg-gray-50 dark:bg-slate-700/50 rounded-lg p-2 text-center">
                 <p class="text-sm font-bold text-gray-900 dark:text-white">{{ $emp->month_production }}</p>
-                <p class="text-xs text-gray-400 dark:text-slate-500">This Month</p>
+                <p class="text-xs text-gray-400 dark:text-slate-500">Month Qty</p>
             </div>
-            <div class="bg-gray-50 dark:bg-slate-700/50 rounded-lg p-2 text-center">
-                @php $att = $emp->todayAttendance(); @endphp
-                <p class="text-sm font-bold {{ $att?->status === 'present' ? 'text-green-600 dark:text-green-400' : ($att?->status === 'absent' ? 'text-red-600 dark:text-red-400' : 'text-gray-400 dark:text-slate-500') }}">
-                    {{ $att ? ucfirst($att->status) : '—' }}
-                </p>
-                <p class="text-xs text-gray-400 dark:text-slate-500">Attend.</p>
+            <div class="bg-green-50 dark:bg-green-900/20 rounded-lg p-2 text-center">
+                <p class="text-sm font-bold text-green-600 dark:text-green-400">৳{{ number_format($emp->month_earning) }}</p>
+                <p class="text-xs text-gray-400 dark:text-slate-500">Earning</p>
             </div>
+            <div class="bg-red-50 dark:bg-red-900/20 rounded-lg p-2 text-center">
+                <p class="text-sm font-bold text-red-600 dark:text-red-400">৳{{ number_format($emp->month_advance) }}</p>
+                <p class="text-xs text-gray-400 dark:text-slate-500">Advance</p>
+            </div>
+        </div>
+        <div class="flex items-center justify-between px-2 py-1.5 rounded-lg mb-2
+            {{ $emp->month_net >= 0 ? 'bg-purple-50 dark:bg-purple-900/20' : 'bg-orange-50 dark:bg-orange-900/20' }}">
+            <span class="text-xs text-gray-500 dark:text-slate-400">Net Payable</span>
+            <span class="text-sm font-bold {{ $emp->month_net >= 0 ? 'text-purple-600 dark:text-purple-400' : 'text-orange-600' }}">
+                ৳{{ number_format(abs($emp->month_net)) }}{{ $emp->month_net < 0 ? ' (Overpaid)' : '' }}
+            </span>
         </div>
 
         <div class="flex items-center justify-between text-xs text-gray-500 dark:text-slate-400 mb-3">
