@@ -101,6 +101,8 @@ class ProductionController extends Controller
             'entry_date'         => $request->entry_date,
             'quantity'           => $request->quantity,
             'amount'             => $amount,
+            'size'               => $request->size,
+            'color'              => $request->color,
             'notes'              => $request->notes,
         ]);
 
