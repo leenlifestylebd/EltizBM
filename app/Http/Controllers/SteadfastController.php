@@ -371,8 +371,33 @@ class SteadfastController extends Controller
                     $this->addIncomeTransaction($shipment, $codAmount);
                 }
 
-                if (strtolower($payload['status']) === 'cancelled') {
-                    $shipment->order->update(['status' => 'processing']);
+                if (in_array(strtolower($payload['status']), ['cancelled', 'unknown'])) {
+                    // Restore stock
+                    foreach ($shipment->order->items as $item) {
+                        if ($item->product_id) {
+                            \App\Models\Product::where('id', $item->product_id)
+                                ->increment('stock', $item->quantity);
+                        }
+                    }
+                    // Reverse income if already paid
+                    if ($shipment->order->paid_amount > 0) {
+                        Transaction::create([
+                            'business_id'      => $shipment->business_id,
+                            'created_by'       => 1,
+                            'order_id'         => $shipment->order_id,
+                            'type'             => 'expense',
+                            'title'            => 'Return/Cancel - Order #' . $shipment->order->order_number,
+                            'amount'           => $shipment->order->paid_amount,
+                            'payment_method'   => 'cod',
+                            'transaction_date' => today(),
+                        ]);
+                    }
+                    $shipment->order->update([
+                        'status'         => 'returned',
+                        'paid_amount'    => 0,
+                        'due_amount'     => 0,
+                        'payment_status' => 'refunded',
+                    ]);
                 }
             }
         }
