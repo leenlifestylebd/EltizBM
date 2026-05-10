@@ -239,12 +239,15 @@ Route::middleware(['auth', 'business'])->group(function () {
 
     // ---- STEADFAST ----
     Route::prefix('steadfast')->name('steadfast.')->group(function () {
-        Route::get('/',              [SteadfastController::class, 'index'])->name('index');
-        Route::post('/send/{order}', [SteadfastController::class, 'sendOrder'])->name('send-order');
-        Route::post('/bulk-send',    [SteadfastController::class, 'bulkSend'])->name('bulk-send');
-        Route::get('/check-status',  [SteadfastController::class, 'checkStatus'])->name('check-status');
-        Route::post('/sync-status',  [SteadfastController::class, 'syncStatus'])->name('sync-status');
-        Route::get('/balance',       [SteadfastController::class, 'getBalance'])->name('get-balance');
+        Route::get('/',                        [SteadfastController::class, 'index'])->name('index');
+        Route::post('/send/{order}',           [SteadfastController::class, 'sendOrder'])->name('send-order');
+        Route::post('/bulk-send',              [SteadfastController::class, 'bulkSend'])->name('bulk-send');
+        Route::get('/check-status',            [SteadfastController::class, 'checkStatus'])->name('check-status');
+        Route::post('/sync-status',            [SteadfastController::class, 'syncStatus'])->name('sync-status');
+        Route::get('/balance',                 [SteadfastController::class, 'getBalance'])->name('get-balance');
+        Route::get('/label/{shipment}',        [SteadfastController::class, 'printLabel'])->name('label');
+        Route::post('/labels',                 [SteadfastController::class, 'printLabels'])->name('labels');
+        Route::get('/invoice/{shipment}',      [SteadfastController::class, 'printInvoice'])->name('invoice');
     });
 
     // ---- API (AJAX) ----
