@@ -214,6 +214,8 @@ Route::middleware(['auth', 'business'])->group(function () {
         Route::post('/users',         [SettingsController::class, 'storeUser'])->name('users.store');
         Route::put('/users/{user}',   [SettingsController::class, 'updateUser'])->name('users.update');
         Route::delete('/users/{user}',[SettingsController::class, 'destroyUser'])->name('users.destroy');
+        Route::post('/users/{user}/approve',[SettingsController::class, 'approveUser'])->name('users.approve');
+        Route::delete('/users/{user}/reject',[SettingsController::class, 'rejectUser'])->name('users.reject');
         Route::get('/statuses',       [SettingsController::class, 'statuses'])->name('statuses');
         Route::get('/warehouses',     [SettingsController::class, 'warehouses'])->name('warehouses');
         Route::post('/warehouses',    [SettingsController::class, 'storeWarehouse'])->name('warehouses.store');

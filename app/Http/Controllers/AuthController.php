@@ -13,17 +13,11 @@ use Illuminate\Validation\Rules;
 
 class AuthController extends Controller
 {
-    // =============================================
-    // SHOW LOGIN
-    // =============================================
     public function showLogin()
     {
         return view('auth.login');
     }
 
-    // =============================================
-    // LOGIN
-    // =============================================
     public function login(Request $request)
     {
         $request->validate([
@@ -35,10 +29,26 @@ class AuthController extends Controller
         $remember    = $request->boolean('remember');
 
         if (Auth::attempt($credentials, $remember)) {
-            $request->session()->regenerate();
+            $user = Auth::user();
 
-            // Update last login
-            Auth::user()->update(['last_login_at' => now()]);
+            // Check if approved
+            if (!$user->is_approved) {
+                Auth::logout();
+                return back()->withErrors([
+                    'email' => 'Your account is pending approval. Please wait for admin to approve your account.',
+                ])->onlyInput('email');
+            }
+
+            // Check if active
+            if (!$user->is_active) {
+                Auth::logout();
+                return back()->withErrors([
+                    'email' => 'Your account has been deactivated. Contact admin.',
+                ])->onlyInput('email');
+            }
+
+            $request->session()->regenerate();
+            $user->update(['last_login_at' => now()]);
 
             return redirect()->intended(route('dashboard'));
         }
@@ -48,17 +58,11 @@ class AuthController extends Controller
         ])->onlyInput('email');
     }
 
-    // =============================================
-    // SHOW REGISTER
-    // =============================================
     public function showRegister()
     {
         return view('auth.register');
     }
 
-    // =============================================
-    // REGISTER
-    // =============================================
     public function register(Request $request)
     {
         $request->validate([
@@ -71,15 +75,15 @@ class AuthController extends Controller
 
         // 1. Create business
         $business = Business::create([
-            'name'         => $request->business_name,
-            'slug'         => Str::slug($request->business_name) . '-' . Str::random(5),
-            'phone'        => $request->phone,
-            'email'        => $request->email,
-            'plan'         => 'basic',
-            'trial_ends_at'=> now()->addDays(14),
+            'name'          => $request->business_name,
+            'slug'          => Str::slug($request->business_name) . '-' . Str::random(5),
+            'phone'         => $request->phone,
+            'email'         => $request->email,
+            'plan'          => 'basic',
+            'trial_ends_at' => now()->addDays(14),
         ]);
 
-        // 2. Create owner user
+        // 2. Create owner user (pending approval)
         $user = User::create([
             'business_id'   => $business->id,
             'name'          => $request->name,
@@ -87,6 +91,7 @@ class AuthController extends Controller
             'phone'         => $request->phone,
             'password'      => Hash::make($request->password),
             'role'          => 'owner',
+            'is_approved'   => 0,
             'last_login_at' => now(),
         ]);
 
@@ -100,16 +105,11 @@ class AuthController extends Controller
             'is_default'  => true,
         ]);
 
-        Auth::login($user);
-        $request->session()->regenerate();
-
-        return redirect()->route('dashboard')
-            ->with('success', 'Welcome to Fulfillo! Your 14-day trial has started.');
+        // Don't login — show pending message
+        return redirect()->route('login')
+            ->with('status', '✅ Account created! Your account is pending admin approval. You will be notified once approved.');
     }
 
-    // =============================================
-    // LOGOUT
-    // =============================================
     public function logout(Request $request)
     {
         Auth::logout();
@@ -118,9 +118,6 @@ class AuthController extends Controller
         return redirect()->route('login');
     }
 
-    // =============================================
-    // FORGOT PASSWORD
-    // =============================================
     public function showForgotPassword()
     {
         return view('auth.forgot-password');
@@ -129,9 +126,7 @@ class AuthController extends Controller
     public function sendResetLink(Request $request)
     {
         $request->validate(['email' => 'required|email']);
-
         $status = Password::sendResetLink($request->only('email'));
-
         return $status === Password::RESET_LINK_SENT
             ? back()->with('success', __($status))
             : back()->withErrors(['email' => __($status)]);
@@ -165,9 +160,6 @@ class AuthController extends Controller
             : back()->withErrors(['email' => [__($status)]]);
     }
 
-    // =============================================
-    // PRIVATE HELPERS
-    // =============================================
     private function seedDefaultCategories(int $businessId): void
     {
         $incomeCategories  = ['Sales', 'Service', 'Other Income'];

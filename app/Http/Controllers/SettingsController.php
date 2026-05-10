@@ -107,9 +107,27 @@ class SettingsController extends Controller
     // =============================================
     public function userManagement()
     {
-        $bizId = auth()->user()->business_id;
-        $users = User::where('business_id', $bizId)->orderBy('name')->get();
-        return view('settings.user-management', compact('users'));
+        $bizId       = auth()->user()->business_id;
+        $users       = User::where('business_id', $bizId)->where('is_approved', 1)->orderBy('name')->get();
+        $pendingUsers = User::where('is_approved', 0)->orderByDesc('created_at')->get();
+        return view('settings.user-management', compact('users', 'pendingUsers'));
+    }
+
+    public function approveUser(User $user)
+    {
+        $user->update([
+            'is_approved' => 1,
+            'approved_by' => auth()->id(),
+            'approved_at' => now(),
+            'is_active'   => true,
+        ]);
+        return back()->with('success', $user->name . ' approved successfully!');
+    }
+
+    public function rejectUser(User $user)
+    {
+        $user->delete();
+        return back()->with('success', 'User rejected and removed.');
     }
 
     public function storeUser(Request $request)
@@ -130,6 +148,9 @@ class SettingsController extends Controller
             'permissions' => $request->permissions ?? [],
             'password'    => Hash::make($request->password),
             'is_active'   => true,
+            'is_approved' => 1,
+            'approved_by' => auth()->id(),
+            'approved_at' => now(),
         ]);
 
         return back()->with('success', 'User added!');
