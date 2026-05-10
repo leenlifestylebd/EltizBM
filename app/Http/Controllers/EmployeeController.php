@@ -3,7 +3,8 @@
 namespace App\Http\Controllers;
 
 use App\Models\Employee;
-use App\Models\ProductionLog;
+use App\Models\ProductionEntry;
+use App\Models\EmployeePayment;
 use App\Models\Attendance;
 use App\Models\Product;
 use App\Models\User;
@@ -13,9 +14,6 @@ use Carbon\Carbon;
 
 class EmployeeController extends Controller
 {
-    // =============================================
-    // INDEX
-    // =============================================
     public function index(Request $request)
     {
         $bizId = auth()->user()->business_id;
@@ -34,17 +32,21 @@ class EmployeeController extends Controller
             $query->where('status', $status);
         }
 
-        $employees = $query->paginate(18);
-
-        // Add today's production and month production
+        $employees  = $query->paginate(18);
         $today      = today();
         $monthStart = now()->startOfMonth();
 
         foreach ($employees as $emp) {
-            $emp->today_production = ProductionLog::where('employee_id', $emp->id)
-                ->whereDate('log_date', $today)->sum('quantity');
-            $emp->month_production = ProductionLog::where('employee_id', $emp->id)
-                ->whereBetween('log_date', [$monthStart, $today])->sum('quantity');
+            $emp->today_production = ProductionEntry::where('employee_id', $emp->id)
+                ->whereDate('entry_date', $today)->sum('quantity');
+            $emp->month_production = ProductionEntry::where('employee_id', $emp->id)
+                ->whereBetween('entry_date', [$monthStart, $today])->sum('quantity');
+            $emp->month_earning    = ProductionEntry::where('employee_id', $emp->id)
+                ->whereBetween('entry_date', [$monthStart, $today])->sum('amount');
+            $emp->month_advance    = EmployeePayment::where('employee_id', $emp->id)
+                ->whereBetween('payment_date', [$monthStart, $today])
+                ->whereIn('type', ['advance', 'deduction'])->sum('amount');
+            $emp->month_net        = $emp->month_earning - $emp->month_advance;
         }
 
         $stats = [
@@ -59,9 +61,6 @@ class EmployeeController extends Controller
         return view('employees.index', compact('employees', 'stats'));
     }
 
-    // =============================================
-    // CREATE / STORE
-    // =============================================
     public function create()
     {
         $bizId = auth()->user()->business_id;
@@ -93,48 +92,46 @@ class EmployeeController extends Controller
         return redirect()->route('employees.index')->with('success', 'Employee added!');
     }
 
-    // =============================================
-    // SHOW
-    // =============================================
     public function show(Employee $employee)
     {
         $this->authorize($employee);
 
-        $products = Product::where('business_id', auth()->user()->business_id)->get();
+        $monthStart = now()->startOfMonth();
+        $monthEnd   = now()->endOfMonth();
 
-        // Stats
-        $monthStart      = now()->startOfMonth();
-        $monthEnd        = now()->endOfMonth();
-        $monthProduction = ProductionLog::where('employee_id', $employee->id)
-            ->whereBetween('log_date', [$monthStart, $monthEnd])->sum('quantity');
+        $monthProduction = ProductionEntry::where('employee_id', $employee->id)
+            ->whereBetween('entry_date', [$monthStart, $monthEnd])->sum('quantity');
+
+        $monthEarning = ProductionEntry::where('employee_id', $employee->id)
+            ->whereBetween('entry_date', [$monthStart, $monthEnd])->sum('amount');
+
+        $monthAdvance = EmployeePayment::where('employee_id', $employee->id)
+            ->whereBetween('payment_date', [$monthStart, $monthEnd])
+            ->whereIn('type', ['advance', 'deduction'])->sum('amount');
 
         $monthAttendance = Attendance::where('employee_id', $employee->id)
             ->whereBetween('attendance_date', [$monthStart, $monthEnd])
             ->where('status', 'present')->count();
 
-        $avgQuality = ProductionLog::where('employee_id', $employee->id)
-            ->where('quality_rate', '>', 0)->avg('quality_rate') ?? 0;
+        $recentEntries = ProductionEntry::where('employee_id', $employee->id)
+            ->with('productionRate')
+            ->orderByDesc('entry_date')->limit(5)->get();
 
-        // Recent logs
-        $recentLogs = ProductionLog::where('employee_id', $employee->id)
-            ->with('product')->orderByDesc('log_date')->limit(5)->get();
-
-        $productionLogs = ProductionLog::where('employee_id', $employee->id)
-            ->with('product')->orderByDesc('log_date')->paginate(20);
+        $productionEntries = ProductionEntry::where('employee_id', $employee->id)
+            ->with('productionRate')
+            ->orderByDesc('entry_date')->paginate(20);
 
         $attendanceRecords = Attendance::where('employee_id', $employee->id)
             ->orderByDesc('attendance_date')->paginate(20);
 
-        // Last 7 days production for bar chart
         $last7Days = collect();
         for ($i = 6; $i >= 0; $i--) {
             $date = today()->subDays($i);
-            $qty  = ProductionLog::where('employee_id', $employee->id)
-                ->whereDate('log_date', $date)->sum('quantity');
+            $qty  = ProductionEntry::where('employee_id', $employee->id)
+                ->whereDate('entry_date', $date)->sum('quantity');
             $last7Days->push(['label' => $date->format('D'), 'qty' => $qty, 'date' => $date->format('Y-m-d')]);
         }
 
-        // Calendar data for current month
         $calendarStart = now()->startOfMonth()->dayOfWeek;
         $daysInMonth   = now()->daysInMonth;
         $attendanceMap = Attendance::where('employee_id', $employee->id)
@@ -143,15 +140,12 @@ class EmployeeController extends Controller
             ->get()->keyBy(fn($a) => $a->attendance_date->format('Y-m-d'));
 
         return view('employees.show', compact(
-            'employee', 'products', 'monthProduction', 'monthAttendance',
-            'avgQuality', 'recentLogs', 'productionLogs', 'attendanceRecords',
-            'last7Days', 'calendarStart', 'daysInMonth', 'attendanceMap'
+            'employee', 'monthProduction', 'monthEarning', 'monthAdvance',
+            'monthAttendance', 'recentEntries', 'productionEntries',
+            'attendanceRecords', 'last7Days', 'calendarStart', 'daysInMonth', 'attendanceMap'
         ));
     }
 
-    // =============================================
-    // EDIT / UPDATE
-    // =============================================
     public function edit(Employee $employee)
     {
         $this->authorize($employee);
@@ -180,45 +174,12 @@ class EmployeeController extends Controller
         return redirect()->route('employees.show', $employee)->with('success', 'Employee updated!');
     }
 
-    // =============================================
-    // PRODUCTION LOG
-    // =============================================
     public function production(Employee $employee)
     {
         $this->authorize($employee);
         return redirect()->route('employees.show', $employee)->with('tab', 'production');
     }
 
-    public function storeProduction(Request $request, Employee $employee)
-    {
-        $this->authorize($employee);
-
-        $request->validate([
-            'task_name' => 'required|string|max:255',
-            'quantity'  => 'required|integer|min:0',
-            'log_date'  => 'required|date',
-        ]);
-
-        ProductionLog::create([
-            'business_id'     => auth()->user()->business_id,
-            'employee_id'     => $employee->id,
-            'product_id'      => $request->product_id ?: null,
-            'task_name'       => $request->task_name,
-            'quantity'        => $request->quantity,
-            'target_quantity' => $request->target_quantity ?? 0,
-            'quality_rate'    => $request->quality_rate ?? 100,
-            'notes'           => $request->notes,
-            'log_date'        => $request->log_date,
-            'start_time'      => $request->start_time,
-            'end_time'        => $request->end_time,
-        ]);
-
-        return back()->with('success', 'Production logged!');
-    }
-
-    // =============================================
-    // ATTENDANCE
-    // =============================================
     public function attendance(Employee $employee)
     {
         $this->authorize($employee);
@@ -248,77 +209,6 @@ class EmployeeController extends Controller
         return back()->with('success', 'Attendance saved!');
     }
 
-    // =============================================
-    // PRODUCTION OVERVIEW (all employees)
-    // =============================================
-    public function productionOverview(Request $request)
-    {
-        $bizId = auth()->user()->business_id;
-        $date  = $request->date ? Carbon::parse($request->date) : today();
-
-        $employees = Employee::where('business_id', $bizId)
-            ->where('status', 'active')
-            ->orderBy('name')
-            ->get();
-
-        $employeeStats = [];
-        $totalQty      = 0;
-        $workersLogged = 0;
-        $qualitySum    = 0;
-        $qualityCount  = 0;
-        $targetMet     = 0;
-        $targetTotal   = 0;
-
-        foreach ($employees as $emp) {
-            $logs = ProductionLog::where('employee_id', $emp->id)
-                ->whereDate('log_date', $date)
-                ->with('product')
-                ->get();
-
-            $attendance = Attendance::where('employee_id', $emp->id)
-                ->whereDate('attendance_date', $date)
-                ->first();
-
-            $qty    = $logs->sum('quantity');
-            $target = $logs->sum('target_quantity');
-            $quality= $logs->where('quality_rate', '>', 0)->avg('quality_rate') ?? 0;
-
-            if ($qty > 0) $workersLogged++;
-            $totalQty += $qty;
-
-            if ($quality > 0) {
-                $qualitySum += $quality;
-                $qualityCount++;
-            }
-
-            if ($target > 0) {
-                $targetTotal++;
-                if ($qty >= $target) $targetMet++;
-            }
-
-            $employeeStats[] = [
-                'employee'    => $emp,
-                'logs'        => $logs,
-                'attendance'  => $attendance,
-                'total_qty'   => $qty,
-                'target_qty'  => $target,
-                'avg_quality' => round($quality),
-            ];
-        }
-
-        $summary = [
-            'total_qty'       => $totalQty,
-            'workers_logged'  => $workersLogged,
-            'target_achieved' => $targetTotal > 0 ? round(($targetMet / $targetTotal) * 100) : 0,
-            'avg_quality'     => $qualityCount > 0 ? round($qualitySum / $qualityCount) : 0,
-        ];
-
-        return view('production.overview', compact('employeeStats', 'summary', 'date'));
-    }
-
-    // =============================================
-    // ATTENDANCE OVERVIEW (all employees)
-    // =============================================
     public function attendanceOverview(Request $request)
     {
         $bizId = auth()->user()->business_id;
@@ -336,9 +226,9 @@ class EmployeeController extends Controller
             ->keyBy('employee_id');
 
         $summary = [
-            'present'  => $records->where('status', 'present')->count(),
-            'absent'   => $records->where('status', 'absent')->count(),
-            'late'     => $records->where('status', 'late')->count(),
+            'present'    => $records->where('status', 'present')->count(),
+            'absent'     => $records->where('status', 'absent')->count(),
+            'late'       => $records->where('status', 'late')->count(),
             'not_marked' => $employees->count() - $records->count(),
         ];
 
