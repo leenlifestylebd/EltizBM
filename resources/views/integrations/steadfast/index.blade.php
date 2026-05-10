@@ -247,14 +247,14 @@
                     @endphp
                     <tr class="hover:bg-gray-50 dark:hover:bg-slate-700/30 transition-colors">
                         <td class="px-4 py-3">
-                            <a href="{{ $shipment->order_id ? route('orders.show', $shipment->order) : '#' }}" class="font-semibold text-blue-600 dark:text-blue-400 text-xs hover:underline">
-                                #{{ $shipment->order->order_number }}
+                            <a href="{{ $shipment->order_id && $shipment->order ? route('orders.show', $shipment->order) : '#' }}" class="font-semibold text-blue-600 dark:text-blue-400 text-xs hover:underline">
+                                #{{ $shipment->order->order_number ?? '—' }}
                             </a>
                             <p class="text-xs text-gray-400 dark:text-slate-500">{{ $shipment->created_at->format('d M') }}</p>
                         </td>
                         <td class="px-4 py-3">
-                            <p class="text-sm font-medium text-gray-900 dark:text-white">{{ $shipment->order->customer_name }}</p>
-                            <p class="text-xs text-gray-400 dark:text-slate-500">{{ $shipment->order->customer_phone }}</p>
+                            <p class="text-sm font-medium text-gray-900 dark:text-white">{{ $shipment->order->customer_name ?? '—' }}</p>
+                            <p class="text-xs text-gray-400 dark:text-slate-500">{{ $shipment->order->customer_phone ?? '—' }}</p>
                         </td>
                         <td class="px-4 py-3">
                             <span class="font-mono text-xs text-gray-700 dark:text-slate-300 bg-gray-100 dark:bg-slate-700 px-2 py-0.5 rounded">
