@@ -11,11 +11,23 @@
             <h2 class="text-base font-semibold text-gray-900 dark:text-white">👋 {{ $employee->name }}</h2>
             <p class="text-xs text-gray-500 dark:text-slate-400 mt-0.5">{{ $employee->designation ?? 'Production Worker' }}</p>
         </div>
+        @if(in_array(auth()->user()->role, ['admin', 'owner']))
+        <div class="flex items-center gap-2">
+            <select onchange="window.location.href='{{ route('production.worker.dashboard') }}?employee_id='+this.value+'&from={{ $from }}&to={{ $to }}'"
+                    class="px-3 py-2 text-xs border border-gray-200 dark:border-slate-600 rounded-lg bg-white dark:bg-slate-700 text-gray-700 dark:text-slate-200 focus:outline-none focus:ring-2 focus:ring-blue-500">
+                @foreach($allEmployees as $emp)
+                <option value="{{ $emp->id }}" {{ $emp->id === $employee->id ? 'selected' : '' }}>{{ $emp->name }}</option>
+                @endforeach
+            </select>
+        </div>
+        @endif
+        @if(in_array(auth()->user()->role, ['admin', 'owner', 'employee']))
         <button @click="showEntry = !showEntry"
                 class="flex items-center gap-1.5 px-3 py-2 text-xs font-medium text-white bg-blue-600 rounded-lg hover:bg-blue-700 transition-colors">
             <svg class="w-3.5 h-3.5" fill="none" stroke="currentColor" viewBox="0 0 24 24"><path stroke-linecap="round" stroke-linejoin="round" stroke-width="2" d="M12 4v16m8-8H4"/></svg>
             Add Entry
         </button>
+        @endif
     </div>
 
     {{-- Add Entry Form --}}
@@ -33,9 +45,23 @@
                             class="w-full px-3 py-2.5 text-sm border border-gray-200 dark:border-slate-600 rounded-lg bg-white dark:bg-slate-700 text-gray-700 dark:text-slate-200 focus:outline-none focus:ring-2 focus:ring-blue-500">
                         <option value="">Select Product</option>
                         @foreach($rates as $rate)
-                            <option value="{{ $rate->id }}">{{ $rate->full_name }} — ৳{{ number_format($rate->rate) }}/{{ $rate->unit }}</option>
+                            <option value="{{ $rate->id }}">{{ $rate->product_name }}{{ $rate->size ? ' - '.$rate->size : '' }}{{ $rate->color ? ' ('.$rate->color.')' : '' }} — ৳{{ number_format($rate->rate) }}/{{ $rate->unit }}</option>
                         @endforeach
                     </select>
+                </div>
+                {{-- Size field --}}
+                <div x-show="selectedRate && selectedRate.size" x-cloak>
+                    <label class="block text-xs font-medium text-gray-700 dark:text-slate-300 mb-1.5">Size</label>
+                    <input type="text" readonly
+                           :value="selectedRate ? selectedRate.size : ''"
+                           class="w-full px-3 py-2.5 text-sm border border-gray-200 dark:border-slate-600 rounded-lg bg-gray-50 dark:bg-slate-700 text-gray-700 dark:text-slate-200">
+                </div>
+                {{-- Color field --}}
+                <div x-show="selectedRate && selectedRate.color" x-cloak>
+                    <label class="block text-xs font-medium text-gray-700 dark:text-slate-300 mb-1.5">Color</label>
+                    <input type="text" readonly
+                           :value="selectedRate ? selectedRate.color : ''"
+                           class="w-full px-3 py-2.5 text-sm border border-gray-200 dark:border-slate-600 rounded-lg bg-gray-50 dark:bg-slate-700 text-gray-700 dark:text-slate-200">
                 </div>
                 <div>
                     <label class="block text-xs font-medium text-gray-700 dark:text-slate-300 mb-1.5">Date <span class="text-red-500">*</span></label>
@@ -60,13 +86,9 @@
                        placeholder="Optional...">
             </div>
             <div class="flex gap-2">
-                <button type="submit" class="flex-1 bg-blue-600 hover:bg-blue-700 text-white font-medium py-2.5 text-sm rounded-lg transition-colors">
-                    Save Entry
-                </button>
+                <button type="submit" class="flex-1 bg-blue-600 hover:bg-blue-700 text-white font-medium py-2.5 text-sm rounded-lg transition-colors">Save Entry</button>
                 <button type="button" @click="showEntry = false"
-                        class="px-4 py-2.5 bg-gray-100 dark:bg-slate-700 text-gray-600 dark:text-slate-300 text-sm rounded-lg hover:bg-gray-200 transition-colors">
-                    Cancel
-                </button>
+                        class="px-4 py-2.5 bg-gray-100 dark:bg-slate-700 text-gray-600 dark:text-slate-300 text-sm rounded-lg hover:bg-gray-200 transition-colors">Cancel</button>
             </div>
         </form>
     </div>
@@ -74,6 +96,9 @@
     {{-- Date Range Filter --}}
     <div class="bg-white dark:bg-slate-800 rounded-xl border border-gray-100 dark:border-slate-700 p-3 mb-4">
         <form method="GET" class="flex flex-col sm:flex-row gap-2">
+            @if(in_array(auth()->user()->role, ['admin', 'owner']))
+            <input type="hidden" name="employee_id" value="{{ $employee->id }}">
+            @endif
             <div class="flex items-center gap-2 flex-1">
                 <label class="text-xs font-medium text-gray-700 dark:text-slate-300 whitespace-nowrap">From:</label>
                 <input type="date" name="from" value="{{ $from }}"
@@ -86,11 +111,10 @@
             </div>
             <div class="flex gap-2">
                 <button type="submit" class="px-3 py-2 bg-blue-600 text-white text-sm rounded-lg hover:bg-blue-700">Filter</button>
-                <a href="{{ route('production.worker.dashboard') }}"
+                <a href="{{ route('production.worker.dashboard', in_array(auth()->user()->role, ['admin','owner']) ? ['employee_id' => $employee->id] : []) }}"
                    class="px-3 py-2 bg-gray-100 dark:bg-slate-700 text-gray-600 dark:text-slate-300 text-sm rounded-lg hover:bg-gray-200">Reset</a>
             </div>
         </form>
-        {{-- Quick filters --}}
         <div class="flex gap-2 mt-2 flex-wrap">
             @foreach([
                 ['label'=>'Today',      'from'=>today()->toDateString(),                    'to'=>today()->toDateString()],
@@ -98,7 +122,7 @@
                 ['label'=>'This Month', 'from'=>today()->startOfMonth()->toDateString(),    'to'=>today()->toDateString()],
                 ['label'=>'Last Month', 'from'=>today()->subMonth()->startOfMonth()->toDateString(), 'to'=>today()->subMonth()->endOfMonth()->toDateString()],
             ] as $q)
-            <a href="{{ route('production.worker.dashboard', ['from'=>$q['from'], 'to'=>$q['to']]) }}"
+            <a href="{{ route('production.worker.dashboard', array_merge(['from'=>$q['from'], 'to'=>$q['to']], in_array(auth()->user()->role, ['admin','owner']) ? ['employee_id'=>$employee->id] : [])) }}"
                class="px-2.5 py-1 text-xs rounded-lg border transition-colors
                       {{ $from === $q['from'] && $to === $q['to'] ? 'bg-blue-600 text-white border-blue-600' : 'bg-white dark:bg-slate-700 text-gray-600 dark:text-slate-300 border-gray-200 dark:border-slate-600 hover:bg-gray-50' }}">
                 {{ $q['label'] }}
@@ -109,42 +133,38 @@
 
     {{-- Summary Cards --}}
     <div class="grid grid-cols-2 sm:grid-cols-4 gap-3 mb-4">
-        <div class="bg-white dark:bg-slate-800 rounded-xl p-4 border border-green-100 dark:border-green-900/30 text-center">
-            <p class="text-xl font-bold text-green-600 dark:text-green-400">৳{{ number_format($totalEarning) }}</p>
+        <div class="bg-white dark:bg-slate-800 rounded-xl p-3 border border-green-100 dark:border-green-900/30 text-center">
+            <p class="text-lg font-bold text-green-600 dark:text-green-400">৳{{ number_format($totalEarning) }}</p>
             <p class="text-xs text-gray-500 dark:text-slate-400 mt-0.5">Total Earning</p>
         </div>
-        <div class="bg-white dark:bg-slate-800 rounded-xl p-4 border border-blue-100 dark:border-blue-900/30 text-center">
-            <p class="text-xl font-bold text-blue-600 dark:text-blue-400">{{ $totalQty }}</p>
+        <div class="bg-white dark:bg-slate-800 rounded-xl p-3 border border-blue-100 dark:border-blue-900/30 text-center">
+            <p class="text-lg font-bold text-blue-600 dark:text-blue-400">{{ $totalQty }}</p>
             <p class="text-xs text-gray-500 dark:text-slate-400 mt-0.5">Total Pieces</p>
         </div>
-        <div class="bg-white dark:bg-slate-800 rounded-xl p-4 border border-red-100 dark:border-red-900/30 text-center">
-            <p class="text-xl font-bold text-red-600 dark:text-red-400">৳{{ number_format($totalAdvance) }}</p>
+        <div class="bg-white dark:bg-slate-800 rounded-xl p-3 border border-red-100 dark:border-red-900/30 text-center">
+            <p class="text-lg font-bold text-red-600 dark:text-red-400">৳{{ number_format($totalAdvance) }}</p>
             <p class="text-xs text-gray-500 dark:text-slate-400 mt-0.5">Advance Taken</p>
         </div>
-        <div class="bg-white dark:bg-slate-800 rounded-xl p-4 border border-purple-100 dark:border-purple-900/30 text-center">
-            <p class="text-xl font-bold {{ $netPayable >= 0 ? 'text-purple-600 dark:text-purple-400' : 'text-red-600' }}">৳{{ number_format(abs($netPayable)) }}</p>
+        <div class="bg-white dark:bg-slate-800 rounded-xl p-3 border border-purple-100 dark:border-purple-900/30 text-center">
+            <p class="text-lg font-bold {{ $netPayable >= 0 ? 'text-purple-600 dark:text-purple-400' : 'text-red-600' }}">৳{{ number_format(abs($netPayable)) }}</p>
             <p class="text-xs text-gray-500 dark:text-slate-400 mt-0.5">{{ $netPayable >= 0 ? 'Net Payable' : 'Overpaid' }}</p>
         </div>
     </div>
 
     {{-- Tabs --}}
     <div class="flex gap-1 mb-4 bg-gray-100 dark:bg-slate-700 p-1 rounded-xl" x-data="{ tab: 'entries' }">
-        <button @click="tab = 'entries'"
-                class="flex-1 py-2 text-xs font-medium rounded-lg transition-colors"
+        <button @click="tab = 'entries'" class="flex-1 py-2 text-xs font-medium rounded-lg transition-colors"
                 :class="tab === 'entries' ? 'bg-white dark:bg-slate-800 text-gray-900 dark:text-white shadow-sm' : 'text-gray-500 dark:text-slate-400'">
             📦 Production ({{ $entries->count() }})
         </button>
-        <button @click="tab = 'payments'"
-                class="flex-1 py-2 text-xs font-medium rounded-lg transition-colors"
+        <button @click="tab = 'payments'" class="flex-1 py-2 text-xs font-medium rounded-lg transition-colors"
                 :class="tab === 'payments' ? 'bg-white dark:bg-slate-800 text-gray-900 dark:text-white shadow-sm' : 'text-gray-500 dark:text-slate-400'">
             💰 Payments ({{ $payments->count() }})
         </button>
-        <button @click="tab = 'report'"
-                class="flex-1 py-2 text-xs font-medium rounded-lg transition-colors"
+        <button @click="tab = 'report'" class="flex-1 py-2 text-xs font-medium rounded-lg transition-colors"
                 :class="tab === 'report' ? 'bg-white dark:bg-slate-800 text-gray-900 dark:text-white shadow-sm' : 'text-gray-500 dark:text-slate-400'">
             📊 Report
         </button>
-    </div>
 
     {{-- TAB: Production Entries --}}
     <div x-data="{ tab: 'entries' }">
@@ -163,12 +183,12 @@
                     </thead>
                     <tbody class="divide-y divide-gray-50 dark:divide-slate-700">
                         @forelse($entries as $entry)
-                        <tr class="hover:bg-gray-50 dark:hover:bg-slate-700/30 transition-colors">
+                        <tr class="hover:bg-gray-50 dark:hover:bg-slate-700/30">
                             <td class="px-4 py-3 text-xs text-gray-600 dark:text-slate-300">{{ $entry->entry_date->format('d M Y') }}</td>
                             <td class="px-4 py-3">
                                 <p class="text-sm font-medium text-gray-900 dark:text-white">{{ $entry->productionRate->product_name }}</p>
                                 <p class="text-xs text-gray-400">
-                                    {{ implode(' · ', array_filter([$entry->productionRate->variant_name, $entry->productionRate->color, $entry->productionRate->size])) }}
+                                    {{ implode(' · ', array_filter([$entry->productionRate->size, $entry->productionRate->color])) }}
                                 </p>
                             </td>
                             <td class="px-4 py-3 text-center font-semibold text-gray-900 dark:text-white">{{ $entry->quantity }}</td>
@@ -202,14 +222,12 @@
                 <div class="px-4 py-3 flex items-center justify-between">
                     <div>
                         <p class="text-sm font-medium text-gray-900 dark:text-white">{{ ucfirst($payment->type) }}</p>
-                        <p class="text-xs text-gray-400 dark:text-slate-500">
-                            {{ $payment->payment_date->format('d M Y') }} · {{ ucfirst($payment->payment_method) }}
-                        </p>
+                        <p class="text-xs text-gray-400">{{ $payment->payment_date->format('d M Y') }} · {{ ucfirst($payment->payment_method) }}</p>
                         @if($payment->notes)
-                            <p class="text-xs text-gray-400 mt-0.5">{{ $payment->notes }}</p>
+                        <p class="text-xs text-gray-400 mt-0.5">{{ $payment->notes }}</p>
                         @endif
                     </div>
-                    <p class="font-bold text-sm {{ in_array($payment->type, ['advance','deduction']) ? 'text-red-600 dark:text-red-400' : 'text-green-600 dark:text-green-400' }}">
+                    <p class="font-bold text-sm {{ in_array($payment->type, ['advance','deduction']) ? 'text-red-600' : 'text-green-600' }}">
                         {{ in_array($payment->type, ['advance','deduction']) ? '-' : '+' }}৳{{ number_format($payment->amount) }}
                     </p>
                 </div>
@@ -223,7 +241,6 @@
     {{-- TAB: Report --}}
     <div x-show="tab === 'report'" x-cloak>
         <div class="space-y-3">
-            {{-- Daily breakdown --}}
             <div class="bg-white dark:bg-slate-800 rounded-xl border border-gray-100 dark:border-slate-700 overflow-hidden">
                 <div class="px-4 py-3 border-b border-gray-100 dark:border-slate-700">
                     <h3 class="text-sm font-semibold text-gray-900 dark:text-white">Daily Breakdown</h3>
@@ -242,7 +259,7 @@
                             <tr class="hover:bg-gray-50 dark:hover:bg-slate-700/30">
                                 <td class="px-4 py-2.5 text-xs text-gray-600 dark:text-slate-300">{{ \Carbon\Carbon::parse($day->date)->format('d M Y, D') }}</td>
                                 <td class="px-4 py-2.5 text-center font-semibold text-gray-900 dark:text-white">{{ $day->total_qty }}</td>
-                                <td class="px-4 py-2.5 text-right font-medium text-green-600 dark:text-green-400">৳{{ number_format($day->total_amount) }}</td>
+                                <td class="px-4 py-2.5 text-right font-medium text-green-600">৳{{ number_format($day->total_amount) }}</td>
                             </tr>
                             @endforeach
                         </tbody>
@@ -250,7 +267,6 @@
                 </div>
             </div>
 
-            {{-- Product breakdown --}}
             <div class="bg-white dark:bg-slate-800 rounded-xl border border-gray-100 dark:border-slate-700 overflow-hidden">
                 <div class="px-4 py-3 border-b border-gray-100 dark:border-slate-700">
                     <h3 class="text-sm font-semibold text-gray-900 dark:text-white">Product Breakdown</h3>
@@ -269,7 +285,7 @@
                             <tr class="hover:bg-gray-50 dark:hover:bg-slate-700/30">
                                 <td class="px-4 py-2.5 text-sm text-gray-900 dark:text-white">{{ $prod->product_name }}</td>
                                 <td class="px-4 py-2.5 text-center font-semibold text-gray-900 dark:text-white">{{ $prod->total_qty }}</td>
-                                <td class="px-4 py-2.5 text-right font-medium text-green-600 dark:text-green-400">৳{{ number_format($prod->total_amount) }}</td>
+                                <td class="px-4 py-2.5 text-right font-medium text-green-600">৳{{ number_format($prod->total_amount) }}</td>
                             </tr>
                             @endforeach
                         </tbody>
@@ -277,6 +293,7 @@
                 </div>
             </div>
         </div>
+    </div>
     </div>
     </div>
 
