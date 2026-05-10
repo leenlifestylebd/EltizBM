@@ -12,9 +12,6 @@ use Carbon\Carbon;
 
 class ProductionController extends Controller
 {
-    // =============================================
-    // PRODUCTION RATES
-    // =============================================
     public function rates()
     {
         $bizId = auth()->user()->business_id;
@@ -59,9 +56,6 @@ class ProductionController extends Controller
         return back()->with('success', 'Rate deleted!');
     }
 
-    // =============================================
-    // PRODUCTION ENTRIES
-    // =============================================
     public function index(Request $request)
     {
         $bizId = auth()->user()->business_id;
@@ -98,7 +92,6 @@ class ProductionController extends Controller
         $rate   = ProductionRate::findOrFail($request->production_rate_id);
         $amount = $rate->rate * $request->quantity;
 
-        // Get business_id from employee (worker may have different business context)
         $employee = Employee::findOrFail($request->employee_id);
 
         ProductionEntry::create([
@@ -111,7 +104,6 @@ class ProductionController extends Controller
             'notes'              => $request->notes,
         ]);
 
-        // Redirect back to worker dashboard if employee role
         if (auth()->user()->role === 'employee') {
             return redirect()->route('production.worker.dashboard')
                 ->with('success', "✅ Entry added! Amount: ৳{$amount}");
@@ -127,9 +119,6 @@ class ProductionController extends Controller
         return back()->with('success', 'Entry deleted!');
     }
 
-    // =============================================
-    // PAYROLL
-    // =============================================
     public function payroll(Request $request)
     {
         $bizId = auth()->user()->business_id;
@@ -175,9 +164,6 @@ class ProductionController extends Controller
         return view('production.payroll', compact('employees', 'month'));
     }
 
-    // =============================================
-    // PAYMENT (Advance/Salary)
-    // =============================================
     public function storePayment(Request $request)
     {
         $request->validate([
@@ -212,69 +198,78 @@ class ProductionController extends Controller
         return back()->with('success', 'Payment recorded!');
     }
 
-    // =============================================
-    // WORKER DASHBOARD (Individual)
-    // =============================================
     public function workerDashboard(Request $request)
-{
-    $bizId  = auth()->user()->business_id;
-    $userId = auth()->id();
+    {
+        $bizId  = auth()->user()->business_id;
+        $userId = auth()->id();
+        $role   = auth()->user()->role;
 
-    $employee = Employee::where('business_id', $bizId)
-        ->where('user_id', $userId)
-        ->first();
+        $allEmployees = Employee::where('business_id', $bizId)->get();
 
-    if (!$employee) {
-        auth()->logout();
-        return redirect()->route('login')
-            ->withErrors(['email' => 'No employee profile linked. Contact admin.']);
+        // Admin/Owner can switch between employees
+        if (in_array($role, ['admin', 'owner'])) {
+            $employeeId = $request->employee_id;
+            $employee   = $employeeId
+                ? Employee::where('business_id', $bizId)->findOrFail($employeeId)
+                : $allEmployees->first();
+
+            if (!$employee) {
+                return redirect()->route('production.index')->with('error', 'No employees found.');
+            }
+        } else {
+            $employee = Employee::where('business_id', $bizId)
+                ->where('user_id', $userId)
+                ->first();
+
+            if (!$employee) {
+                auth()->logout();
+                return redirect()->route('login')
+                    ->withErrors(['email' => 'No employee profile linked. Contact admin.']);
+            }
+        }
+
+        $from = $request->from ?? today()->startOfMonth()->toDateString();
+        $to   = $request->to   ?? today()->toDateString();
+
+        $rates = ProductionRate::where('business_id', $bizId)
+            ->where('is_active', true)
+            ->get();
+
+        $entries = ProductionEntry::where('employee_id', $employee->id)
+            ->whereBetween('entry_date', [$from, $to])
+            ->with('productionRate')
+            ->orderByDesc('entry_date')
+            ->get();
+
+        $payments = EmployeePayment::where('employee_id', $employee->id)
+            ->whereBetween('payment_date', [$from, $to])
+            ->orderByDesc('payment_date')
+            ->get();
+
+        $totalEarning = $entries->sum('amount');
+        $totalQty     = $entries->sum('quantity');
+        $totalAdvance = $payments->whereIn('type', ['advance', 'deduction'])->sum('amount');
+        $netPayable   = $totalEarning - $totalAdvance;
+
+        $dailyReport = ProductionEntry::where('employee_id', $employee->id)
+            ->whereBetween('entry_date', [$from, $to])
+            ->selectRaw('entry_date as date, SUM(quantity) as total_qty, SUM(amount) as total_amount')
+            ->groupBy('entry_date')
+            ->orderByDesc('entry_date')
+            ->get();
+
+        $productReport = ProductionEntry::where('employee_id', $employee->id)
+            ->whereBetween('entry_date', [$from, $to])
+            ->join('production_rates', 'production_entries.production_rate_id', '=', 'production_rates.id')
+            ->selectRaw('production_rates.product_name, SUM(production_entries.quantity) as total_qty, SUM(production_entries.amount) as total_amount')
+            ->groupBy('production_rates.product_name')
+            ->orderByDesc('total_amount')
+            ->get();
+
+        return view('production.worker-dashboard', compact(
+            'employee', 'allEmployees', 'entries', 'payments', 'rates',
+            'totalEarning', 'totalQty', 'totalAdvance', 'netPayable',
+            'from', 'to', 'dailyReport', 'productReport'
+        ));
     }
-
-    // Date range
-    $from = $request->from ?? today()->startOfMonth()->toDateString();
-    $to   = $request->to   ?? today()->toDateString();
-
-    $rates = ProductionRate::where('business_id', $bizId)
-        ->where('is_active', true)
-        ->get();
-
-    $entries = ProductionEntry::where('employee_id', $employee->id)
-        ->whereBetween('entry_date', [$from, $to])
-        ->with('productionRate')
-        ->orderByDesc('entry_date')
-        ->get();
-
-    $payments = EmployeePayment::where('employee_id', $employee->id)
-        ->whereBetween('payment_date', [$from, $to])
-        ->orderByDesc('payment_date')
-        ->get();
-
-    $totalEarning = $entries->sum('amount');
-    $totalQty     = $entries->sum('quantity');
-    $totalAdvance = $payments->whereIn('type', ['advance', 'deduction'])->sum('amount');
-    $netPayable   = $totalEarning - $totalAdvance;
-
-    // Daily report
-    $dailyReport = ProductionEntry::where('employee_id', $employee->id)
-        ->whereBetween('entry_date', [$from, $to])
-        ->selectRaw('entry_date as date, SUM(quantity) as total_qty, SUM(amount) as total_amount')
-        ->groupBy('entry_date')
-        ->orderByDesc('entry_date')
-        ->get();
-
-    // Product report
-    $productReport = ProductionEntry::where('employee_id', $employee->id)
-        ->whereBetween('entry_date', [$from, $to])
-        ->join('production_rates', 'production_entries.production_rate_id', '=', 'production_rates.id')
-        ->selectRaw('production_rates.product_name, SUM(production_entries.quantity) as total_qty, SUM(production_entries.amount) as total_amount')
-        ->groupBy('production_rates.product_name')
-        ->orderByDesc('total_amount')
-        ->get();
-
-    return view('production.worker-dashboard', compact(
-        'employee', 'entries', 'payments', 'rates',
-        'totalEarning', 'totalQty', 'totalAdvance', 'netPayable',
-        'from', 'to', 'dailyReport', 'productReport'
-    ));
-}
 }
