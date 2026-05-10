@@ -109,7 +109,9 @@ class SettingsController extends Controller
     {
         $bizId       = auth()->user()->business_id;
         $users       = User::where('business_id', $bizId)->where('is_approved', 1)->orderBy('name')->get();
-        $pendingUsers = User::where('is_approved', 0)->orderByDesc('created_at')->get();
+        $pendingUsers = User::where('is_approved', 0)
+            ->orderByDesc('created_at')
+            ->get();
         return view('settings.user-management', compact('users', 'pendingUsers'));
     }
 
