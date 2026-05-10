@@ -36,8 +36,8 @@ class WooCommerceController extends Controller
             ['business_id' => $bizId],
             [
                 'store_url'       => rtrim($request->store_url, '/'),
-                'consumer_key'    => $request->consumer_key,
-                'consumer_secret' => $request->consumer_secret,
+                'consumer_key'    => str_contains($request->consumer_key, '•') ? optional(WoocommerceSetting::where('business_id', $bizId)->first())->consumer_key : $request->consumer_key,
+                'consumer_secret' => str_contains($request->consumer_secret, '•') ? optional(WoocommerceSetting::where('business_id', $bizId)->first())->consumer_secret : $request->consumer_secret,
                 'is_active'       => true,
                 'sync_products'   => $request->boolean('sync_products', true),
                 'sync_orders'     => $request->boolean('sync_orders', true),
