@@ -11,6 +11,7 @@ class User extends Authenticatable
     protected $fillable = [
         'business_id','name','email','phone','password',
         'role','permissions','avatar','is_active','last_login_at',
+        'is_approved','approved_by','approved_at',
     ];
 
     protected $hidden = ['password','remember_token'];
@@ -18,8 +19,10 @@ class User extends Authenticatable
     protected $casts = [
         'permissions'       => 'array',
         'is_active'         => 'boolean',
+        'is_approved'       => 'boolean',
         'last_login_at'     => 'datetime',
         'email_verified_at' => 'datetime',
+        'approved_at'       => 'datetime',
     ];
 
     public function business()  { return $this->belongsTo(Business::class); }
