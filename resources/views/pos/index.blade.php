@@ -152,6 +152,22 @@
 
             {{-- CHECKOUT PANEL --}}
             <div class="border-t border-gray-100 dark:border-slate-700 p-3 flex-shrink-0 space-y-2.5">
+                {{-- Customer Info --}}
+                <div class="flex gap-2">
+                    <div class="flex-1">
+                        <label class="block text-xs text-gray-500 dark:text-slate-400 mb-1">Customer Name</label>
+                        <input type="text" x-model="customerName"
+                               class="w-full px-2 py-1.5 text-sm border border-gray-200 dark:border-slate-600 rounded-lg bg-white dark:bg-slate-700 text-gray-900 dark:text-white focus:outline-none focus:ring-1 focus:ring-blue-500"
+                               placeholder="Walk-in Customer">
+                    </div>
+                    <div class="flex-1">
+                        <label class="block text-xs text-gray-500 dark:text-slate-400 mb-1">Phone</label>
+                        <input type="text" x-model="customerPhone"
+                               class="w-full px-2 py-1.5 text-sm border border-gray-200 dark:border-slate-600 rounded-lg bg-white dark:bg-slate-700 text-gray-900 dark:text-white focus:outline-none focus:ring-1 focus:ring-blue-500"
+                               placeholder="01XXXXXXXXX">
+                    </div>
+                </div>
+
                 {{-- Discount + Shipping --}}
                 <div class="flex gap-2">
                     <div class="flex-1">
@@ -303,6 +319,8 @@ function posApp() {
         paymentMethod:  'cash',
         quickAmounts:   [100, 200, 500, 1000],
 
+        customerName:  '',
+        customerPhone: '',
         showHeld:    false,
         showSuccess: false,
         processing:  false,
@@ -356,7 +374,7 @@ function posApp() {
             this.calcTotals();
         },
 
-        newSale() { this.showSuccess = false; this.clearCart(); document.getElementById('barcodeInput')?.focus(); },
+        newSale() { this.showSuccess = false; this.clearCart(); this.customerName = ''; this.customerPhone = ''; document.getElementById('barcodeInput')?.focus(); },
 
         calcTotals() {
             this.subtotal = this.cart.reduce((s,i) => s + i.price * i.qty, 0);
@@ -376,7 +394,8 @@ function posApp() {
                     method: 'POST',
                     headers: { 'Content-Type':'application/json', 'X-CSRF-TOKEN': document.querySelector('meta[name=csrf-token]').content },
                     body: JSON.stringify({
-                        customer_name:  'Walk-in Customer',
+                        customer_name:  this.customerName || 'Walk-in Customer',
+                        customer_phone: this.customerPhone || '',
                         items:          this.cart.map(i => ({ product_id:i.product_id, product_name:i.name, price:i.price, cost_price:i.cost_price, quantity:i.qty, discount:0, total:i.price*i.qty })),
                         subtotal:       this.subtotal,
                         discount:       this.orderDiscount,
