@@ -54,17 +54,18 @@
                 </tr>
             </thead>
             <tbody class="divide-y divide-gray-50 dark:divide-slate-700">
+                @php $sc=['pending'=>'yellow','picked'=>'blue','in_transit'=>'indigo','delivered'=>'green','returned'=>'orange','cancelled'=>'red']; @endphp
                 @forelse($shipments as $shipment)
                 <tr class="hover:bg-gray-50 dark:hover:bg-slate-700/30 transition-colors group">
                     <td class="px-4 py-3">
                         <a href="{{ $shipment->order_id && $shipment->order ? route('orders.show', $shipment->order) : '#' }}"
                            class="font-semibold text-blue-600 dark:text-blue-400 hover:underline text-xs">
-                            #{{ $shipment->order->order_number }}
+                            #{{ $shipment->order->order_number ?? '—' }}
                         </a>
                     </td>
                     <td class="px-4 py-3">
-                        <p class="text-sm font-medium text-gray-900 dark:text-white">{{ $shipment->order->customer_name }}</p>
-                        <p class="text-xs text-gray-400 dark:text-slate-500 truncate max-w-32">{{ $shipment->order->shipping_area }}, {{ $shipment->order->shipping_district }}</p>
+                        <p class="text-sm font-medium text-gray-900 dark:text-white">{{ $shipment->order->customer_name ?? '—' }}</p>
+                        <p class="text-xs text-gray-400 dark:text-slate-500 truncate max-w-32">{{ $shipment->order->shipping_area ?? '' }}{{ $shipment->order->shipping_district ? ', '.$shipment->order->shipping_district : '' }}</p>
                     </td>
                     <td class="px-4 py-3 text-sm text-gray-700 dark:text-slate-300">{{ $shipment->courier_name }}</td>
                     <td class="px-4 py-3">
@@ -76,7 +77,7 @@
                     </td>
                     <td class="px-4 py-3 text-right text-sm font-medium text-gray-900 dark:text-white">৳{{ number_format($shipment->charge) }}</td>
                     <td class="px-4 py-3 text-center">
-                        @php $sc=['pending'=>'yellow','picked'=>'blue','in_transit'=>'indigo','delivered'=>'green','returned'=>'orange','cancelled'=>'red']; $c=$sc[$shipment->status]??'gray'; @endphp
+                        @php $c=$sc[$shipment->status]??'gray'; @endphp
                         <span class="inline-flex px-2 py-0.5 rounded-full text-xs font-medium bg-{{ $c }}-100 text-{{ $c }}-700 dark:bg-{{ $c }}-900/30 dark:text-{{ $c }}-400">
                             {{ ucfirst(str_replace('_',' ',$shipment->status)) }}
                         </span>
@@ -88,7 +89,6 @@
                                class="p-1.5 text-gray-400 hover:text-blue-600 hover:bg-blue-50 dark:hover:bg-blue-900/20 rounded-lg">
                                 <svg class="w-4 h-4" fill="none" stroke="currentColor" viewBox="0 0 24 24"><path stroke-linecap="round" stroke-linejoin="round" stroke-width="2" d="M15 12a3 3 0 11-6 0 3 3 0 016 0z"/><path stroke-linecap="round" stroke-linejoin="round" stroke-width="2" d="M2.458 12C3.732 7.943 7.523 5 12 5c4.478 0 8.268 2.943 9.542 7-1.274 4.057-5.064 7-9.542 7-4.477 0-8.268-2.943-9.542-7z"/></svg>
                             </a>
-                            {{-- Quick Status Update --}}
                             <form method="POST" action="{{ route('courier.update', $shipment) }}" x-data>
                                 @csrf @method('PUT')
                                 <select name="status" onchange="this.form.submit()"
@@ -110,14 +110,15 @@
 
     {{-- Mobile Cards --}}
     <div class="md:hidden divide-y divide-gray-50 dark:divide-slate-700">
+        @php $sc=['pending'=>'yellow','picked'=>'blue','in_transit'=>'indigo','delivered'=>'green','returned'=>'orange','cancelled'=>'red']; @endphp
         @forelse($shipments as $shipment)
         <div class="p-4">
             <div class="flex items-start justify-between mb-2">
                 <div>
                     <a href="{{ route('courier.show', $shipment) }}" class="font-semibold text-blue-600 dark:text-blue-400 text-sm">
-                        #{{ $shipment->order->order_number }}
+                        #{{ $shipment->order->order_number ?? '—' }}
                     </a>
-                    <p class="text-sm font-medium text-gray-900 dark:text-white mt-0.5">{{ $shipment->order->customer_name }}</p>
+                    <p class="text-sm font-medium text-gray-900 dark:text-white mt-0.5">{{ $shipment->order->customer_name ?? '—' }}</p>
                     <p class="text-xs text-gray-400 dark:text-slate-500">{{ $shipment->courier_name }}</p>
                 </div>
                 <div class="text-right">
