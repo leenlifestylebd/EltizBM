@@ -1,5 +1,5 @@
 <!DOCTYPE html>
-<html lang="en" x-data="{ sidebarOpen: false, darkMode: false }" :class="{ 'dark': darkMode }">
+<html lang="en" x-data="{ sidebarOpen: false, darkMode: localStorage.getItem('darkMode') === 'true' }" :class="{ 'dark': darkMode }" x-init="$watch('darkMode', val => localStorage.setItem('darkMode', val))">
 <head>
     <meta charset="UTF-8">
     <meta name="viewport" content="width=device-width, initial-scale=1.0">
