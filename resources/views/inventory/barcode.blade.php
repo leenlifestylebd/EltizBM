@@ -5,9 +5,17 @@
 
 <div class="max-w-4xl mx-auto" x-data="barcodeApp()">
 
-    <div class="flex items-center gap-3 mb-5">
-        <h2 class="text-base font-semibold text-gray-900 dark:text-white">Barcode Print</h2>
-        <span class="text-xs text-gray-400 dark:text-slate-500">Select products → configure → print</span>
+    <div class="flex items-center justify-between mb-5 flex-wrap gap-3">
+        <div>
+            <h2 class="text-base font-semibold text-gray-900 dark:text-white">Barcode Print</h2>
+            <p class="text-xs text-gray-400 dark:text-slate-500 mt-0.5">
+                Generate barcodes → print labels → stick on products → scan at POS
+            </p>
+        </div>
+        <button onclick="generateAllBarcodes(this)"
+                class="flex items-center gap-2 px-4 py-2 bg-indigo-600 text-white text-xs font-semibold rounded-lg hover:bg-indigo-700 transition-colors">
+            ⚡ Generate Missing Barcodes
+        </button>
     </div>
 
     <div class="grid grid-cols-1 lg:grid-cols-3 gap-4">
@@ -106,27 +114,42 @@
 
                 <div class="divide-y divide-gray-50 dark:divide-slate-700 max-h-[520px] overflow-y-auto">
                     @forelse($products as $p)
-                    <label class="flex items-center gap-3 px-4 py-2.5 hover:bg-gray-50 dark:hover:bg-slate-700/30 cursor-pointer transition-colors"
-                           x-show="!search || '{{ strtolower($p->name) }}'.includes(search.toLowerCase()) || '{{ strtolower($p->sku ?? '') }}'.includes(search.toLowerCase()) || '{{ $p->barcode ?? '' }}'.includes(search)">
-                        <input type="checkbox"
-                               :checked="isSelected({{ $p->id }})"
-                               @change="toggleProduct({{ $p->id }}, {{ json_encode($p->name) }}, {{ json_encode($p->sku ?? $p->barcode ?? (string)$p->id) }}, {{ $p->price }}, {{ json_encode($p->barcode ?? '') }})"
-                               class="w-3.5 h-3.5 text-blue-600 border-gray-300 rounded flex-shrink-0">
-                        <div class="flex-1 min-w-0">
-                            <p class="text-xs font-medium text-gray-900 dark:text-white truncate">{{ $p->name }}</p>
-                            <p class="text-xs text-gray-400 dark:text-slate-500 mt-0.5">
-                                @if($p->sku)<span class="font-mono">{{ $p->sku }}</span> · @endif৳{{ number_format($p->price) }}
-                                @if($p->barcode)<span class="ml-1 text-gray-300 dark:text-slate-600">· {{ $p->barcode }}</span>@endif
-                            </p>
-                        </div>
-                        <div @click.stop class="flex-shrink-0">
+                    <div class="flex items-center gap-3 px-4 py-2.5 hover:bg-gray-50 dark:hover:bg-slate-700/30 transition-colors"
+                         id="product-row-{{ $p->id }}"
+                         x-show="!search || '{{ strtolower($p->name) }}'.includes(search.toLowerCase()) || '{{ strtolower($p->sku ?? '') }}'.includes(search.toLowerCase()) || '{{ $p->barcode ?? '' }}'.includes(search)">
+                        <label class="flex items-center gap-3 flex-1 min-w-0 cursor-pointer">
+                            <input type="checkbox"
+                                   :checked="isSelected({{ $p->id }})"
+                                   @change="toggleProduct({{ $p->id }}, {{ json_encode($p->name) }}, {{ json_encode($p->sku ?? $p->barcode ?? (string)$p->id) }}, {{ $p->price }}, {{ json_encode($p->barcode ?? '') }})"
+                                   class="w-3.5 h-3.5 text-blue-600 border-gray-300 rounded flex-shrink-0">
+                            <div class="flex-1 min-w-0">
+                                <p class="text-xs font-medium text-gray-900 dark:text-white truncate">{{ $p->name }}</p>
+                                <p class="text-xs text-gray-400 dark:text-slate-500 mt-0.5">
+                                    @if($p->sku)<span class="font-mono">{{ $p->sku }}</span> · @endif৳{{ number_format($p->price) }}
+                                </p>
+                                <p class="text-xs font-mono mt-0.5" id="bc-text-{{ $p->id }}">
+                                    @if($p->barcode)
+                                        <span class="text-green-600 dark:text-green-400">✓ {{ $p->barcode }}</span>
+                                    @else
+                                        <span class="text-orange-400">No barcode</span>
+                                    @endif
+                                </p>
+                            </div>
+                        </label>
+                        <div class="flex items-center gap-1.5 flex-shrink-0">
+                            @if(!$p->barcode)
+                            <button onclick="generateBarcode({{ $p->id }}, this)"
+                                    class="px-2 py-1 text-xs bg-indigo-100 dark:bg-indigo-900/30 text-indigo-600 dark:text-indigo-400 rounded-lg hover:bg-indigo-200 transition-colors font-medium whitespace-nowrap">
+                                Generate
+                            </button>
+                            @endif
                             <input type="number" min="1" max="999"
                                    :value="getQty({{ $p->id }})"
                                    @change="setQty({{ $p->id }}, $event.target.value)"
                                    class="w-14 px-2 py-1 text-xs text-center border border-gray-200 dark:border-slate-600 rounded-lg bg-white dark:bg-slate-700 text-gray-900 dark:text-white focus:outline-none focus:ring-1 focus:ring-blue-500"
                                    placeholder="Qty">
                         </div>
-                    </label>
+                    </div>
                     @empty
                     <div class="py-12 text-center text-sm text-gray-400">No products found</div>
                     @endforelse
@@ -143,6 +166,52 @@
 <script src="https://cdn.jsdelivr.net/npm/qrcodejs@1.0.0/qrcode.min.js"></script>
 <script>
 const BIZ_NAME = @json(auth()->user()->business?->name ?? config('app.name'));
+const CSRF     = document.querySelector('meta[name=csrf-token]')?.content;
+
+// Generate barcode for a single product
+async function generateBarcode(productId, btn) {
+    btn.disabled    = true;
+    btn.textContent = '...';
+    try {
+        const res  = await fetch(`/products/${productId}/generate-barcode`, {
+            method: 'POST',
+            headers: { 'X-CSRF-TOKEN': CSRF, 'Accept': 'application/json' },
+        });
+        const data = await res.json();
+        if (data.success) {
+            // Update UI
+            const bcText = document.getElementById(`bc-text-${productId}`);
+            if (bcText) bcText.innerHTML = `<span class="text-green-600">✓ ${data.barcode}</span>`;
+            btn.remove();
+        }
+    } catch(e) {
+        btn.disabled    = false;
+        btn.textContent = 'Generate';
+        alert('Error generating barcode');
+    }
+}
+
+// Generate barcodes for ALL products without one
+async function generateAllBarcodes(btn) {
+    if (!confirm('Generate barcodes for all products that don\'t have one?')) return;
+    btn.disabled    = true;
+    btn.textContent = 'Generating...';
+    try {
+        const res  = await fetch('/products/generate-barcodes-bulk', {
+            method: 'POST',
+            headers: { 'X-CSRF-TOKEN': CSRF, 'Accept': 'application/json' },
+        });
+        const data = await res.json();
+        if (data.success) {
+            alert(`✅ Generated barcodes for ${data.count} products. Refreshing...`);
+            window.location.reload();
+        }
+    } catch(e) {
+        alert('Error generating barcodes');
+    }
+    btn.disabled    = false;
+    btn.textContent = '⚡ Generate Missing Barcodes';
+}
 
 function barcodeApp() {
     return {

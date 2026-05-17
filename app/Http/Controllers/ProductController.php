@@ -190,6 +190,49 @@ class ProductController extends Controller
             ->with('success', "Product '{$name}' deleted.");
     }
 
+    // ── Generate barcode for a single product ────────────────
+    public function generateBarcode(Product $product)
+    {
+        $this->authorizeProduct($product);
+
+        if (!$product->barcode) {
+            // Generate unique CODE128-compatible barcode
+            // Format: prefix (3 chars) + business_id (3 digits) + product_id (6 digits)
+            $prefix   = strtoupper(substr(preg_replace('/[^A-Z0-9]/i', '', auth()->user()->business->name ?? 'BIZ'), 0, 3));
+            $barcode  = $prefix . str_pad($product->business_id, 3, '0', STR_PAD_LEFT) . str_pad($product->id, 6, '0', STR_PAD_LEFT);
+            $product->update(['barcode' => $barcode]);
+        }
+
+        return response()->json([
+            'success' => true,
+            'barcode' => $product->barcode,
+            'product_id' => $product->id,
+        ]);
+    }
+
+    // ── Generate barcodes for ALL products without one ────────
+    public function generateBarcodesBulk(Request $request)
+    {
+        $bizId    = auth()->user()->business_id;
+        $business = auth()->user()->business;
+        $prefix   = strtoupper(substr(preg_replace('/[^A-Z0-9]/i', '', $business->name ?? 'BIZ'), 0, 3));
+
+        $products = Product::where('business_id', $bizId)
+            ->whereNull('barcode')
+            ->orWhere('barcode', '')
+            ->get();
+
+        $count = 0;
+        foreach ($products as $p) {
+            if (!$p->barcode) {
+                $p->update(['barcode' => $prefix . str_pad($bizId, 3, '0', STR_PAD_LEFT) . str_pad($p->id, 6, '0', STR_PAD_LEFT)]);
+                $count++;
+            }
+        }
+
+        return response()->json(['success' => true, 'count' => $count]);
+    }
+
     public function syncPage()
     {
         $bizId   = auth()->user()->business_id;

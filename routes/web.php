@@ -93,6 +93,8 @@ Route::middleware(['auth', 'business'])->group(function () {
         Route::get('/{product}/edit',[ProductController::class, 'edit'])->name('edit');
         Route::put('/{product}',     [ProductController::class, 'update'])->name('update');
         Route::delete('/{product}',  [ProductController::class, 'destroy'])->name('destroy');
+        Route::post('/{product}/generate-barcode', [ProductController::class, 'generateBarcode'])->name('generate-barcode');
+        Route::post('/generate-barcodes-bulk',     [ProductController::class, 'generateBarcodesBulk'])->name('generate-barcodes-bulk');
         // Bill of Materials
         Route::post('/{product}/bom',              [BomController::class, 'store'])->name('bom.store');
         Route::delete('/{product}/bom/{bom}',      [BomController::class, 'destroy'])->name('bom.destroy');
