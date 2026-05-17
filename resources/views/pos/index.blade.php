@@ -329,10 +329,10 @@
 
         {{-- Camera View --}}
         <div class="relative flex-1 overflow-hidden">
-            <video id="scannerVideo" class="w-full h-full object-cover" playsinline></video>
+            <div id="scannerVideo" class="w-full h-full" style="min-height:300px;"></div>
 
             {{-- Scan Frame --}}
-            <div class="absolute inset-0 flex items-center justify-center pointer-events-none">
+            <div class="absolute inset-0 flex items-center justify-center pointer-events-none" style="z-index:10">
                 <div class="relative w-72 h-44">
                     {{-- Corner guides --}}
                     <div class="absolute top-0 left-0 w-8 h-8 border-t-4 border-l-4 border-indigo-400 rounded-tl-lg"></div>
@@ -383,7 +383,7 @@
 @endsection
 
 @push('scripts')
-<script src="https://unpkg.com/@zxing/browser@0.1.4/umd/index.min.js"></script>
+<script src="https://unpkg.com/html5-qrcode@2.3.8/html5-qrcode.min.js"></script>
 <script>
 function posApp() {
     return {
@@ -537,55 +537,58 @@ function posApp() {
 
         // ── CAMERA SCANNER ──────────────────────────────
         async startScan() {
-            if (!window.ZXingBrowser) {
-                alert('Scanner library loading, please try again in a moment.');
+            if (typeof Html5Qrcode === 'undefined') {
+                alert('Scanner library not loaded yet. Please wait a moment and try again.');
                 return;
             }
-            this.scanning = true;
-            this._scanLock = false;
+            this.scanning   = true;
+            this._scanLock  = false;
             await this.$nextTick();
-
-            try {
-                // Get available cameras
-                this._cameras = await ZXingBrowser.BrowserCodeReader.listVideoInputDevices();
-                // Prefer back camera
-                this._camIdx = this._cameras.findIndex(c =>
-                    /back|rear|environment/i.test(c.label)
-                );
-                if (this._camIdx < 0) this._camIdx = this._cameras.length - 1;
-                if (this._camIdx < 0) this._camIdx = 0;
-
-                this._startCamera();
-            } catch(e) {
-                alert('Camera access denied. Please allow camera permission.');
-                this.scanning = false;
-            }
+            this._initScanner();
         },
 
-        _startCamera() {
-            const video    = document.getElementById('scannerVideo');
-            const deviceId = this._cameras[this._camIdx]?.deviceId || undefined;
-            const hints    = new Map([
-                [ZXingBrowser.DecodeHintType?.TRY_HARDER, true],
-            ]);
-            const reader = new ZXingBrowser.BrowserMultiFormatReader(hints);
-            this._scanner = reader;
+        _initScanner() {
+            // Destroy previous instance
+            if (this._scanner) {
+                try { this._scanner.stop(); } catch(e) {}
+                this._scanner = null;
+            }
 
-            reader.decodeFromVideoDevice(deviceId, video, (result, err) => {
-                if (result && !this._scanLock) {
-                    this._onScan(result.getText());
-                }
+            const facingMode = this._camIdx === 0 ? 'environment' : 'user';
+
+            this._scanner = new Html5Qrcode('scannerVideo');
+            this._scanner.start(
+                { facingMode },
+                {
+                    fps: 15,
+                    qrbox: { width: 260, height: 140 },
+                    aspectRatio: 1.7,
+                    disableFlip: false,
+                    formatsToSupport: [
+                        Html5QrcodeSupportedFormats?.QR_CODE,
+                        Html5QrcodeSupportedFormats?.CODE_128,
+                        Html5QrcodeSupportedFormats?.CODE_39,
+                        Html5QrcodeSupportedFormats?.EAN_13,
+                        Html5QrcodeSupportedFormats?.EAN_8,
+                        Html5QrcodeSupportedFormats?.UPC_A,
+                        Html5QrcodeSupportedFormats?.UPC_E,
+                    ].filter(Boolean),
+                },
+                (code) => {
+                    if (!this._scanLock) this._onScan(code);
+                },
+                () => {} // ignore errors
+            ).catch(err => {
+                console.error(err);
+                alert('Camera error: ' + err);
+                this.scanning = false;
             });
         },
 
         async _onScan(code) {
-            this._scanLock = true;
+            this._scanLock   = true;
             this.lastScanCode = code;
-
-            // Beep
             this._beep();
-
-            // Vibrate if supported
             if (navigator.vibrate) navigator.vibrate(80);
 
             try {
@@ -605,13 +608,12 @@ function posApp() {
                 }
             } catch(e) {}
 
-            // Unlock after 1.5s to allow next scan
             setTimeout(() => { this._scanLock = false; }, 1500);
         },
 
         stopScan() {
             if (this._scanner) {
-                this._scanner.reset();
+                try { this._scanner.stop(); } catch(e) {}
                 this._scanner = null;
             }
             this.scanning     = false;
@@ -620,10 +622,8 @@ function posApp() {
         },
 
         switchCamera() {
-            if (this._cameras.length < 2) return;
-            if (this._scanner) { this._scanner.reset(); this._scanner = null; }
-            this._camIdx = (this._camIdx + 1) % this._cameras.length;
-            this._startCamera();
+            this._camIdx = this._camIdx === 0 ? 1 : 0;
+            if (this.scanning) this._initScanner();
         },
 
         _beep() {
@@ -636,8 +636,7 @@ function posApp() {
                 osc.type = 'sine';
                 gain.gain.setValueAtTime(0.3, ctx.currentTime);
                 gain.gain.exponentialRampToValueAtTime(0.001, ctx.currentTime + 0.15);
-                osc.start(ctx.currentTime);
-                osc.stop(ctx.currentTime + 0.15);
+                osc.start(ctx.currentTime); osc.stop(ctx.currentTime + 0.15);
             } catch(e) {}
         },
     }
