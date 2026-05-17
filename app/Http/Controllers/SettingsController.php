@@ -109,6 +109,43 @@ class SettingsController extends Controller
     }
 
     // =============================================
+    // THEME SETTINGS
+    // =============================================
+    public function theme()
+    {
+        $business = auth()->user()->business;
+        return view('settings.theme', compact('business'));
+    }
+
+    public function updateTheme(Request $request)
+    {
+        $request->validate([
+            'primary_color'  => ['required', 'regex:/^#[0-9a-fA-F]{6}$/'],
+            'sidebar_color'  => ['nullable', 'regex:/^#[0-9a-fA-F]{6}$/'],
+            'header_color'   => ['nullable', 'regex:/^#[0-9a-fA-F]{6}$/'],
+        ]);
+
+        $business = auth()->user()->business;
+
+        $theme = $business->theme_settings ?? [];
+        $theme['primary_color'] = $request->primary_color;
+        $theme['sidebar_color'] = $request->sidebar_color ?: null;
+        $theme['header_color']  = $request->header_color  ?: null;
+        $theme['dark_sidebar']  = $request->boolean('dark_sidebar');
+
+        $business->update(['theme_settings' => $theme]);
+
+        return back()->with('success', 'Theme saved! Refresh the page to see changes.');
+    }
+
+    public function resetTheme()
+    {
+        $business = auth()->user()->business;
+        $business->update(['theme_settings' => null]);
+        return back()->with('success', 'Theme reset to default.');
+    }
+
+    // =============================================
     // USER MANAGEMENT
     // =============================================
     public function userManagement()

@@ -286,6 +286,11 @@ Route::middleware(['auth', 'business'])->group(function () {
         Route::get('/account-categories',          [SettingsController::class, 'accountCategories'])->name('account-categories');
         Route::post('/account-categories',         [SettingsController::class, 'storeAccountCategory'])->name('account-categories.store');
         Route::delete('/account-categories/{cat}', [SettingsController::class, 'destroyAccountCategory'])->name('account-categories.destroy');
+
+        // Theme
+        Route::get('/theme',  [SettingsController::class, 'theme'])->name('theme');
+        Route::post('/theme', [SettingsController::class, 'updateTheme'])->name('theme.update');
+        Route::post('/theme/reset', [SettingsController::class, 'resetTheme'])->name('theme.reset');
     });
 
     // ---- INTEGRATIONS ----

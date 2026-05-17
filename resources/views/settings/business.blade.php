@@ -14,6 +14,7 @@
             ['route'=>'settings.warehouses',       'label'=>'Warehouses'],
             ['route'=>'settings.print-templates',  'label'=>'Print'],
             ['route'=>'settings.account-categories','label'=>'Categories'],
+            ['route'=>'settings.theme',            'label'=>'Theme'],
         ] as $tab)
         <a href="{{ route($tab['route']) }}"
            class="flex-shrink-0 px-3 py-2 rounded-lg text-xs font-medium transition-colors whitespace-nowrap

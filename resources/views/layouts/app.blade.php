@@ -26,11 +26,16 @@
                 extend: {
                     colors: {
                         primary: {
-                            50:  '#eff6ff',
-                            100: '#dbeafe',
-                            500: '#3b82f6',
-                            600: '#2563eb',
-                            700: '#1d4ed8',
+                            50:  '{{ $themePalette["50"]  ?? "#eff6ff" }}',
+                            100: '{{ $themePalette["100"] ?? "#dbeafe" }}',
+                            200: '{{ $themePalette["200"] ?? "#bfdbfe" }}',
+                            300: '{{ $themePalette["300"] ?? "#93c5fd" }}',
+                            400: '{{ $themePalette["400"] ?? "#60a5fa" }}',
+                            500: '{{ $themePalette["500"] ?? "#3b82f6" }}',
+                            600: '{{ $themePalette["600"] ?? "#2563eb" }}',
+                            700: '{{ $themePalette["700"] ?? "#1d4ed8" }}',
+                            800: '{{ $themePalette["800"] ?? "#1e40af" }}',
+                            900: '{{ $themePalette["900"] ?? "#1e3a8a" }}',
                         }
                     },
                     screens: { 'xs': '375px' }
@@ -38,6 +43,38 @@
             }
         }
     </script>
+    @php
+        $sidebarBg  = $themeSettings['sidebar_color'] ?? null;
+        $headerBg   = $themeSettings['header_color']  ?? null;
+        $darkSidebar= $themeSettings['dark_sidebar']  ?? false;
+        $p600       = $themePalette['600'] ?? '#2563eb';
+        $p700       = $themePalette['700'] ?? '#1d4ed8';
+        $p50        = $themePalette['50']  ?? '#eff6ff';
+        $p100       = $themePalette['100'] ?? '#dbeafe';
+    @endphp
+    @if($sidebarBg || $headerBg || ($themeSettings['primary_color'] ?? null) !== '#2563eb')
+    <style>
+        @if($sidebarBg)
+        #sidebar { background: {{ $sidebarBg }} !important; border-color: {{ $sidebarBg }} !important; }
+        @if($darkSidebar)
+        #sidebar .nav-item, #sidebar a, #sidebar button, #sidebar p, #sidebar span { color: #374151 !important; }
+        #sidebar .nav-active { background: rgba(0,0,0,0.08) !important; color: #111 !important; }
+        @else
+        #sidebar .nav-item, #sidebar a, #sidebar p { color: rgba(255,255,255,0.85) !important; }
+        #sidebar .nav-active { background: rgba(255,255,255,0.15) !important; color: #fff !important; }
+        #sidebar .nav-active svg { color: #fff !important; }
+        #sidebar .text-gray-400, #sidebar .text-slate-500 { color: rgba(255,255,255,0.45) !important; }
+        @endif
+        @endif
+
+        @if($headerBg)
+        header.sticky { background: {{ $headerBg }} !important; border-color: {{ $headerBg }} !important; }
+        @if($headerBg !== '#ffffff')
+        header.sticky h1, header.sticky button, header.sticky span { color: rgba(255,255,255,0.9) !important; }
+        @endif
+        @endif
+    </style>
+    @endif
 
     <script defer src="https://unpkg.com/alpinejs@3.x.x/dist/cdn.min.js"></script>
     <link rel="preconnect" href="https://fonts.googleapis.com">
