@@ -1,4 +1,4 @@
-﻿@extends('layouts.app')
+@extends('layouts.app')
 @section('title', 'Business Settings')
 
 @section('content')
@@ -25,9 +25,9 @@
         @endforeach
     </div>
 
-    {{-- â•â• LOGO UPLOAD (separate form â€” must NOT be nested) â•â• --}}
+    {{-- LOGO UPLOAD (separate form — must NOT be nested in main form) --}}
     <div class="bg-white dark:bg-slate-800 rounded-xl border border-gray-100 dark:border-slate-700 p-5 mb-4">
-        <h3 class="text-sm font-semibold text-gray-900 dark:text-white mb-4">Branding â€” Logo</h3>
+        <h3 class="text-sm font-semibold text-gray-900 dark:text-white mb-4">Branding — Logo</h3>
         <div class="flex items-center gap-4 p-3 bg-gray-50 dark:bg-slate-700/50 rounded-xl">
             {{-- Preview --}}
             <div class="w-16 h-16 bg-white dark:bg-slate-700 rounded-xl border border-gray-200 dark:border-slate-600 flex items-center justify-center overflow-hidden flex-shrink-0">
@@ -42,7 +42,7 @@
             {{-- Upload form (standalone) --}}
             <div class="flex-1">
                 <p class="text-sm font-medium text-gray-900 dark:text-white">Business Logo</p>
-                <p class="text-xs text-gray-500 dark:text-slate-400 mt-0.5">PNG, JPG â€” max 2MB. Invoice à¦“ label-à¦ à¦¦à§‡à¦–à¦¾à¦¬à§‡à¥¤</p>
+                <p class="text-xs text-gray-500 dark:text-slate-400 mt-0.5">PNG, JPG — max 2MB. Shown on invoices &amp; labels.</p>
                 <form method="POST" action="{{ route('settings.logo.upload') }}" enctype="multipart/form-data" class="mt-2">
                     @csrf
                     <label class="inline-flex items-center gap-1.5 px-3 py-1.5 text-xs font-medium bg-blue-600 text-white rounded-lg cursor-pointer hover:bg-blue-700 transition-colors">
@@ -57,7 +57,7 @@
         </div>
     </div>
 
-    {{-- â•â• MAIN SETTINGS FORM â•â• --}}
+    {{-- MAIN SETTINGS FORM --}}
     <form method="POST" action="{{ route('settings.business.update') }}" class="space-y-4">
         @csrf
 
@@ -109,7 +109,7 @@
                     <label class="block text-xs font-medium text-gray-700 dark:text-slate-300 mb-1.5">Business Address</label>
                     <textarea name="address" rows="2"
                               class="w-full px-3 py-2.5 text-sm border border-gray-200 dark:border-slate-600 rounded-lg bg-white dark:bg-slate-700 text-gray-900 dark:text-white focus:outline-none focus:ring-2 focus:ring-blue-500 resize-none"
-                              placeholder="Full address â€” appears on invoices">{{ old('address', $business->address) }}</textarea>
+                              placeholder="Full address — appears on invoices">{{ old('address', $business->address) }}</textarea>
                 </div>
             </div>
         </div>
@@ -121,17 +121,17 @@
                 <div>
                     <label class="block text-xs font-medium text-gray-700 dark:text-slate-300 mb-1.5">Currency</label>
                     <select name="currency" class="w-full px-3 py-2.5 text-sm border border-gray-200 dark:border-slate-600 rounded-lg bg-white dark:bg-slate-700 text-gray-700 dark:text-slate-200 focus:outline-none focus:ring-2 focus:ring-blue-500">
-                        <option value="BDT" {{ $business->currency === 'BDT' ? 'selected':'' }}>BDT â€” Bangladeshi Taka</option>
-                        <option value="USD" {{ $business->currency === 'USD' ? 'selected':'' }}>USD â€” US Dollar</option>
-                        <option value="INR" {{ $business->currency === 'INR' ? 'selected':'' }}>INR â€” Indian Rupee</option>
-                        <option value="EUR" {{ $business->currency === 'EUR' ? 'selected':'' }}>EUR â€” Euro</option>
+                        <option value="BDT" {{ $business->currency === 'BDT' ? 'selected':'' }}>BDT — Bangladeshi Taka</option>
+                        <option value="USD" {{ $business->currency === 'USD' ? 'selected':'' }}>USD — US Dollar</option>
+                        <option value="INR" {{ $business->currency === 'INR' ? 'selected':'' }}>INR — Indian Rupee</option>
+                        <option value="EUR" {{ $business->currency === 'EUR' ? 'selected':'' }}>EUR — Euro</option>
                     </select>
                 </div>
                 <div>
                     <label class="block text-xs font-medium text-gray-700 dark:text-slate-300 mb-1.5">Currency Symbol</label>
                     <input type="text" name="currency_symbol" value="{{ old('currency_symbol', $business->currency_symbol) }}"
                            class="w-full px-3 py-2.5 text-sm border border-gray-200 dark:border-slate-600 rounded-lg bg-white dark:bg-slate-700 text-gray-900 dark:text-white focus:outline-none focus:ring-2 focus:ring-blue-500"
-                           placeholder="à§³">
+                           placeholder="&#2547;">
                 </div>
                 <div>
                     <label class="block text-xs font-medium text-gray-700 dark:text-slate-300 mb-1.5">Timezone</label>
@@ -225,18 +225,18 @@
         {{-- Courier / Label Settings --}}
         <div class="bg-white dark:bg-slate-800 rounded-xl border border-gray-100 dark:border-slate-700 p-5">
             <h3 class="text-sm font-semibold text-gray-900 dark:text-white mb-1">Courier Label Settings</h3>
-            <p class="text-xs text-gray-500 dark:text-slate-400 mb-4">Steadfast à¦“ à¦…à¦¨à§à¦¯ courier label-à¦ à¦¯à¦¾ à¦¦à§‡à¦–à¦¾à¦¬à§‡à¥¤</p>
+            <p class="text-xs text-gray-500 dark:text-slate-400 mb-4">Appears on Steadfast &amp; other courier labels.</p>
             <div>
                 <label class="block text-xs font-medium text-gray-700 dark:text-slate-300 mb-1.5">
                     Merchant ID
-                    <span class="text-gray-400 font-normal">(label-à¦ à¦¡à¦¾à¦¨à¦¦à¦¿à¦•à§‡ à¦¦à§‡à¦–à¦¾à¦¬à§‡)</span>
+                    <span class="text-gray-400 font-normal">(shown on the right side of label)</span>
                 </label>
                 <input type="text" name="label_merchant_id"
                        value="{{ old('label_merchant_id', $business->print_settings['label_merchant_id'] ?? '') }}"
                        class="w-full px-3 py-2.5 text-sm border border-gray-200 dark:border-slate-600 rounded-lg bg-white dark:bg-slate-700 text-gray-900 dark:text-white focus:outline-none focus:ring-2 focus:ring-blue-500 font-mono"
-                       placeholder="à¦¯à§‡à¦®à¦¨: MER-12345 (à¦–à¦¾à¦²à¦¿ à¦°à¦¾à¦–à¦²à§‡ auto-generate à¦¹à¦¬à§‡)">
+                       placeholder="e.g. MER-12345 (leave blank to auto-generate)">
                 <p class="text-xs text-gray-400 dark:text-slate-500 mt-1">
-                    Steadfast à¦¬à¦¾ à¦…à¦¨à§à¦¯ courier-à¦à¦° Merchant/Account IDà¥¤ à¦–à¦¾à¦²à¦¿ à¦°à¦¾à¦–à¦²à§‡ Business ID à¦¥à§‡à¦•à§‡ auto-generate à¦¹à¦¬à§‡à¥¤
+                    Your Steadfast or other courier Merchant/Account ID. Leave blank to auto-generate from Business ID.
                 </p>
             </div>
         </div>
@@ -250,4 +250,3 @@
 </div>
 
 @endsection
-
