@@ -45,6 +45,9 @@ Route::middleware('guest')->group(function () {
 Route::get('/auth/google',          [SocialAuthController::class, 'redirectToGoogle'])->name('auth.google');
 Route::get('/auth/google/callback', [SocialAuthController::class, 'handleGoogleCallback']);
 
+// ── PWA ──
+Route::get('/offline', fn() => view('pwa.offline'))->name('pwa.offline');
+
 Route::post('/logout', [AuthController::class, 'logout'])->name('logout')->middleware('auth');
 
 // =============================================

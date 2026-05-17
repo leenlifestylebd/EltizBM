@@ -1,0 +1,62 @@
+<!DOCTYPE html>
+<html>
+<head><title>Icon Generator — Eltiz BM</title></head>
+<body style="font-family:sans-serif;padding:20px;background:#f3f4f6;">
+<h2>PWA Icon Generator</h2>
+<p>এই page থেকে সব icons download করো এবং <code>public/icons/</code> folder এ রাখো।</p>
+
+<canvas id="c" style="display:none"></canvas>
+<div id="icons" style="display:flex;flex-wrap:wrap;gap:16px;margin-top:20px;"></div>
+
+<script>
+const sizes = [72, 96, 128, 144, 152, 192, 384, 512];
+const canvas = document.getElementById('c');
+const ctx = canvas.getContext('2d');
+
+sizes.forEach(size => {
+    canvas.width = size;
+    canvas.height = size;
+
+    // Background
+    ctx.fillStyle = '#111827';
+    ctx.beginPath();
+    ctx.roundRect(0, 0, size, size, size * 0.2);
+    ctx.fill();
+
+    // Letter E
+    ctx.fillStyle = '#ffffff';
+    ctx.font = `bold ${Math.round(size * 0.55)}px Arial`;
+    ctx.textAlign = 'center';
+    ctx.textBaseline = 'middle';
+    ctx.fillText('E', size / 2, size / 2 + size * 0.03);
+
+    // Small dot accent
+    ctx.fillStyle = '#3b82f6';
+    ctx.beginPath();
+    ctx.arc(size * 0.72, size * 0.72, size * 0.07, 0, Math.PI * 2);
+    ctx.fill();
+
+    const dataURL = canvas.toDataURL('image/png');
+
+    const wrap = document.createElement('div');
+    wrap.style.cssText = 'text-align:center;';
+
+    const img = document.createElement('img');
+    img.src = dataURL;
+    img.width = Math.min(size, 96);
+    img.height = Math.min(size, 96);
+    img.style.cssText = 'border:1px solid #ddd;border-radius:8px;display:block;margin:0 auto 6px;';
+
+    const link = document.createElement('a');
+    link.href = dataURL;
+    link.download = `icon-${size}.png`;
+    link.textContent = `⬇ icon-${size}.png`;
+    link.style.cssText = 'font-size:12px;color:#2563eb;text-decoration:none;';
+
+    wrap.appendChild(img);
+    wrap.appendChild(link);
+    document.getElementById('icons').appendChild(wrap);
+});
+</script>
+</body>
+</html>
