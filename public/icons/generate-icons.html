@@ -1,61 +1,274 @@
 <!DOCTYPE html>
-<html>
-<head><title>Icon Generator — Eltiz BM</title></head>
-<body style="font-family:sans-serif;padding:20px;background:#f3f4f6;">
-<h2>PWA Icon Generator</h2>
-<p>এই page থেকে সব icons download করো এবং <code>public/icons/</code> folder এ রাখো।</p>
+<html lang="en">
+<head>
+<meta charset="UTF-8">
+<title>PWA Icon Generator — Eltiz BM</title>
+<style>
+  * { box-sizing: border-box; margin: 0; padding: 0; }
+  body { font-family: -apple-system, sans-serif; background: #f3f4f6; min-height: 100vh; padding: 32px 16px; }
+  h1 { font-size: 20px; font-weight: 700; color: #111; margin-bottom: 4px; }
+  p.sub { font-size: 13px; color: #6b7280; margin-bottom: 24px; }
 
-<canvas id="c" style="display:none"></canvas>
-<div id="icons" style="display:flex;flex-wrap:wrap;gap:16px;margin-top:20px;"></div>
+  .card { background: #fff; border-radius: 16px; padding: 24px; box-shadow: 0 1px 6px rgba(0,0,0,.08); max-width: 780px; margin: 0 auto 20px; }
 
+  .upload-zone {
+    border: 2px dashed #d1d5db; border-radius: 12px; padding: 32px;
+    text-align: center; cursor: pointer; transition: border-color .2s;
+  }
+  .upload-zone:hover, .upload-zone.drag { border-color: #6366f1; background: #f5f3ff; }
+  .upload-zone input { display: none; }
+  .upload-zone .icon { font-size: 40px; margin-bottom: 8px; }
+  .upload-zone p { font-size: 13px; color: #6b7280; }
+  .upload-zone strong { color: #4f46e5; }
+
+  .opts { display: flex; gap: 12px; flex-wrap: wrap; margin-top: 20px; }
+  label.opt {
+    display: flex; align-items: center; gap: 8px;
+    padding: 8px 14px; border: 1px solid #e5e7eb; border-radius: 8px;
+    font-size: 13px; cursor: pointer; transition: all .15s;
+  }
+  label.opt:has(input:checked) { border-color: #6366f1; background: #eef2ff; color: #4f46e5; font-weight: 600; }
+
+  .btn {
+    display: inline-flex; align-items: center; gap: 8px;
+    padding: 10px 22px; background: #111; color: #fff;
+    border: none; border-radius: 10px; font-size: 14px; font-weight: 600;
+    cursor: pointer; transition: opacity .15s; margin-top: 20px;
+  }
+  .btn:hover { opacity: .85; }
+  .btn:disabled { opacity: .4; cursor: not-allowed; }
+
+  #preview-wrap { display: none; margin-top: 24px; }
+  #preview-wrap h2 { font-size: 15px; font-weight: 700; color: #111; margin-bottom: 16px; }
+
+  .icons-grid { display: flex; flex-wrap: wrap; gap: 16px; }
+  .icon-item { text-align: center; }
+  .icon-item canvas { border-radius: 8px; display: block; margin: 0 auto 6px; }
+  .icon-item a {
+    display: inline-block; font-size: 11px; color: #4f46e5;
+    text-decoration: none; font-weight: 600;
+  }
+  .icon-item a:hover { text-decoration: underline; }
+  .size-label { font-size: 10px; color: #9ca3af; display: block; margin-bottom: 4px; }
+
+  .dl-all {
+    display: inline-flex; align-items: center; gap: 8px;
+    padding: 10px 22px; background: #4f46e5; color: #fff;
+    border: none; border-radius: 10px; font-size: 14px; font-weight: 600;
+    cursor: pointer; margin-top: 20px;
+  }
+  .dl-all:hover { background: #4338ca; }
+
+  .instructions {
+    background: #f0fdf4; border: 1px solid #bbf7d0; border-radius: 12px;
+    padding: 16px 20px; margin-top: 20px; font-size: 13px; color: #166534;
+    line-height: 1.7;
+  }
+  .instructions code {
+    background: #dcfce7; padding: 1px 5px; border-radius: 4px;
+    font-family: monospace; font-size: 12px;
+  }
+</style>
+</head>
+<body>
+
+<div class="card">
+  <h1>🖼️ PWA Icon Generator</h1>
+  <p class="sub">Logo upload করো → সব size এ icons download করো → server এ upload করো</p>
+
+  <div class="upload-zone" id="dropZone">
+    <input type="file" id="fileInput" accept="image/*">
+    <div class="icon">📁</div>
+    <p><strong>Click to upload</strong> or drag & drop your logo</p>
+    <p style="margin-top:4px;">PNG, JPG, SVG — transparent background best</p>
+  </div>
+
+  <div class="opts">
+    <label class="opt">
+      <input type="radio" name="bg" value="white" checked> ⬜ White background
+    </label>
+    <label class="opt">
+      <input type="radio" name="bg" value="dark"> ⬛ Dark background (#111827)
+    </label>
+    <label class="opt">
+      <input type="radio" name="bg" value="transparent"> 🔲 Transparent
+    </label>
+  </div>
+
+  <button class="btn" id="generateBtn" disabled>⚡ Generate Icons</button>
+</div>
+
+<div class="card" id="preview-wrap">
+  <h2>Generated Icons</h2>
+  <div class="icons-grid" id="iconsGrid"></div>
+  <br>
+  <button class="dl-all" id="dlAll">⬇️ Download All Icons (ZIP)</button>
+
+  <div class="instructions">
+    <strong>Next steps:</strong><br>
+    1. Download করা icons গুলো server এ upload করো: <code>public/icons/</code><br>
+    2. SSH দিয়ে: <code>scp -P 65002 icon-*.png u343314711@217.21.87.96:~/domains/leen.com.bd/fulfillo/public/icons/</code><br>
+    3. অথবা Hostinger File Manager থেকে upload করো।
+  </div>
+</div>
+
+<canvas id="masterCanvas" style="display:none"></canvas>
+
+<script src="https://cdnjs.cloudflare.com/ajax/libs/jszip/3.10.1/jszip.min.js"></script>
 <script>
-const sizes = [72, 96, 128, 144, 152, 192, 384, 512];
-const canvas = document.getElementById('c');
-const ctx = canvas.getContext('2d');
+const SIZES = [72, 96, 128, 144, 152, 192, 384, 512];
+let logoImg = null;
+const fileInput = document.getElementById('fileInput');
+const dropZone  = document.getElementById('dropZone');
+const genBtn    = document.getElementById('generateBtn');
+const grid      = document.getElementById('iconsGrid');
+const previewWrap = document.getElementById('preview-wrap');
 
-sizes.forEach(size => {
-    canvas.width = size;
+// ── Upload ──
+dropZone.addEventListener('click', () => fileInput.click());
+fileInput.addEventListener('change', e => loadFile(e.target.files[0]));
+
+dropZone.addEventListener('dragover', e => { e.preventDefault(); dropZone.classList.add('drag'); });
+dropZone.addEventListener('dragleave', () => dropZone.classList.remove('drag'));
+dropZone.addEventListener('drop', e => {
+    e.preventDefault(); dropZone.classList.remove('drag');
+    loadFile(e.dataTransfer.files[0]);
+});
+
+function loadFile(file) {
+    if (!file) return;
+    const reader = new FileReader();
+    reader.onload = ev => {
+        const img = new Image();
+        img.onload = () => {
+            logoImg = img;
+            genBtn.disabled = false;
+            dropZone.querySelector('p').textContent = `✅ ${file.name} loaded`;
+        };
+        img.src = ev.target.result;
+    };
+    reader.readAsDataURL(file);
+}
+
+// ── Generate ──
+genBtn.addEventListener('click', generateIcons);
+
+function getBg() {
+    return document.querySelector('input[name="bg"]:checked').value;
+}
+
+function drawIcon(size) {
+    const canvas = document.createElement('canvas');
+    canvas.width  = size;
     canvas.height = size;
+    const ctx = canvas.getContext('2d');
+
+    const bg = getBg();
 
     // Background
-    ctx.fillStyle = '#111827';
+    const radius = size * 0.18;
     ctx.beginPath();
-    ctx.roundRect(0, 0, size, size, size * 0.2);
-    ctx.fill();
+    ctx.moveTo(radius, 0);
+    ctx.lineTo(size - radius, 0);
+    ctx.quadraticCurveTo(size, 0, size, radius);
+    ctx.lineTo(size, size - radius);
+    ctx.quadraticCurveTo(size, size, size - radius, size);
+    ctx.lineTo(radius, size);
+    ctx.quadraticCurveTo(0, size, 0, size - radius);
+    ctx.lineTo(0, radius);
+    ctx.quadraticCurveTo(0, 0, radius, 0);
+    ctx.closePath();
 
-    // Letter E
-    ctx.fillStyle = '#ffffff';
-    ctx.font = `bold ${Math.round(size * 0.55)}px Arial`;
-    ctx.textAlign = 'center';
-    ctx.textBaseline = 'middle';
-    ctx.fillText('E', size / 2, size / 2 + size * 0.03);
+    if (bg === 'dark') {
+        ctx.fillStyle = '#111827';
+        ctx.fill();
+    } else if (bg === 'white') {
+        ctx.fillStyle = '#ffffff';
+        ctx.fill();
+    }
+    // transparent: no fill
 
-    // Small dot accent
-    ctx.fillStyle = '#3b82f6';
-    ctx.beginPath();
-    ctx.arc(size * 0.72, size * 0.72, size * 0.07, 0, Math.PI * 2);
-    ctx.fill();
+    // Draw logo with padding
+    const pad    = size * 0.1;
+    const drawSz = size - pad * 2;
 
-    const dataURL = canvas.toDataURL('image/png');
+    // Fit logo maintaining aspect ratio
+    const ratio = Math.min(drawSz / logoImg.width, drawSz / logoImg.height);
+    const w = logoImg.width  * ratio;
+    const h = logoImg.height * ratio;
+    const x = (size - w) / 2;
+    const y = (size - h) / 2;
 
-    const wrap = document.createElement('div');
-    wrap.style.cssText = 'text-align:center;';
+    // If dark bg and logo is black → invert
+    if (bg === 'dark') {
+        ctx.filter = 'invert(1)';
+    }
+    ctx.drawImage(logoImg, x, y, w, h);
+    ctx.filter = 'none';
 
-    const img = document.createElement('img');
-    img.src = dataURL;
-    img.width = Math.min(size, 96);
-    img.height = Math.min(size, 96);
-    img.style.cssText = 'border:1px solid #ddd;border-radius:8px;display:block;margin:0 auto 6px;';
+    return canvas;
+}
 
-    const link = document.createElement('a');
-    link.href = dataURL;
-    link.download = `icon-${size}.png`;
-    link.textContent = `⬇ icon-${size}.png`;
-    link.style.cssText = 'font-size:12px;color:#2563eb;text-decoration:none;';
+function generateIcons() {
+    grid.innerHTML = '';
+    previewWrap.style.display = 'block';
 
-    wrap.appendChild(img);
-    wrap.appendChild(link);
-    document.getElementById('icons').appendChild(wrap);
+    SIZES.forEach(size => {
+        const canvas = drawIcon(size);
+        const preview = document.createElement('canvas');
+        const dispSz  = Math.min(size, 80);
+        preview.width  = dispSz;
+        preview.height = dispSz;
+        preview.getContext('2d').drawImage(canvas, 0, 0, dispSz, dispSz);
+
+        const dataURL = canvas.toDataURL('image/png');
+
+        const item = document.createElement('div');
+        item.className = 'icon-item';
+
+        const lbl = document.createElement('span');
+        lbl.className = 'size-label';
+        lbl.textContent = `${size}×${size}`;
+
+        const link = document.createElement('a');
+        link.href     = dataURL;
+        link.download = `icon-${size}.png`;
+        link.textContent = `⬇ icon-${size}.png`;
+
+        item.appendChild(lbl);
+        item.appendChild(preview);
+        item.appendChild(link);
+        grid.appendChild(item);
+
+        // store canvas ref for ZIP
+        preview.dataset.full = dataURL;
+        preview.dataset.name = `icon-${size}.png`;
+    });
+
+    previewWrap.scrollIntoView({ behavior: 'smooth' });
+}
+
+// ── Download All as ZIP ──
+document.getElementById('dlAll').addEventListener('click', async () => {
+    const zip = new JSZip();
+    const folder = zip.folder('icons');
+
+    document.querySelectorAll('.icon-item canvas').forEach(canvas => {
+        const b64 = canvas.dataset.full.split(',')[1];
+        folder.file(canvas.dataset.name, b64, { base64: true });
+    });
+
+    // Also add screenshot placeholder info
+    const readme = `Put all these PNG files inside:\n  public/icons/\n\nThen run on server:\n  php artisan config:cache`;
+    folder.file('README.txt', readme);
+
+    const blob = await zip.generateAsync({ type: 'blob' });
+    const url  = URL.createObjectURL(blob);
+    const a    = document.createElement('a');
+    a.href     = url;
+    a.download = 'eltiz-bm-pwa-icons.zip';
+    a.click();
+    URL.revokeObjectURL(url);
 });
 </script>
 </body>
