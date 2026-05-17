@@ -68,7 +68,7 @@
             <p class="text-xs text-gray-500 dark:text-slate-400">Days Present</p>
         </div>
         <div class="bg-white dark:bg-slate-800 rounded-xl border border-purple-100 dark:border-purple-900/30 p-3 text-center">
-            <p class="text-xl font-bold text-purple-600 dark:text-purple-400">{{ $avgQuality }}%</p>
+            <p class="text-xl font-bold text-purple-600 dark:text-purple-400">{{ $avgQuality ?? 0 }}%</p>
             <p class="text-xs text-gray-500 dark:text-slate-400">Avg Quality</p>
         </div>
     </div>

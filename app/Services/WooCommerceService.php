@@ -2,6 +2,7 @@
 
 namespace App\Services;
 
+use App\Models\User;
 use App\Models\WoocommerceSetting;
 use App\Models\Product;
 use App\Models\ProductVariant;
@@ -16,11 +17,21 @@ class WooCommerceService
 {
     protected WoocommerceSetting $settings;
     protected string $baseUrl;
+    protected int $systemUserId;
 
     public function __construct(WoocommerceSetting $settings)
     {
         $this->settings = $settings;
         $this->baseUrl  = rtrim($settings->store_url, '/') . '/wp-json/wc/v3/';
+
+        // Resolve the business owner's user ID for system-created records.
+        // Falls back to the authenticated user, then to the first owner of the business.
+        $this->systemUserId = auth()->id()
+            ?? User::where('business_id', $settings->business_id)
+                   ->where('role', 'owner')
+                   ->value('id')
+            ?? User::where('business_id', $settings->business_id)->value('id')
+            ?? 1;
     }
 
     // =============================================
@@ -363,7 +374,7 @@ class WooCommerceService
         $order = Order::create([
             'business_id'       => $businessId,
             'customer_id'       => $customer?->id,
-            'created_by'        => 1, // System
+            'created_by'        => $this->systemUserId,
             'order_number'      => 'WOO-' . $wo['id'],
             'source'            => 'woocommerce',
             'status'            => $status,

@@ -271,7 +271,31 @@
                         <svg class="w-4 h-4 text-gray-500" fill="none" stroke="currentColor" viewBox="0 0 24 24"><path d="M9 17a2 2 0 11-4 0 2 2 0 014 0zM19 17a2 2 0 11-4 0 2 2 0 014 0z"/><path stroke-linecap="round" stroke-linejoin="round" stroke-width="2" d="M13 16V6a1 1 0 00-1-1H4a1 1 0 00-1 1v10a1 1 0 001 1h1m8-1a1 1 0 01-1 1H9m4-1V8a1 1 0 011-1h2.586a1 1 0 01.707.293l3.414 3.414a1 1 0 01.293.707V16a1 1 0 01-1 1h-1m-6-1a1 1 0 001 1h1"/></svg>
                         Create Shipment
                     </a>
-                    @if(!in_array($order->status, ['cancelled','returned']))
+                    @if(in_array($order->status, ['delivered', 'completed']))
+                    <button onclick="document.getElementById('returnModal_{{ $order->id }}').classList.remove('hidden')"
+                            class="flex items-center gap-2 w-full px-3 py-2.5 text-xs font-medium text-orange-600 dark:text-orange-400 bg-orange-50 dark:bg-orange-900/20 rounded-lg hover:bg-orange-100 dark:hover:bg-orange-900/30 transition-colors">
+                        <svg class="w-4 h-4" fill="none" stroke="currentColor" viewBox="0 0 24 24"><path stroke-linecap="round" stroke-linejoin="round" stroke-width="2" d="M16 15v-1a4 4 0 00-4-4H8m0 0l3 3m-3-3l3-3"/></svg>
+                        Request Return
+                    </button>
+                    <div id="returnModal_{{ $order->id }}" class="hidden fixed inset-0 bg-black/50 z-50 flex items-center justify-center p-4">
+                        <div class="bg-white dark:bg-slate-800 rounded-xl w-full max-w-sm p-5 shadow-2xl">
+                            <h3 class="text-sm font-semibold text-gray-900 dark:text-white mb-3">Request Return for #{{ $order->order_number }}</h3>
+                            <form method="POST" action="{{ route('returns.request', $order) }}">
+                                @csrf
+                                <label class="block text-xs font-medium text-gray-700 dark:text-slate-300 mb-1.5">Reason <span class="text-red-500">*</span></label>
+                                <textarea name="reason" rows="3" required placeholder="Describe the reason for return..."
+                                          class="w-full px-3 py-2 text-xs border border-gray-200 dark:border-slate-600 rounded-lg bg-white dark:bg-slate-700 text-gray-900 dark:text-white mb-3 focus:ring-2 focus:ring-orange-500 resize-none"></textarea>
+                                <div class="flex gap-2">
+                                    <button type="submit" class="flex-1 py-2 bg-orange-600 text-white text-xs rounded-lg hover:bg-orange-700">Submit Request</button>
+                                    <button type="button" onclick="document.getElementById('returnModal_{{ $order->id }}').classList.add('hidden')"
+                                            class="flex-1 py-2 bg-gray-100 dark:bg-slate-700 text-gray-600 dark:text-slate-300 text-xs rounded-lg hover:bg-gray-200">Cancel</button>
+                                </div>
+                            </form>
+                        </div>
+                    </div>
+                    @endif
+
+                    @if(!in_array($order->status, ['cancelled','returned','return_requested','return_approved','return_received','refunded']))
                     <form method="POST" action="{{ route('orders.status', $order) }}" onsubmit="return confirm('Cancel this order?')">
                         @csrf
                         <input type="hidden" name="status" value="cancelled">

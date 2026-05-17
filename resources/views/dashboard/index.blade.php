@@ -16,12 +16,6 @@
             Today's Update — {{ now()->format('d M Y') }}
         </p>
     </div>
-    <a href="{{ route('orders.create') }}"
-       class="w-9 h-9 bg-primary-600 rounded-full flex items-center justify-center text-white shadow-sm hover:bg-primary-700 transition-colors">
-        <svg class="w-5 h-5" fill="none" stroke="currentColor" viewBox="0 0 24 24">
-            <path stroke-linecap="round" stroke-linejoin="round" stroke-width="2" d="M12 4v16m8-8H4"/>
-        </svg>
-    </a>
 </div>
 
 {{-- Stats Grid — 2 col mobile, 3 col md, 6 col xl --}}
@@ -239,32 +233,5 @@
 
 </div>
 
-{{-- Quick Actions -- Mobile friendly --}}
-<div class="bg-white dark:bg-slate-800 rounded-xl border border-gray-100 dark:border-slate-700 p-4 mb-5">
-    <h3 class="text-sm font-semibold text-gray-900 dark:text-white mb-3">Quick Actions</h3>
-    <div class="grid grid-cols-2 xs:grid-cols-3 sm:grid-cols-4 md:grid-cols-6 gap-2">
-        @php
-        $quickActions = [
-            ['route' => 'orders.create',     'icon' => 'M12 4v16m8-8H4',         'label' => 'New Order',    'color' => 'blue'],
-            ['route' => 'pos.index',         'icon' => 'M9 7h6m0 10v-3m-3 3h.01M9 17h.01M9 14h.01M12 14h.01M15 11h.01M12 11h.01M9 11h.01M7 21h10a2 2 0 002-2V5a2 2 0 00-2-2H7a2 2 0 00-2 2v14a2 2 0 002 2z', 'label' => 'POS Sale', 'color' => 'purple'],
-            ['route' => 'products.create',   'icon' => 'M20 7l-8-4-8 4m16 0l-8 4m8-4v10l-8 4m0-10L4 7m8 4v10M4 7v10l8 4', 'label' => 'Add Product', 'color' => 'green'],
-            ['route' => 'accounts.expenses', 'icon' => 'M9 14l6-6m-5.5.5h.01m4.99 5h.01M19 21V5a2 2 0 00-2-2H7a2 2 0 00-2 2v16l3.5-2 3.5 2 3.5-2 3.5 2z', 'label' => 'Add Expense', 'color' => 'red'],
-            ['route' => 'courier.create',    'icon' => 'M13 16V6a1 1 0 00-1-1H4a1 1 0 00-1 1v10a1 1 0 001 1h1m8-1a1 1 0 01-1 1H9m4-1V8a1 1 0 011-1h2.586a1 1 0 01.707.293l3.414 3.414a1 1 0 01.293.707V16a1 1 0 01-1 1h-1', 'label' => 'New Shipment', 'color' => 'indigo'],
-            ['route' => 'reports.profit-loss','icon' => 'M9 17v-2m3 2v-4m3 4v-6m2 10H7a2 2 0 01-2-2V5a2 2 0 012-2h5.586a1 1 0 01.707.293l5.414 5.414a1 1 0 01.293.707V19a2 2 0 01-2 2z', 'label' => 'Reports', 'color' => 'amber'],
-        ];
-        @endphp
-        @foreach($quickActions as $action)
-        <a href="{{ route($action['route']) }}"
-           class="flex flex-col items-center gap-2 p-3 rounded-xl bg-gray-50 dark:bg-slate-700/50 hover:bg-{{ $action['color'] }}-50 dark:hover:bg-{{ $action['color'] }}-900/20 group transition-all">
-            <div class="w-9 h-9 bg-{{ $action['color'] }}-100 dark:bg-{{ $action['color'] }}-900/30 rounded-lg flex items-center justify-center group-hover:scale-110 transition-transform">
-                <svg class="w-4 h-4 text-{{ $action['color'] }}-600 dark:text-{{ $action['color'] }}-400" fill="none" stroke="currentColor" viewBox="0 0 24 24">
-                    <path stroke-linecap="round" stroke-linejoin="round" stroke-width="2" d="{{ $action['icon'] }}"/>
-                </svg>
-            </div>
-            <span class="text-xs text-center text-gray-600 dark:text-slate-300 font-medium leading-tight">{{ $action['label'] }}</span>
-        </a>
-        @endforeach
-    </div>
-</div>
 
 @endsection

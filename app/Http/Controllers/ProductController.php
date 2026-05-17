@@ -120,7 +120,7 @@ class ProductController extends Controller
     public function show(Product $product)
     {
         $this->authorizeProduct($product);
-        $product->load(['category', 'brand', 'variants']);
+        $product->load(['category', 'brand', 'variants', 'billOfMaterials']);
         return view('products.show', compact('product'));
     }
 
@@ -199,9 +199,59 @@ class ProductController extends Controller
 
     public function doSync(Request $request)
     {
-        // Handled in Phase 4 (WooCommerce Integration)
-        return redirect()->route('products.sync')
-            ->with('success', 'Sync initiated! Check back shortly.');
+        $bizId = auth()->user()->business_id;
+        $wooSettings = \App\Models\WoocommerceSetting::where('business_id', $bizId)
+            ->where('is_active', true)->first();
+
+        if (!$wooSettings) {
+            return redirect()->route('products.sync')
+                ->with('error', 'WooCommerce not configured. Go to Integrations → WooCommerce to set it up.');
+        }
+
+        $type    = $request->type ?? 'products';
+        $service = new \App\Services\WooCommerceService($wooSettings);
+
+        if ($type === 'stock') {
+            $result = $service->pushStockToWoo($bizId);
+            $msg = "Stock pushed: {$result['updated']} products updated.";
+        } else {
+            $result = $service->syncProductsFromWoo($bizId);
+            $msg = "Sync complete: {$result['imported']} imported, {$result['updated']} updated.";
+        }
+
+        if (!empty($result['errors'])) {
+            $msg .= ' ' . count($result['errors']) . ' error(s) occurred.';
+        }
+
+        return redirect()->route('products.sync')->with('success', $msg);
+    }
+
+    public function export(Request $request)
+    {
+        $bizId    = auth()->user()->business_id;
+        $products = Product::where('business_id', $bizId)
+            ->with(['category', 'brand'])
+            ->orderByDesc('created_at')
+            ->get();
+
+        $filename = 'products-' . date('Y-m-d') . '.csv';
+        $headers  = ['Content-Type' => 'text/csv', 'Content-Disposition' => "attachment; filename=\"{$filename}\""];
+
+        $callback = function () use ($products) {
+            $handle = fopen('php://output', 'w');
+            fputcsv($handle, ['ID', 'Name', 'SKU', 'Barcode', 'Category', 'Brand', 'Price', 'Cost Price', 'Sale Price', 'Stock', 'Status']);
+            foreach ($products as $p) {
+                fputcsv($handle, [
+                    $p->id, $p->name, $p->sku, $p->barcode,
+                    $p->category?->name, $p->brand?->name,
+                    $p->price, $p->cost_price, $p->sale_price ?? '',
+                    $p->stock, $p->is_active ? 'Active' : 'Inactive',
+                ]);
+            }
+            fclose($handle);
+        };
+
+        return response()->stream($callback, 200, $headers);
     }
 
     // AJAX search for POS / order form

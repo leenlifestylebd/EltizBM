@@ -37,7 +37,7 @@ class SteadfastController extends Controller
         if (!$exists) {
             Transaction::create([
                 'business_id'      => $shipment->business_id,
-                'created_by'       => 1,
+                'created_by'       => auth()->id() ?? $shipment->order->created_by,
                 'order_id'         => $shipment->order_id,
                 'type'             => 'income',
                 'title'            => 'COD collected - Order #' . $shipment->order->order_number,
@@ -383,7 +383,7 @@ class SteadfastController extends Controller
                     if ($shipment->order->paid_amount > 0) {
                         Transaction::create([
                             'business_id'      => $shipment->business_id,
-                            'created_by'       => 1,
+                            'created_by'       => auth()->id() ?? $shipment->order->created_by,
                             'order_id'         => $shipment->order_id,
                             'type'             => 'expense',
                             'title'            => 'Return/Cancel - Order #' . $shipment->order->order_number,

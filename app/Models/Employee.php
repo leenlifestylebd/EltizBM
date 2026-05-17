@@ -25,6 +25,7 @@ class Employee extends Model
     public function payments()        { return $this->hasMany(EmployeePayment::class); }
     public function attendance()      { return $this->hasMany(Attendance::class); }
     public function attendances()     { return $this->hasMany(Attendance::class); }
+    public function productionTasks() { return $this->hasMany(ProductionTask::class); }
 
     public function todayProduction(): int
     {

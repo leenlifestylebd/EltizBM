@@ -9,14 +9,13 @@
         <h2 class="text-base font-semibold text-gray-900 dark:text-white">Orders</h2>
         <p class="text-xs text-gray-500 dark:text-slate-400 mt-0.5">{{ $orders->total() }} total orders</p>
     </div>
-    <a href="{{ route('orders.create') }}"
-       class="flex items-center gap-1.5 px-3 py-2 text-xs font-medium text-white bg-blue-600 rounded-lg hover:bg-blue-700 transition-colors">
-        <svg class="w-3.5 h-3.5" fill="none" stroke="currentColor" viewBox="0 0 24 24">
-            <path stroke-linecap="round" stroke-linejoin="round" stroke-width="2" d="M12 4v16m8-8H4"/>
-        </svg>
-        <span class="hidden xs:inline">New Order</span>
-        <span class="xs:hidden">New</span>
-    </a>
+    <div class="flex items-center gap-2">
+        <a href="{{ route('orders.export', request()->query()) }}"
+           class="hidden sm:flex items-center gap-1.5 px-3 py-2 text-xs font-medium text-gray-600 dark:text-slate-300 bg-white dark:bg-slate-700 border border-gray-200 dark:border-slate-600 rounded-lg hover:bg-gray-50 transition-colors">
+            <svg class="w-3.5 h-3.5" fill="none" stroke="currentColor" viewBox="0 0 24 24"><path stroke-linecap="round" stroke-linejoin="round" stroke-width="2" d="M4 16v1a3 3 0 003 3h10a3 3 0 003-3v-1m-4-4l-4 4m0 0l-4-4m4 4V4"/></svg>
+            Export CSV
+        </a>
+    </div>
 </div>
 
 {{-- Status Tabs (scrollable on mobile) --}}

@@ -1,4 +1,4 @@
-@extends('layouts.app')
+﻿@extends('layouts.app')
 @section('title', 'Profile Settings')
 
 @section('content')
@@ -11,9 +11,8 @@
             ['route'=>'settings.general',        'label'=>'Profile'],
             ['route'=>'settings.business',       'label'=>'Business'],
             ['route'=>'settings.user-management','label'=>'Users'],
-            ['route'=>'settings.subscription',   'label'=>'Subscription'],
             ['route'=>'settings.warehouses',     'label'=>'Warehouses'],
-            ['route'=>'settings.print-templates','label'=>'Print'],
+            ['route'=>'settings.print-templates','label'=>'Print'],['route'=>'settings.account-categories','label'=>'Categories'],
         ] as $tab)
         <a href="{{ route($tab['route']) }}"
            class="flex-shrink-0 px-3 py-2 rounded-lg text-xs font-medium transition-colors whitespace-nowrap

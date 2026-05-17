@@ -9,6 +9,7 @@ class ProductionEntry extends Model
     protected $fillable = [
         'business_id', 'employee_id', 'production_rate_id',
         'entry_date', 'quantity', 'amount', 'notes',
+        'color', 'size',
     ];
 
     protected $casts = ['entry_date' => 'date'];

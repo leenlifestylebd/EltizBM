@@ -2,6 +2,7 @@
 
 use Illuminate\Support\Facades\Route;
 use App\Http\Controllers\AuthController;
+use App\Http\Controllers\SocialAuthController;
 use App\Http\Controllers\DashboardController;
 use App\Http\Controllers\OrderController;
 use App\Http\Controllers\ProductController;
@@ -11,16 +12,20 @@ use App\Http\Controllers\AttributeController;
 use App\Http\Controllers\InventoryController;
 use App\Http\Controllers\AccountController;
 use App\Http\Controllers\ReportController;
+use App\Http\Controllers\ReportExportController;
 use App\Http\Controllers\CourierController;
 use App\Http\Controllers\PeopleController;
 use App\Http\Controllers\EmployeeController;
 use App\Http\Controllers\TaskController;
 use App\Http\Controllers\PosController;
 use App\Http\Controllers\SettingsController;
+use App\Http\Controllers\MaterialController;
 use App\Http\Controllers\IntegrationController;
 use App\Http\Controllers\WooCommerceController;
 use App\Http\Controllers\WebOrderController;
 use App\Http\Controllers\SteadfastController;
+use App\Http\Controllers\ProductionTaskController;
+use App\Http\Controllers\BomController;
 
 // =============================================
 // AUTH ROUTES
@@ -35,6 +40,10 @@ Route::middleware('guest')->group(function () {
     Route::get('/reset-password/{token}', [AuthController::class, 'showResetPassword'])->name('password.reset');
     Route::post('/reset-password',        [AuthController::class, 'resetPassword'])->name('password.update');
 });
+
+// ── Google OAuth (no guest middleware — callback must be open) ──
+Route::get('/auth/google',          [SocialAuthController::class, 'redirectToGoogle'])->name('auth.google');
+Route::get('/auth/google/callback', [SocialAuthController::class, 'handleGoogleCallback']);
 
 Route::post('/logout', [AuthController::class, 'logout'])->name('logout')->middleware('auth');
 
@@ -51,6 +60,7 @@ Route::middleware(['auth', 'business'])->group(function () {
         Route::get('/',            [OrderController::class, 'index'])->name('index');
         Route::get('/create',      [OrderController::class, 'create'])->name('create');
         Route::post('/',           [OrderController::class, 'store'])->name('store');
+        Route::get('/export',      [OrderController::class, 'export'])->name('export');
         Route::get('/{order}',     [OrderController::class, 'show'])->name('show');
         Route::get('/{order}/edit',[OrderController::class, 'edit'])->name('edit');
         Route::put('/{order}',     [OrderController::class, 'update'])->name('update');
@@ -73,12 +83,17 @@ Route::middleware(['auth', 'business'])->group(function () {
         Route::get('/',            [ProductController::class, 'index'])->name('index');
         Route::get('/create',      [ProductController::class, 'create'])->name('create');
         Route::post('/',           [ProductController::class, 'store'])->name('store');
+        Route::get('/export',      [ProductController::class, 'export'])->name('export');
         Route::get('/sync',        [ProductController::class, 'syncPage'])->name('sync');
         Route::post('/sync',       [ProductController::class, 'doSync'])->name('do-sync');
         Route::get('/{product}',     [ProductController::class, 'show'])->name('show');
         Route::get('/{product}/edit',[ProductController::class, 'edit'])->name('edit');
         Route::put('/{product}',     [ProductController::class, 'update'])->name('update');
         Route::delete('/{product}',  [ProductController::class, 'destroy'])->name('destroy');
+        // Bill of Materials
+        Route::post('/{product}/bom',              [BomController::class, 'store'])->name('bom.store');
+        Route::delete('/{product}/bom/{bom}',      [BomController::class, 'destroy'])->name('bom.destroy');
+        Route::patch('/{product}/bom/{bom}/toggle',[BomController::class, 'toggle'])->name('bom.toggle');
     });
 
     Route::resource('categories', CategoryController::class);
@@ -96,7 +111,12 @@ Route::middleware(['auth', 'business'])->group(function () {
     });
 
     Route::prefix('returns')->name('returns.')->group(function () {
-        Route::get('/', [CourierController::class, 'returns'])->name('index');
+        Route::get('/',                                   [\App\Http\Controllers\ReturnController::class, 'index'])->name('index');
+        Route::post('/orders/{order}/request',            [\App\Http\Controllers\ReturnController::class, 'requestReturn'])->name('request');
+        Route::post('/orders/{order}/approve',            [\App\Http\Controllers\ReturnController::class, 'approve'])->name('approve');
+        Route::post('/orders/{order}/receive',            [\App\Http\Controllers\ReturnController::class, 'receive'])->name('receive');
+        Route::post('/orders/{order}/refund',             [\App\Http\Controllers\ReturnController::class, 'refund'])->name('refund');
+        Route::post('/orders/{order}/reject',             [\App\Http\Controllers\ReturnController::class, 'reject'])->name('reject');
     });
 
     // ---- INVENTORY ----
@@ -105,6 +125,7 @@ Route::middleware(['auth', 'business'])->group(function () {
         Route::get('/purchase-orders',  [InventoryController::class, 'purchaseOrders'])->name('purchase-orders');
         Route::post('/purchase-orders', [InventoryController::class, 'storePurchaseOrder'])->name('purchase-orders.store');
         Route::get('/stock-levels',     [InventoryController::class, 'stockLevels'])->name('stock-levels');
+        Route::get('/export-stock',     [InventoryController::class, 'exportStock'])->name('export-stock');
         Route::get('/adjustments',      [InventoryController::class, 'adjustments'])->name('adjustments');
         Route::post('/adjustments',     [InventoryController::class, 'storeAdjustment'])->name('adjustments.store');
         Route::get('/barcode',          [InventoryController::class, 'barcode'])->name('barcode');
@@ -141,7 +162,12 @@ Route::middleware(['auth', 'business'])->group(function () {
         Route::get('/supplier-due',      [ReportController::class, 'supplierDue'])->name('supplier-due');
         Route::get('/return-refund',     [ReportController::class, 'returnRefund'])->name('return-refund');
         Route::get('/purchase-orders',   [ReportController::class, 'purchaseOrders'])->name('purchase-orders');
-        Route::get('/account-balance',   [ReportController::class, 'accountBalance'])->name('account-balance');
+        Route::get('/account-balance',       [ReportController::class, 'accountBalance'])->name('account-balance');
+        Route::get('/employee-production',   [ReportController::class, 'employeeProduction'])->name('employee-production');
+        Route::get('/sales-channel',         [ReportController::class, 'salesChannel'])->name('sales-channel');
+
+        // Export routes
+        Route::get('/export/{type}', [ReportExportController::class, 'export'])->name('export');
     });
 
     // ---- PEOPLE ----
@@ -177,16 +203,42 @@ Route::middleware(['auth', 'business'])->group(function () {
 
     // ---- PRODUCTION SYSTEM ----
     Route::prefix('production')->name('production.')->group(function () {
-        Route::get('/',                [App\Http\Controllers\ProductionController::class, 'index'])->name('index');
-        Route::post('/',               [App\Http\Controllers\ProductionController::class, 'store'])->name('store');
-        Route::delete('/{entry}',      [App\Http\Controllers\ProductionController::class, 'destroy'])->name('destroy');
+        Route::get('/admin-overview',  [App\Http\Controllers\ProductionController::class, 'adminOverview'])->name('admin-overview');
         Route::get('/rates',           [App\Http\Controllers\ProductionController::class, 'rates'])->name('rates');
         Route::post('/rates',          [App\Http\Controllers\ProductionController::class, 'storeRate'])->name('rates.store');
         Route::put('/rates/{rate}',    [App\Http\Controllers\ProductionController::class, 'updateRate'])->name('rates.update');
         Route::delete('/rates/{rate}', [App\Http\Controllers\ProductionController::class, 'destroyRate'])->name('rates.destroy');
-        Route::get('/payroll',         [App\Http\Controllers\ProductionController::class, 'payroll'])->name('payroll');
-        Route::post('/payment',        [App\Http\Controllers\ProductionController::class, 'storePayment'])->name('payment.store');
+        Route::get('/payroll',                           [App\Http\Controllers\ProductionController::class, 'payroll'])->name('payroll');
+        Route::post('/payment',                          [App\Http\Controllers\ProductionController::class, 'storePayment'])->name('payment.store');
+        Route::post('/payroll/{employee}/finalize',      [App\Http\Controllers\ProductionController::class, 'finalizePayroll'])->name('payroll.finalize');
+        Route::post('/payroll/{payrollPeriod}/unfinalize',[App\Http\Controllers\ProductionController::class, 'unfinalizePayroll'])->name('payroll.unfinalize');
         Route::get('/my-dashboard',    [App\Http\Controllers\ProductionController::class, 'workerDashboard'])->name('worker.dashboard');
+
+        // ---- WORKER EFFICIENCY REPORT ----
+        Route::get('/efficiency',  [App\Http\Controllers\ProductionController::class, 'efficiency'])->name('efficiency');
+
+        // ---- WORKER LEDGER ----
+        Route::get('/worker-ledger',                              [App\Http\Controllers\ProductionController::class, 'workerLedger'])->name('worker.ledger');
+        Route::get('/worker-ledger/{employee}',                   [App\Http\Controllers\ProductionController::class, 'workerLedgerDetail'])->name('worker.ledger.detail');
+        Route::get('/worker-ledger/{employee}/export',            [App\Http\Controllers\ProductionController::class, 'workerLedgerExport'])->name('worker.ledger.export');
+
+        // ---- PRODUCTION TASKS ----
+        Route::get('/tasks',                  [ProductionTaskController::class, 'index'])->name('tasks.index');
+        Route::get('/tasks/create',           [ProductionTaskController::class, 'create'])->name('tasks.create');
+        Route::post('/tasks',                 [ProductionTaskController::class, 'store'])->name('tasks.store');
+        Route::get('/tasks/{task}',           [ProductionTaskController::class, 'show'])->name('tasks.show');
+        Route::put('/tasks/{task}',           [ProductionTaskController::class, 'update'])->name('tasks.update');
+        Route::delete('/tasks/{task}',        [ProductionTaskController::class, 'destroy'])->name('tasks.destroy');
+        Route::post('/tasks/{task}/submit',   [ProductionTaskController::class, 'submit'])->name('tasks.submit');
+        Route::get('/my-tasks',               [ProductionTaskController::class, 'myTasks'])->name('tasks.my');
+    });
+
+    // ---- MATERIALS ----
+    Route::prefix('materials')->name('materials.')->group(function () {
+        Route::get('/',               [MaterialController::class, 'index'])->name('index');
+        Route::post('/',              [MaterialController::class, 'store'])->name('store');
+        Route::delete('/{material}',  [MaterialController::class, 'destroy'])->name('destroy');
+        Route::get('/export',         [MaterialController::class, 'export'])->name('export');
     });
 
     // ---- TASKS ----
@@ -208,7 +260,6 @@ Route::middleware(['auth', 'business'])->group(function () {
         Route::get('/business',       [SettingsController::class, 'business'])->name('business');
         Route::post('/business',      [SettingsController::class, 'updateBusiness'])->name('business.update');
         Route::post('/logo',          [SettingsController::class, 'uploadLogo'])->name('logo.upload');
-        Route::get('/subscription',   [SettingsController::class, 'subscription'])->name('subscription');
         Route::get('/payment-history',[SettingsController::class, 'paymentHistory'])->name('payment-history');
         Route::get('/user-management',[SettingsController::class, 'userManagement'])->name('user-management');
         Route::post('/users',         [SettingsController::class, 'storeUser'])->name('users.store');
@@ -217,10 +268,21 @@ Route::middleware(['auth', 'business'])->group(function () {
         Route::post('/users/{user}/approve',[SettingsController::class, 'approveUser'])->name('users.approve');
         Route::delete('/users/{user}/reject',[SettingsController::class, 'rejectUser'])->name('users.reject');
         Route::get('/statuses',       [SettingsController::class, 'statuses'])->name('statuses');
-        Route::get('/warehouses',     [SettingsController::class, 'warehouses'])->name('warehouses');
-        Route::post('/warehouses',    [SettingsController::class, 'storeWarehouse'])->name('warehouses.store');
+        Route::post('/statuses',      [SettingsController::class, 'updateStatuses'])->name('statuses.update');
+        Route::get('/warehouses',                          [SettingsController::class, 'warehouses'])->name('warehouses');
+        Route::post('/warehouses',                         [SettingsController::class, 'storeWarehouse'])->name('warehouses.store');
+        Route::put('/warehouses/{warehouse}',              [SettingsController::class, 'updateWarehouse'])->name('warehouses.update');
+        Route::delete('/warehouses/{warehouse}',           [SettingsController::class, 'destroyWarehouse'])->name('warehouses.destroy');
         Route::get('/tags',           [SettingsController::class, 'tags'])->name('tags');
-        Route::get('/print-templates',[SettingsController::class, 'printTemplates'])->name('print-templates');
+        Route::post('/tags',          [SettingsController::class, 'storeTag'])->name('tags.store');
+        Route::delete('/tags',        [SettingsController::class, 'destroyTag'])->name('tags.destroy');
+        Route::get('/print-templates',  [SettingsController::class, 'printTemplates'])->name('print-templates');
+        Route::post('/print-templates', [SettingsController::class, 'updatePrintTemplates'])->name('print-templates.update');
+
+        // Account Categories
+        Route::get('/account-categories',          [SettingsController::class, 'accountCategories'])->name('account-categories');
+        Route::post('/account-categories',         [SettingsController::class, 'storeAccountCategory'])->name('account-categories.store');
+        Route::delete('/account-categories/{cat}', [SettingsController::class, 'destroyAccountCategory'])->name('account-categories.destroy');
     });
 
     // ---- INTEGRATIONS ----

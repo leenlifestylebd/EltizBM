@@ -71,7 +71,7 @@
     {{-- Logo --}}
     <div class="flex items-center justify-between px-5 py-4 border-b border-gray-100 dark:border-slate-700">
         <div class="flex items-center gap-2">
-            <img src="/images/logo.png" alt="Eltiz ERP" class="h-8 w-auto">
+            <img src="/images/logo.png" alt="Eltiz ERP" class="h-16 w-auto">
         </div>
         <button @click="sidebarOpen = false" class="lg:hidden p-1 rounded text-gray-400 hover:text-gray-600">
             <svg class="w-5 h-5" fill="none" stroke="currentColor" viewBox="0 0 24 24">
@@ -162,6 +162,8 @@
             <div x-show="open" x-cloak class="pl-9 space-y-0.5">
                 <a href="{{ route('reports.profit-loss') }}" class="block px-3 py-2 text-xs text-gray-500 dark:text-slate-400 hover:text-primary-600 rounded-lg hover:bg-gray-50 dark:hover:bg-slate-700">Profit & Loss</a>
                 <a href="{{ route('reports.order-analytics') }}" class="block px-3 py-2 text-xs text-gray-500 dark:text-slate-400 hover:text-primary-600 rounded-lg hover:bg-gray-50 dark:hover:bg-slate-700">Order Analytics</a>
+                <a href="{{ route('reports.sales-channel') }}" class="block px-3 py-2 text-xs text-gray-500 dark:text-slate-400 hover:text-primary-600 rounded-lg hover:bg-gray-50 dark:hover:bg-slate-700">Sales by Channel</a>
+                <a href="{{ route('reports.employee-production') }}" class="block px-3 py-2 text-xs text-gray-500 dark:text-slate-400 hover:text-primary-600 rounded-lg hover:bg-gray-50 dark:hover:bg-slate-700">Employee Production</a>
                 <a href="{{ route('reports.business-overview') }}" class="block px-3 py-2 text-xs text-gray-500 dark:text-slate-400 hover:text-primary-600 rounded-lg hover:bg-gray-50 dark:hover:bg-slate-700">Business Overview</a>
             </div>
         </div>
@@ -179,11 +181,20 @@
                 <svg class="w-3 h-3 ml-auto transition-transform" :class="open ? 'rotate-180' : ''" fill="none" stroke="currentColor" viewBox="0 0 24 24"><path stroke-linecap="round" stroke-linejoin="round" stroke-width="2" d="M19 9l-7 7-7-7"/></svg>
             </button>
             <div x-show="open" x-cloak class="pl-9 space-y-0.5">
-                <a href="{{ route('production.index') }}" class="block px-3 py-2 text-xs text-gray-500 dark:text-slate-400 hover:text-primary-600 rounded-lg hover:bg-gray-50 dark:hover:bg-slate-700">Daily Entry</a>
+                <a href="{{ route('production.admin-overview') }}" class="block px-3 py-2 text-xs rounded-lg hover:bg-gray-50 dark:hover:bg-slate-700 {{ request()->routeIs('production.admin-overview') ? 'text-primary-600 dark:text-primary-400 font-medium' : 'text-gray-500 dark:text-slate-400 hover:text-primary-600' }}">📊 Team Overview</a>
                 <a href="{{ route('production.rates') }}" class="block px-3 py-2 text-xs text-gray-500 dark:text-slate-400 hover:text-primary-600 rounded-lg hover:bg-gray-50 dark:hover:bg-slate-700">Rates Setup</a>
                 <a href="{{ route('production.payroll') }}" class="block px-3 py-2 text-xs text-gray-500 dark:text-slate-400 hover:text-primary-600 rounded-lg hover:bg-gray-50 dark:hover:bg-slate-700">Payroll</a>
+                <a href="{{ route('production.tasks.index') }}" class="block px-3 py-2 text-xs rounded-lg hover:bg-gray-50 dark:hover:bg-slate-700 {{ request()->routeIs('production.tasks.*') ? 'text-primary-600 dark:text-primary-400 font-medium' : 'text-gray-500 dark:text-slate-400 hover:text-primary-600' }}">Task Assignment</a>
+                <a href="{{ route('production.worker.ledger') }}" class="block px-3 py-2 text-xs rounded-lg hover:bg-gray-50 dark:hover:bg-slate-700 {{ request()->routeIs('production.worker.ledger*') ? 'text-primary-600 dark:text-primary-400 font-medium' : 'text-gray-500 dark:text-slate-400 hover:text-primary-600' }}">Worker Ledger</a>
+                <a href="{{ route('production.efficiency') }}" class="block px-3 py-2 text-xs rounded-lg hover:bg-gray-50 dark:hover:bg-slate-700 {{ request()->routeIs('production.efficiency') ? 'text-primary-600 dark:text-primary-400 font-medium' : 'text-gray-500 dark:text-slate-400 hover:text-primary-600' }}">Efficiency Report</a>
             </div>
         </div>
+
+        <a href="{{ route('materials.index') }}"
+           class="nav-item flex items-center gap-3 px-3 py-2.5 rounded-lg text-sm text-gray-600 dark:text-slate-300 hover:bg-gray-50 dark:hover:bg-slate-700 mb-0.5 {{ request()->routeIs('materials.*') ? 'nav-active' : '' }}">
+            <svg class="w-4 h-4 flex-shrink-0" fill="none" stroke="currentColor" viewBox="0 0 24 24"><path stroke-linecap="round" stroke-linejoin="round" stroke-width="2" d="M20 7l-8-4-8 4m16 0l-8 4m8-4v10l-8 4m0-10L4 7m8 4v10M4 7v10l8 4"/></svg>
+            Materials
+        </a>
 
         <a href="{{ route('employees.index') }}"
            class="nav-item flex items-center gap-3 px-3 py-2.5 rounded-lg text-sm text-gray-600 dark:text-slate-300 hover:bg-gray-50 dark:hover:bg-slate-700 mb-0.5">
@@ -215,6 +226,12 @@
            class="nav-item flex items-center gap-3 px-3 py-2.5 rounded-lg text-sm text-gray-600 dark:text-slate-300 hover:bg-gray-50 dark:hover:bg-slate-700 mb-0.5 {{ request()->routeIs('steadfast.*') ? 'nav-active' : '' }}">
             <svg class="w-4 h-4 flex-shrink-0" fill="none" stroke="currentColor" viewBox="0 0 24 24"><path stroke-linecap="round" stroke-linejoin="round" stroke-width="2" d="M8 7h12m0 0l-4-4m4 4l-4 4m0 6H4m0 0l4 4m-4-4l4-4"/></svg>
             Steadfast
+        </a>
+
+        <a href="{{ route('returns.index') }}"
+           class="nav-item flex items-center gap-3 px-3 py-2.5 rounded-lg text-sm text-gray-600 dark:text-slate-300 hover:bg-gray-50 dark:hover:bg-slate-700 mb-0.5 {{ request()->routeIs('returns.*') ? 'nav-active' : '' }}">
+            <svg class="w-4 h-4 flex-shrink-0" fill="none" stroke="currentColor" viewBox="0 0 24 24"><path stroke-linecap="round" stroke-linejoin="round" stroke-width="2" d="M16 15v-1a4 4 0 00-4-4H8m0 0l3 3m-3-3l3-3m9 14V5a2 2 0 00-2-2H6a2 2 0 00-2 2v16l4-2 4 2 4-2 4 2z"/></svg>
+            Returns & RMA
         </a>
 
         <a href="{{ route('integrations.index') }}"
@@ -255,7 +272,7 @@
                     <svg class="w-5 h-5" fill="none" stroke="currentColor" viewBox="0 0 24 24"><path stroke-linecap="round" stroke-linejoin="round" stroke-width="2" d="M4 6h16M4 12h16M4 18h16"/></svg>
                 </button>
                 <div class="flex items-center gap-2 lg:hidden">
-                    <img src="/images/logo.png" alt="Eltiz ERP" class="h-7 w-auto">
+                    <img src="/images/logo.png" alt="Eltiz ERP" class="h-12 w-auto">
                 </div>
                 <div class="hidden lg:block">
                     <h1 class="text-base font-semibold text-gray-900 dark:text-white">@yield('title', 'Dashboard')</h1>
@@ -263,6 +280,126 @@
             </div>
 
             <div class="flex items-center gap-2">
+
+                {{-- ⚡ Quick Action Button (desktop only — mobile uses bottom FAB) --}}
+                @if(auth()->user()->role !== 'employee')
+                <div class="relative hidden lg:block" x-data="{ qaOpen: false }" @keydown.escape.window="qaOpen = false">
+
+                    <button @click="qaOpen = !qaOpen" @click.outside="qaOpen = false"
+                            class="flex items-center gap-1.5 px-3 py-1.5 bg-blue-600 hover:bg-blue-700 text-white text-xs font-semibold rounded-lg shadow-sm transition-colors"
+                            title="Quick Actions">
+                        <svg class="w-3.5 h-3.5 transition-transform duration-200" :class="qaOpen ? 'rotate-45' : ''" fill="none" stroke="currentColor" viewBox="0 0 24 24">
+                            <path stroke-linecap="round" stroke-linejoin="round" stroke-width="2.5" d="M12 4v16m8-8H4"/>
+                        </svg>
+                        <span class="hidden sm:inline">New</span>
+                    </button>
+
+                    {{-- Desktop Dropdown --}}
+                    <div x-show="qaOpen" x-cloak
+                         x-transition:enter="transition ease-out duration-150"
+                         x-transition:enter-start="opacity-0 translate-y-1 scale-95"
+                         x-transition:enter-end="opacity-100 translate-y-0 scale-100"
+                         x-transition:leave="transition ease-in duration-100"
+                         x-transition:leave-start="opacity-100 translate-y-0 scale-100"
+                         x-transition:leave-end="opacity-0 translate-y-1 scale-95"
+                         class="absolute right-0 mt-2 w-64 bg-white dark:bg-slate-800 rounded-2xl shadow-xl border border-gray-100 dark:border-slate-700 z-50 overflow-hidden">
+
+                        <div class="px-4 py-2.5 border-b border-gray-50 dark:border-slate-700">
+                            <p class="text-xs font-semibold text-gray-400 dark:text-slate-500 uppercase tracking-wider">Quick Actions</p>
+                        </div>
+
+                        <div class="p-2 space-y-0.5">
+
+                            {{-- New Order --}}
+                            <a href="{{ route('orders.create') }}" @click="qaOpen = false"
+                               class="flex items-center gap-3 px-3 py-2.5 rounded-xl hover:bg-gray-50 dark:hover:bg-slate-700 transition-colors group">
+                                <div class="w-8 h-8 bg-blue-100 dark:bg-blue-900/30 rounded-lg flex items-center justify-center flex-shrink-0 group-hover:bg-blue-200 dark:group-hover:bg-blue-900/50 transition-colors">
+                                    <svg class="w-4 h-4 text-blue-600 dark:text-blue-400" fill="none" stroke="currentColor" viewBox="0 0 24 24"><path stroke-linecap="round" stroke-linejoin="round" stroke-width="2" d="M3 3h2l.4 2M7 13h10l4-8H5.4M7 13L5.4 5M7 13l-2.293 2.293c-.63.63-.184 1.707.707 1.707H17m0 0a2 2 0 100 4 2 2 0 000-4zm-8 2a2 2 0 11-4 0 2 2 0 014 0z"/></svg>
+                                </div>
+                                <div>
+                                    <p class="text-sm font-medium text-gray-800 dark:text-white">New Order</p>
+                                    <p class="text-xs text-gray-400 dark:text-slate-500">Create a manual order</p>
+                                </div>
+                            </a>
+
+                            {{-- POS Sale --}}
+                            <a href="{{ route('pos.index') }}" @click="qaOpen = false"
+                               class="flex items-center gap-3 px-3 py-2.5 rounded-xl hover:bg-gray-50 dark:hover:bg-slate-700 transition-colors group">
+                                <div class="w-8 h-8 bg-violet-100 dark:bg-violet-900/30 rounded-lg flex items-center justify-center flex-shrink-0 group-hover:bg-violet-200 dark:group-hover:bg-violet-900/50 transition-colors">
+                                    <svg class="w-4 h-4 text-violet-600 dark:text-violet-400" fill="none" stroke="currentColor" viewBox="0 0 24 24"><path stroke-linecap="round" stroke-linejoin="round" stroke-width="2" d="M9 7h6m0 10v-3m-3 3h.01M9 17h.01M9 14h.01M12 14h.01M15 11h.01M12 11h.01M9 11h.01M7 21h10a2 2 0 002-2V5a2 2 0 00-2-2H7a2 2 0 00-2 2v14a2 2 0 002 2z"/></svg>
+                                </div>
+                                <div>
+                                    <p class="text-sm font-medium text-gray-800 dark:text-white">POS Sale</p>
+                                    <p class="text-xs text-gray-400 dark:text-slate-500">Point of sale terminal</p>
+                                </div>
+                            </a>
+
+                            {{-- Add Expense --}}
+                            <a href="{{ route('accounts.expenses') }}" @click="qaOpen = false"
+                               class="flex items-center gap-3 px-3 py-2.5 rounded-xl hover:bg-gray-50 dark:hover:bg-slate-700 transition-colors group">
+                                <div class="w-8 h-8 bg-red-100 dark:bg-red-900/30 rounded-lg flex items-center justify-center flex-shrink-0 group-hover:bg-red-200 dark:group-hover:bg-red-900/50 transition-colors">
+                                    <svg class="w-4 h-4 text-red-600 dark:text-red-400" fill="none" stroke="currentColor" viewBox="0 0 24 24"><path stroke-linecap="round" stroke-linejoin="round" stroke-width="2" d="M15 12H9m12 0a9 9 0 11-18 0 9 9 0 0118 0z"/></svg>
+                                </div>
+                                <div>
+                                    <p class="text-sm font-medium text-gray-800 dark:text-white">Add Expense</p>
+                                    <p class="text-xs text-gray-400 dark:text-slate-500">Record a business expense</p>
+                                </div>
+                            </a>
+
+                            {{-- Add Income --}}
+                            <a href="{{ route('accounts.income') }}" @click="qaOpen = false"
+                               class="flex items-center gap-3 px-3 py-2.5 rounded-xl hover:bg-gray-50 dark:hover:bg-slate-700 transition-colors group">
+                                <div class="w-8 h-8 bg-green-100 dark:bg-green-900/30 rounded-lg flex items-center justify-center flex-shrink-0 group-hover:bg-green-200 dark:group-hover:bg-green-900/50 transition-colors">
+                                    <svg class="w-4 h-4 text-green-600 dark:text-green-400" fill="none" stroke="currentColor" viewBox="0 0 24 24"><path stroke-linecap="round" stroke-linejoin="round" stroke-width="2" d="M12 9v3m0 0v3m0-3h3m-3 0H9m12 0a9 9 0 11-18 0 9 9 0 0118 0z"/></svg>
+                                </div>
+                                <div>
+                                    <p class="text-sm font-medium text-gray-800 dark:text-white">Add Income</p>
+                                    <p class="text-xs text-gray-400 dark:text-slate-500">Record other income</p>
+                                </div>
+                            </a>
+
+                            {{-- Stock Adjustment --}}
+                            <a href="{{ route('inventory.adjustments') }}" @click="qaOpen = false"
+                               class="flex items-center gap-3 px-3 py-2.5 rounded-xl hover:bg-gray-50 dark:hover:bg-slate-700 transition-colors group">
+                                <div class="w-8 h-8 bg-amber-100 dark:bg-amber-900/30 rounded-lg flex items-center justify-center flex-shrink-0 group-hover:bg-amber-200 dark:group-hover:bg-amber-900/50 transition-colors">
+                                    <svg class="w-4 h-4 text-amber-600 dark:text-amber-400" fill="none" stroke="currentColor" viewBox="0 0 24 24"><path stroke-linecap="round" stroke-linejoin="round" stroke-width="2" d="M5 8h14M5 8a2 2 0 110-4h14a2 2 0 110 4M5 8v10a2 2 0 002 2h10a2 2 0 002-2V8m-9 4h4"/></svg>
+                                </div>
+                                <div>
+                                    <p class="text-sm font-medium text-gray-800 dark:text-white">Stock Adjustment</p>
+                                    <p class="text-xs text-gray-400 dark:text-slate-500">Update inventory levels</p>
+                                </div>
+                            </a>
+
+                            {{-- Assign Task --}}
+                            <a href="{{ route('production.tasks.create') }}" @click="qaOpen = false"
+                               class="flex items-center gap-3 px-3 py-2.5 rounded-xl hover:bg-gray-50 dark:hover:bg-slate-700 transition-colors group">
+                                <div class="w-8 h-8 bg-indigo-100 dark:bg-indigo-900/30 rounded-lg flex items-center justify-center flex-shrink-0 group-hover:bg-indigo-200 dark:group-hover:bg-indigo-900/50 transition-colors">
+                                    <svg class="w-4 h-4 text-indigo-600 dark:text-indigo-400" fill="none" stroke="currentColor" viewBox="0 0 24 24"><path stroke-linecap="round" stroke-linejoin="round" stroke-width="2" d="M9 5H7a2 2 0 00-2 2v12a2 2 0 002 2h10a2 2 0 002-2V7a2 2 0 00-2-2h-2M9 5a2 2 0 002 2h2a2 2 0 002-2M9 5a2 2 0 012-2h2a2 2 0 012 2m-6 9l2 2 4-4"/></svg>
+                                </div>
+                                <div>
+                                    <p class="text-sm font-medium text-gray-800 dark:text-white">Assign Task</p>
+                                    <p class="text-xs text-gray-400 dark:text-slate-500">Give work to a worker</p>
+                                </div>
+                            </a>
+
+                            {{-- Purchase Order --}}
+                            <a href="{{ route('inventory.purchase-orders') }}" @click="qaOpen = false"
+                               class="flex items-center gap-3 px-3 py-2.5 rounded-xl hover:bg-gray-50 dark:hover:bg-slate-700 transition-colors group">
+                                <div class="w-8 h-8 bg-teal-100 dark:bg-teal-900/30 rounded-lg flex items-center justify-center flex-shrink-0 group-hover:bg-teal-200 dark:group-hover:bg-teal-900/50 transition-colors">
+                                    <svg class="w-4 h-4 text-teal-600 dark:text-teal-400" fill="none" stroke="currentColor" viewBox="0 0 24 24"><path stroke-linecap="round" stroke-linejoin="round" stroke-width="2" d="M20 13V6a2 2 0 00-2-2H6a2 2 0 00-2 2v7m16 0v5a2 2 0 01-2 2H6a2 2 0 01-2-2v-5m16 0h-2.586a1 1 0 00-.707.293l-2.414 2.414a1 1 0 01-.707.293h-3.172a1 1 0 01-.707-.293l-2.414-2.414A1 1 0 006.586 13H4"/></svg>
+                                </div>
+                                <div>
+                                    <p class="text-sm font-medium text-gray-800 dark:text-white">Purchase Order</p>
+                                    <p class="text-xs text-gray-400 dark:text-slate-500">Restock from supplier</p>
+                                </div>
+                            </a>
+
+                        </div>
+                    </div>
+                </div>
+                @endif
+                {{-- /Quick Action --}}
+
                 <button @click="darkMode = !darkMode" class="p-2 rounded-lg text-gray-500 hover:bg-gray-100 dark:hover:bg-slate-700">
                     <svg x-show="!darkMode" class="w-4 h-4" fill="none" stroke="currentColor" viewBox="0 0 24 24"><path stroke-linecap="round" stroke-linejoin="round" stroke-width="2" d="M20.354 15.354A9 9 0 018.646 3.646 9.003 9.003 0 0012 21a9.003 9.003 0 008.354-5.646z"/></svg>
                     <svg x-show="darkMode" x-cloak class="w-4 h-4" fill="none" stroke="currentColor" viewBox="0 0 24 24"><path stroke-linecap="round" stroke-linejoin="round" stroke-width="2" d="M12 3v1m0 16v1m9-9h-1M4 12H3m15.364 6.364l-.707-.707M6.343 6.343l-.707-.707m12.728 0l-.707.707M6.343 17.657l-.707.707M16 12a4 4 0 11-8 0 4 4 0 018 0z"/></svg>
@@ -360,32 +497,163 @@
 </div>
 
 {{-- MOBILE BOTTOM NAV --}}
-<nav class="lg:hidden fixed bottom-0 left-0 right-0 z-30 bg-white dark:bg-slate-800 border-t border-gray-100 dark:border-slate-700">
-    <div class="grid grid-cols-5 h-16">
-        <a href="{{ route('dashboard') }}" class="flex flex-col items-center justify-center gap-1 text-xs {{ request()->routeIs('dashboard') ? 'bottom-nav-active text-primary-600' : 'text-gray-400 dark:text-slate-500' }}">
-            <svg class="w-5 h-5" fill="none" stroke="currentColor" viewBox="0 0 24 24"><path stroke-linecap="round" stroke-linejoin="round" stroke-width="2" d="M3 12l2-2m0 0l7-7 7 7M5 10v10a1 1 0 001 1h3m10-11l2 2m-2-2v10a1 1 0 01-1 1h-3m-6 0a1 1 0 001-1v-4a1 1 0 011-1h2a1 1 0 011 1v4a1 1 0 001 1m-6 0h6"/></svg>
-            <span>Home</span>
-        </a>
-        <a href="{{ route('orders.index') }}" class="flex flex-col items-center justify-center gap-1 text-xs {{ request()->routeIs('orders.*') ? 'bottom-nav-active text-primary-600' : 'text-gray-400 dark:text-slate-500' }}">
-            <svg class="w-5 h-5" fill="none" stroke="currentColor" viewBox="0 0 24 24"><path stroke-linecap="round" stroke-linejoin="round" stroke-width="2" d="M3 3h2l.4 2M7 13h10l4-8H5.4M7 13L5.4 5M7 13l-2.293 2.293c-.63.63-.184 1.707.707 1.707H17m0 0a2 2 0 100 4 2 2 0 000-4zm-8 2a2 2 0 11-4 0 2 2 0 014 0z"/></svg>
-            <span>Orders</span>
-        </a>
-        <a href="{{ route('pos.index') }}" class="flex flex-col items-center justify-center gap-1 text-xs {{ request()->routeIs('pos.*') ? 'bottom-nav-active text-primary-600' : 'text-gray-400 dark:text-slate-500' }}">
-            <div class="w-10 h-10 -mt-5 bg-primary-600 rounded-full flex items-center justify-center shadow-lg">
-                <svg class="w-5 h-5 text-white" fill="none" stroke="currentColor" viewBox="0 0 24 24"><path stroke-linecap="round" stroke-linejoin="round" stroke-width="2" d="M9 7h6m0 10v-3m-3 3h.01M9 17h.01M9 14h.01M12 14h.01M15 11h.01M12 11h.01M9 11h.01M7 21h10a2 2 0 002-2V5a2 2 0 00-2-2H7a2 2 0 00-2 2v14a2 2 0 002 2z"/></svg>
-            </div>
-            <span class="mt-1">POS</span>
-        </a>
-        <a href="{{ route('products.index') }}" class="flex flex-col items-center justify-center gap-1 text-xs {{ request()->routeIs('products.*') ? 'bottom-nav-active text-primary-600' : 'text-gray-400 dark:text-slate-500' }}">
-            <svg class="w-5 h-5" fill="none" stroke="currentColor" viewBox="0 0 24 24"><path stroke-linecap="round" stroke-linejoin="round" stroke-width="2" d="M20 7l-8-4-8 4m16 0l-8 4m8-4v10l-8 4m0-10L4 7m8 4v10M4 7v10l8 4"/></svg>
-            <span>Products</span>
-        </a>
-        <a href="{{ route('steadfast.index') }}" class="flex flex-col items-center justify-center gap-1 text-xs {{ request()->routeIs('steadfast.*') ? 'bottom-nav-active text-primary-600' : 'text-gray-400 dark:text-slate-500' }}">
-            <svg class="w-5 h-5" fill="none" stroke="currentColor" viewBox="0 0 24 24"><path stroke-linecap="round" stroke-linejoin="round" stroke-width="2" d="M8 7h12m0 0l-4-4m4 4l-4 4m0 6H4m0 0l4 4m-4-4l4-4"/></svg>
-            <span>Courier</span>
-        </a>
+<div class="lg:hidden" x-data="{ qaSheet: false }" @keydown.escape.window="qaSheet = false">
+
+    {{-- Quick Action Bottom Sheet Backdrop --}}
+    <div x-show="qaSheet" x-cloak
+         x-transition:enter="transition-opacity ease-out duration-200"
+         x-transition:enter-start="opacity-0"
+         x-transition:enter-end="opacity-100"
+         x-transition:leave="transition-opacity ease-in duration-150"
+         x-transition:leave-start="opacity-100"
+         x-transition:leave-end="opacity-0"
+         @click="qaSheet = false"
+         class="fixed inset-0 bg-black/50 backdrop-blur-sm z-40">
     </div>
-</nav>
+
+    {{-- Quick Action Bottom Sheet --}}
+    @if(auth()->user()->role !== 'employee')
+    <div x-show="qaSheet" x-cloak
+         x-transition:enter="transition ease-out duration-300"
+         x-transition:enter-start="opacity-0 translate-y-full"
+         x-transition:enter-end="opacity-100 translate-y-0"
+         x-transition:leave="transition ease-in duration-200"
+         x-transition:leave-start="opacity-100 translate-y-0"
+         x-transition:leave-end="opacity-0 translate-y-full"
+         class="fixed bottom-16 left-0 right-0 z-50 bg-white dark:bg-slate-800 rounded-t-3xl shadow-2xl border-t border-gray-100 dark:border-slate-700 pb-safe">
+
+        {{-- Handle --}}
+        <div class="flex justify-center pt-3 pb-1">
+            <div class="w-10 h-1 bg-gray-200 dark:bg-slate-600 rounded-full"></div>
+        </div>
+
+        <div class="px-4 py-2 border-b border-gray-50 dark:border-slate-700">
+            <p class="text-xs font-semibold text-gray-400 dark:text-slate-500 uppercase tracking-wider text-center">Quick Actions</p>
+        </div>
+
+        <div class="p-3 grid grid-cols-3 gap-2.5">
+
+            <a href="{{ route('orders.create') }}" @click="qaSheet = false"
+               class="flex flex-col items-center gap-2 p-3 bg-blue-50 dark:bg-blue-900/20 rounded-2xl hover:bg-blue-100 dark:hover:bg-blue-900/30 active:scale-95 transition-all">
+                <div class="w-10 h-10 bg-blue-600 rounded-xl flex items-center justify-center shadow-sm">
+                    <svg class="w-5 h-5 text-white" fill="none" stroke="currentColor" viewBox="0 0 24 24"><path stroke-linecap="round" stroke-linejoin="round" stroke-width="2" d="M3 3h2l.4 2M7 13h10l4-8H5.4M7 13L5.4 5M7 13l-2.293 2.293c-.63.63-.184 1.707.707 1.707H17m0 0a2 2 0 100 4 2 2 0 000-4zm-8 2a2 2 0 11-4 0 2 2 0 014 0z"/></svg>
+                </div>
+                <span class="text-xs font-semibold text-blue-700 dark:text-blue-400 text-center leading-tight">New Order</span>
+            </a>
+
+            <a href="{{ route('pos.index') }}" @click="qaSheet = false"
+               class="flex flex-col items-center gap-2 p-3 bg-violet-50 dark:bg-violet-900/20 rounded-2xl hover:bg-violet-100 dark:hover:bg-violet-900/30 active:scale-95 transition-all">
+                <div class="w-10 h-10 bg-violet-600 rounded-xl flex items-center justify-center shadow-sm">
+                    <svg class="w-5 h-5 text-white" fill="none" stroke="currentColor" viewBox="0 0 24 24"><path stroke-linecap="round" stroke-linejoin="round" stroke-width="2" d="M9 7h6m0 10v-3m-3 3h.01M9 17h.01M9 14h.01M12 14h.01M15 11h.01M12 11h.01M9 11h.01M7 21h10a2 2 0 002-2V5a2 2 0 00-2-2H7a2 2 0 00-2 2v14a2 2 0 002 2z"/></svg>
+                </div>
+                <span class="text-xs font-semibold text-violet-700 dark:text-violet-400 text-center leading-tight">POS Sale</span>
+            </a>
+
+            <a href="{{ route('accounts.expenses') }}" @click="qaSheet = false"
+               class="flex flex-col items-center gap-2 p-3 bg-red-50 dark:bg-red-900/20 rounded-2xl hover:bg-red-100 dark:hover:bg-red-900/30 active:scale-95 transition-all">
+                <div class="w-10 h-10 bg-red-500 rounded-xl flex items-center justify-center shadow-sm">
+                    <svg class="w-5 h-5 text-white" fill="none" stroke="currentColor" viewBox="0 0 24 24"><path stroke-linecap="round" stroke-linejoin="round" stroke-width="2" d="M15 12H9m12 0a9 9 0 11-18 0 9 9 0 0118 0z"/></svg>
+                </div>
+                <span class="text-xs font-semibold text-red-700 dark:text-red-400 text-center leading-tight">Expense</span>
+            </a>
+
+            <a href="{{ route('accounts.income') }}" @click="qaSheet = false"
+               class="flex flex-col items-center gap-2 p-3 bg-green-50 dark:bg-green-900/20 rounded-2xl hover:bg-green-100 dark:hover:bg-green-900/30 active:scale-95 transition-all">
+                <div class="w-10 h-10 bg-green-600 rounded-xl flex items-center justify-center shadow-sm">
+                    <svg class="w-5 h-5 text-white" fill="none" stroke="currentColor" viewBox="0 0 24 24"><path stroke-linecap="round" stroke-linejoin="round" stroke-width="2" d="M12 9v3m0 0v3m0-3h3m-3 0H9m12 0a9 9 0 11-18 0 9 9 0 0118 0z"/></svg>
+                </div>
+                <span class="text-xs font-semibold text-green-700 dark:text-green-400 text-center leading-tight">Add Income</span>
+            </a>
+
+            <a href="{{ route('inventory.adjustments') }}" @click="qaSheet = false"
+               class="flex flex-col items-center gap-2 p-3 bg-amber-50 dark:bg-amber-900/20 rounded-2xl hover:bg-amber-100 dark:hover:bg-amber-900/30 active:scale-95 transition-all">
+                <div class="w-10 h-10 bg-amber-500 rounded-xl flex items-center justify-center shadow-sm">
+                    <svg class="w-5 h-5 text-white" fill="none" stroke="currentColor" viewBox="0 0 24 24"><path stroke-linecap="round" stroke-linejoin="round" stroke-width="2" d="M5 8h14M5 8a2 2 0 110-4h14a2 2 0 110 4M5 8v10a2 2 0 002 2h10a2 2 0 002-2V8m-9 4h4"/></svg>
+                </div>
+                <span class="text-xs font-semibold text-amber-700 dark:text-amber-400 text-center leading-tight">Stock Adj.</span>
+            </a>
+
+            <a href="{{ route('production.tasks.create') }}" @click="qaSheet = false"
+               class="flex flex-col items-center gap-2 p-3 bg-indigo-50 dark:bg-indigo-900/20 rounded-2xl hover:bg-indigo-100 dark:hover:bg-indigo-900/30 active:scale-95 transition-all">
+                <div class="w-10 h-10 bg-indigo-600 rounded-xl flex items-center justify-center shadow-sm">
+                    <svg class="w-5 h-5 text-white" fill="none" stroke="currentColor" viewBox="0 0 24 24"><path stroke-linecap="round" stroke-linejoin="round" stroke-width="2" d="M9 5H7a2 2 0 00-2 2v12a2 2 0 002 2h10a2 2 0 002-2V7a2 2 0 00-2-2h-2M9 5a2 2 0 002 2h2a2 2 0 002-2M9 5a2 2 0 012-2h2a2 2 0 012 2m-6 9l2 2 4-4"/></svg>
+                </div>
+                <span class="text-xs font-semibold text-indigo-700 dark:text-indigo-400 text-center leading-tight">Assign Task</span>
+            </a>
+
+            <a href="{{ route('inventory.purchase-orders') }}" @click="qaSheet = false"
+               class="flex flex-col items-center gap-2 p-3 bg-teal-50 dark:bg-teal-900/20 rounded-2xl hover:bg-teal-100 dark:hover:bg-teal-900/30 active:scale-95 transition-all">
+                <div class="w-10 h-10 bg-teal-600 rounded-xl flex items-center justify-center shadow-sm">
+                    <svg class="w-5 h-5 text-white" fill="none" stroke="currentColor" viewBox="0 0 24 24"><path stroke-linecap="round" stroke-linejoin="round" stroke-width="2" d="M20 13V6a2 2 0 00-2-2H6a2 2 0 00-2 2v7m16 0v5a2 2 0 01-2 2H6a2 2 0 01-2-2v-5m16 0h-2.586a1 1 0 00-.707.293l-2.414 2.414a1 1 0 01-.707.293h-3.172a1 1 0 01-.707-.293l-2.414-2.414A1 1 0 006.586 13H4"/></svg>
+                </div>
+                <span class="text-xs font-semibold text-teal-700 dark:text-teal-400 text-center leading-tight">Purchase</span>
+            </a>
+
+            <a href="{{ route('reports.profit-loss') }}" @click="qaSheet = false"
+               class="flex flex-col items-center gap-2 p-3 bg-gray-50 dark:bg-slate-700/50 rounded-2xl hover:bg-gray-100 dark:hover:bg-slate-700 active:scale-95 transition-all">
+                <div class="w-10 h-10 bg-gray-600 dark:bg-slate-500 rounded-xl flex items-center justify-center shadow-sm">
+                    <svg class="w-5 h-5 text-white" fill="none" stroke="currentColor" viewBox="0 0 24 24"><path stroke-linecap="round" stroke-linejoin="round" stroke-width="2" d="M9 17v-2m3 2v-4m3 4v-6m2 10H7a2 2 0 01-2-2V5a2 2 0 012-2h5.586a1 1 0 01.707.293l5.414 5.414a1 1 0 01.293.707V19a2 2 0 01-2 2z"/></svg>
+                </div>
+                <span class="text-xs font-semibold text-gray-700 dark:text-slate-300 text-center leading-tight">P&L Report</span>
+            </a>
+
+            <a href="{{ route('returns.index') }}" @click="qaSheet = false"
+               class="flex flex-col items-center gap-2 p-3 bg-orange-50 dark:bg-orange-900/20 rounded-2xl hover:bg-orange-100 dark:hover:bg-orange-900/30 active:scale-95 transition-all">
+                <div class="w-10 h-10 bg-orange-500 rounded-xl flex items-center justify-center shadow-sm">
+                    <svg class="w-5 h-5 text-white" fill="none" stroke="currentColor" viewBox="0 0 24 24"><path stroke-linecap="round" stroke-linejoin="round" stroke-width="2" d="M16 15v-1a4 4 0 00-4-4H8m0 0l3 3m-3-3l3-3m9 14V5a2 2 0 00-2-2H6a2 2 0 00-2 2v16l4-2 4 2 4-2 4 2z"/></svg>
+                </div>
+                <span class="text-xs font-semibold text-orange-700 dark:text-orange-400 text-center leading-tight">Returns</span>
+            </a>
+
+        </div>
+        <div class="h-4"></div>
+    </div>
+    @endif
+
+    <nav class="fixed bottom-0 left-0 right-0 z-30 bg-white dark:bg-slate-800 border-t border-gray-100 dark:border-slate-700">
+        <div class="grid grid-cols-5 h-16">
+            <a href="{{ route('dashboard') }}" class="flex flex-col items-center justify-center gap-1 text-xs {{ request()->routeIs('dashboard') ? 'bottom-nav-active text-primary-600' : 'text-gray-400 dark:text-slate-500' }}">
+                <svg class="w-5 h-5" fill="none" stroke="currentColor" viewBox="0 0 24 24"><path stroke-linecap="round" stroke-linejoin="round" stroke-width="2" d="M3 12l2-2m0 0l7-7 7 7M5 10v10a1 1 0 001 1h3m10-11l2 2m-2-2v10a1 1 0 01-1 1h-3m-6 0a1 1 0 001-1v-4a1 1 0 011-1h2a1 1 0 011 1v4a1 1 0 001 1m-6 0h6"/></svg>
+                <span>Home</span>
+            </a>
+            <a href="{{ route('orders.index') }}" class="flex flex-col items-center justify-center gap-1 text-xs {{ request()->routeIs('orders.*') ? 'bottom-nav-active text-primary-600' : 'text-gray-400 dark:text-slate-500' }}">
+                <svg class="w-5 h-5" fill="none" stroke="currentColor" viewBox="0 0 24 24"><path stroke-linecap="round" stroke-linejoin="round" stroke-width="2" d="M3 3h2l.4 2M7 13h10l4-8H5.4M7 13L5.4 5M7 13l-2.293 2.293c-.63.63-.184 1.707.707 1.707H17m0 0a2 2 0 100 4 2 2 0 000-4zm-8 2a2 2 0 11-4 0 2 2 0 014 0z"/></svg>
+                <span>Orders</span>
+            </a>
+
+            {{-- Centre: "+" Quick Action FAB (admin) or POS (employee) --}}
+            @if(auth()->user()->role !== 'employee')
+            <button @click="qaSheet = !qaSheet"
+                    class="flex flex-col items-center justify-center gap-1 text-xs text-gray-400 dark:text-slate-500">
+                <div class="w-12 h-12 -mt-6 rounded-full flex items-center justify-center shadow-lg transition-all"
+                     :class="qaSheet ? 'bg-gray-700 rotate-45' : 'bg-blue-600'"
+                     style="transition: transform 0.2s, background-color 0.2s;">
+                    <svg class="w-6 h-6 text-white" fill="none" stroke="currentColor" viewBox="0 0 24 24">
+                        <path stroke-linecap="round" stroke-linejoin="round" stroke-width="2.5" d="M12 4v16m8-8H4"/>
+                    </svg>
+                </div>
+                <span class="mt-1" x-text="qaSheet ? 'Close' : 'Actions'"></span>
+            </button>
+            @else
+            <a href="{{ route('production.worker.dashboard') }}" class="flex flex-col items-center justify-center gap-1 text-xs {{ request()->routeIs('production.worker.*') ? 'bottom-nav-active text-primary-600' : 'text-gray-400 dark:text-slate-500' }}">
+                <div class="w-10 h-10 -mt-5 bg-primary-600 rounded-full flex items-center justify-center shadow-lg">
+                    <svg class="w-5 h-5 text-white" fill="none" stroke="currentColor" viewBox="0 0 24 24"><path stroke-linecap="round" stroke-linejoin="round" stroke-width="2" d="M9 5H7a2 2 0 00-2 2v12a2 2 0 002 2h10a2 2 0 002-2V7a2 2 0 00-2-2h-2M9 5a2 2 0 002 2h2a2 2 0 002-2M9 5a2 2 0 012-2h2a2 2 0 012 2m-6 9l2 2 4-4"/></svg>
+                </div>
+                <span class="mt-1">My Tasks</span>
+            </a>
+            @endif
+
+            <a href="{{ route('products.index') }}" class="flex flex-col items-center justify-center gap-1 text-xs {{ request()->routeIs('products.*') ? 'bottom-nav-active text-primary-600' : 'text-gray-400 dark:text-slate-500' }}">
+                <svg class="w-5 h-5" fill="none" stroke="currentColor" viewBox="0 0 24 24"><path stroke-linecap="round" stroke-linejoin="round" stroke-width="2" d="M20 7l-8-4-8 4m16 0l-8 4m8-4v10l-8 4m0-10L4 7m8 4v10M4 7v10l8 4"/></svg>
+                <span>Products</span>
+            </a>
+            <a href="{{ route('steadfast.index') }}" class="flex flex-col items-center justify-center gap-1 text-xs {{ request()->routeIs('steadfast.*') ? 'bottom-nav-active text-primary-600' : 'text-gray-400 dark:text-slate-500' }}">
+                <svg class="w-5 h-5" fill="none" stroke="currentColor" viewBox="0 0 24 24"><path stroke-linecap="round" stroke-linejoin="round" stroke-width="2" d="M8 7h12m0 0l-4-4m4 4l-4 4m0 6H4m0 0l4 4m-4-4l4-4"/></svg>
+                <span>Courier</span>
+            </a>
+        </div>
+    </nav>
+</div>
 
 @stack('scripts')
 </body>

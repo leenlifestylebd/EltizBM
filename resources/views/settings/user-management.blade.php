@@ -1,4 +1,4 @@
-@extends('layouts.app')
+﻿@extends('layouts.app')
 @section('title', 'User Management')
 
 @section('content')
@@ -11,9 +11,8 @@
             ['route'=>'settings.general',        'label'=>'Profile'],
             ['route'=>'settings.business',       'label'=>'Business'],
             ['route'=>'settings.user-management','label'=>'Users'],
-            ['route'=>'settings.subscription',   'label'=>'Subscription'],
             ['route'=>'settings.warehouses',     'label'=>'Warehouses'],
-            ['route'=>'settings.print-templates','label'=>'Print'],
+            ['route'=>'settings.print-templates','label'=>'Print'],['route'=>'settings.account-categories','label'=>'Categories'],
         ] as $tab)
         <a href="{{ route($tab['route']) }}"
            class="flex-shrink-0 px-3 py-2 rounded-lg text-xs font-medium transition-colors whitespace-nowrap
@@ -42,18 +41,25 @@
                     <p class="text-xs text-gray-400 dark:text-slate-500 mt-0.5">Registered {{ $pending->created_at->diffForHumans() }}</p>
                 </div>
                 <div class="flex items-center gap-2 flex-shrink-0">
-                    <form method="POST" action="{{ route('settings.users.approve', $pending) }}">
+                    <form method="POST" action="{{ route('settings.users.approve', $pending) }}" class="flex items-center gap-2">
                         @csrf
+                        <select name="role"
+                                class="px-2 py-1.5 text-xs border border-gray-200 dark:border-slate-600 rounded-lg bg-white dark:bg-slate-700 text-gray-700 dark:text-slate-200 focus:outline-none focus:ring-2 focus:ring-green-500">
+                            <option value="staff"    {{ $pending->role === 'staff'    ? 'selected':'' }}>Staff</option>
+                            <option value="manager"  {{ $pending->role === 'manager'  ? 'selected':'' }}>Manager</option>
+                            <option value="admin"    {{ $pending->role === 'admin'    ? 'selected':'' }}>Admin</option>
+                            <option value="employee" {{ $pending->role === 'employee' ? 'selected':'' }}>Employee</option>
+                        </select>
                         <button type="submit"
-                                class="px-3 py-1.5 bg-green-600 hover:bg-green-700 text-white text-xs font-medium rounded-lg transition-colors">
-                            ✅ Approve
+                                class="px-3 py-1.5 bg-green-600 hover:bg-green-700 text-white text-xs font-medium rounded-lg transition-colors whitespace-nowrap">
+                            âœ… Approve
                         </button>
                     </form>
                     <form method="POST" action="{{ route('settings.users.reject', $pending) }}" onsubmit="return confirm('Reject {{ $pending->name }}?')">
                         @csrf @method('DELETE')
                         <button type="submit"
-                                class="px-3 py-1.5 bg-red-600 hover:bg-red-700 text-white text-xs font-medium rounded-lg transition-colors">
-                            ❌ Reject
+                                class="px-3 py-1.5 bg-red-100 hover:bg-red-600 text-red-600 hover:text-white text-xs font-medium rounded-lg transition-colors">
+                            âœ•
                         </button>
                     </form>
                 </div>
@@ -138,7 +144,7 @@
                     </div>
                     <p class="text-xs text-gray-400 mt-0.5">{{ $user->email }}</p>
                     @if($user->approved_at)
-                        <p class="text-xs text-green-500 mt-0.5">✅ Approved {{ $user->approved_at->diffForHumans() }}</p>
+                        <p class="text-xs text-green-500 mt-0.5">âœ… Approved {{ $user->approved_at->diffForHumans() }}</p>
                     @endif
                 </div>
 

@@ -322,4 +322,38 @@ class InventoryController extends Controller
 
         return back()->with('success', 'Transfer completed!');
     }
+
+    // =============================================
+    // EXPORT CSV
+    // =============================================
+    public function exportStock()
+    {
+        $bizId    = auth()->user()->business_id;
+        $products = Product::where('business_id', $bizId)
+            ->with(['category', 'brand'])
+            ->orderBy('name')
+            ->get();
+
+        $filename = 'stock-' . date('Y-m-d') . '.csv';
+        $headers  = ['Content-Type' => 'text/csv', 'Content-Disposition' => "attachment; filename=\"{$filename}\""];
+
+        $callback = function () use ($products) {
+            $handle = fopen('php://output', 'w');
+            fputcsv($handle, ['SKU', 'Name', 'Category', 'Brand', 'Stock', 'Unit', 'Cost Price', 'Stock Value', 'Low Stock Alert', 'Status']);
+            foreach ($products as $p) {
+                fputcsv($handle, [
+                    $p->sku, $p->name,
+                    $p->category?->name, $p->brand?->name,
+                    $p->stock, $p->unit,
+                    $p->cost_price,
+                    number_format($p->stock * $p->cost_price, 2),
+                    $p->low_stock_alert,
+                    $p->isOutOfStock() ? 'Out of Stock' : ($p->isLowStock() ? 'Low Stock' : 'In Stock'),
+                ]);
+            }
+            fclose($handle);
+        };
+
+        return response()->stream($callback, 200, $headers);
+    }
 }

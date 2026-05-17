@@ -4,8 +4,15 @@ use Illuminate\Database\Eloquent\Model;
 use Illuminate\Database\Eloquent\Factories\HasFactory;
 class Business extends Model {
     use HasFactory;
-    protected $fillable = ['name','slug','logo','phone','email','address','domain','currency','currency_symbol','vat_enabled','vat_rate','vat_label','vat_mode','tax_enabled','tax_rate','tax_label','timezone','plan','trial_ends_at'];
-    protected $casts = ['vat_enabled'=>'boolean','tax_enabled'=>'boolean','trial_ends_at'=>'datetime'];
+    protected $fillable = ['name','slug','logo','phone','email','address','domain','currency','currency_symbol','vat_enabled','vat_rate','vat_label','vat_mode','tax_enabled','tax_rate','tax_label','timezone','plan','trial_ends_at','tags','print_settings','status_config'];
+    protected $casts = [
+        'vat_enabled'   => 'boolean',
+        'tax_enabled'   => 'boolean',
+        'trial_ends_at' => 'datetime',
+        'tags'          => 'array',
+        'print_settings'=> 'array',
+        'status_config' => 'array',
+    ];
     public function users() { return $this->hasMany(User::class); }
     public function products() { return $this->hasMany(Product::class); }
     public function orders() { return $this->hasMany(Order::class); }

@@ -6,7 +6,7 @@
 <div class="max-w-3xl mx-auto">
 
     <div class="flex gap-1 mb-5 bg-gray-100 dark:bg-slate-700 p-1 rounded-xl overflow-x-auto scrollbar-hide">
-        @foreach([['route'=>'settings.general','label'=>'Profile'],['route'=>'settings.business','label'=>'Business'],['route'=>'settings.user-management','label'=>'Users'],['route'=>'settings.subscription','label'=>'Subscription'],['route'=>'settings.warehouses','label'=>'Warehouses'],['route'=>'settings.print-templates','label'=>'Print']] as $tab)
+        @foreach([['route'=>'settings.general','label'=>'Profile'],['route'=>'settings.business','label'=>'Business'],['route'=>'settings.user-management','label'=>'Users'],['route'=>'settings.warehouses','label'=>'Warehouses'],['route'=>'settings.statuses','label'=>'Statuses'],['route'=>'settings.tags','label'=>'Tags'],['route'=>'settings.print-templates','label'=>'Print'],['route'=>'settings.account-categories','label'=>'Categories']] as $tab)
         <a href="{{ route($tab['route']) }}" class="flex-shrink-0 px-3 py-2 rounded-lg text-xs font-medium transition-colors whitespace-nowrap {{ request()->routeIs($tab['route']) ? 'bg-white dark:bg-slate-800 text-gray-900 dark:text-white shadow-sm' : 'text-gray-500 dark:text-slate-400 hover:text-gray-700 dark:hover:text-slate-300' }}">{{ $tab['label'] }}</a>
         @endforeach
     </div>
@@ -14,7 +14,7 @@
     <div class="grid grid-cols-1 lg:grid-cols-2 gap-4">
         <div class="bg-white dark:bg-slate-800 rounded-xl border border-gray-100 dark:border-slate-700 p-4 h-fit">
             <h3 class="text-sm font-semibold text-gray-900 dark:text-white mb-4">Add Warehouse</h3>
-            <form method="POST" action="{{ route('settings.warehouses') }}" class="space-y-3">
+            <form method="POST" action="{{ route('settings.warehouses.store') }}" class="space-y-3">
                 @csrf
                 <div>
                     <label class="block text-xs font-medium text-gray-700 dark:text-slate-300 mb-1.5">Name <span class="text-red-500">*</span></label>
@@ -53,6 +53,12 @@
                             <p class="text-xs text-gray-400 dark:text-slate-500 truncate">{{ $wh->address }}</p>
                         @endif
                     </div>
+                    <form method="POST" action="{{ route('settings.warehouses.destroy', $wh) }}" onsubmit="return confirm('Delete this warehouse?')">
+                        @csrf @method('DELETE')
+                        <button type="submit" class="p-1.5 text-gray-400 hover:text-red-600 hover:bg-red-50 dark:hover:bg-red-900/20 rounded-lg transition-colors flex-shrink-0">
+                            <svg class="w-3.5 h-3.5" fill="none" stroke="currentColor" viewBox="0 0 24 24"><path stroke-linecap="round" stroke-linejoin="round" stroke-width="2" d="M19 7l-.867 12.142A2 2 0 0116.138 21H7.862a2 2 0 01-1.995-1.858L5 7m5 4v6m4-6v6m1-10V4a1 1 0 00-1-1h-4a1 1 0 00-1 1v3M4 7h16"/></svg>
+                        </button>
+                    </form>
                 </div>
                 @empty
                 <div class="px-4 py-8 text-center text-sm text-gray-400 dark:text-slate-500">No warehouses yet</div>

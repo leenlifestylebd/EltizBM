@@ -117,9 +117,9 @@
                class="flex-1 py-1.5 text-center text-xs font-medium text-blue-600 dark:text-blue-400 bg-blue-50 dark:bg-blue-900/20 rounded-lg hover:bg-blue-100 dark:hover:bg-blue-900/30 transition-colors">
                 View
             </a>
-            <a href="{{ route('production.index') }}"
+            <a href="{{ route('production.tasks.index') }}?employee_id={{ $emp->id }}"
                class="flex-1 py-1.5 text-center text-xs font-medium text-green-600 dark:text-green-400 bg-green-50 dark:bg-green-900/20 rounded-lg hover:bg-green-100 dark:hover:bg-green-900/30 transition-colors">
-                Production
+                Tasks
             </a>
             <a href="{{ route('employees.attendance', $emp) }}"
                class="flex-1 py-1.5 text-center text-xs font-medium text-purple-600 dark:text-purple-400 bg-purple-50 dark:bg-purple-900/20 rounded-lg hover:bg-purple-100 dark:hover:bg-purple-900/30 transition-colors">

@@ -9,13 +9,14 @@ use Illuminate\Http\Request;
 class PeopleController extends Controller
 {
     // ---- Customers ----
-    public function customers()
+    public function customers(Request $request)
     {
-        $bizId     = auth()->user()->business_id;
-        $customers = Customer::where('business_id', $bizId)
-            ->withCount('orders')
-            ->orderByDesc('created_at')
-            ->paginate(20);
+        $bizId = auth()->user()->business_id;
+        $query = Customer::where('business_id', $bizId)->withCount('orders')->orderByDesc('created_at');
+        if ($search = $request->search) {
+            $query->where(fn($q) => $q->where('name', 'like', "%{$search}%")->orWhere('phone', 'like', "%{$search}%"));
+        }
+        $customers = $query->paginate(20);
         return view('people.customers', compact('customers'));
     }
 
@@ -62,11 +63,14 @@ class PeopleController extends Controller
     }
 
     // ---- Vendors ----
-    public function vendors()
+    public function vendors(Request $request)
     {
-        $bizId   = auth()->user()->business_id;
-        $vendors = \App\Models\Vendor::where('business_id', $bizId)
-            ->orderByDesc('created_at')->paginate(20);
+        $bizId = auth()->user()->business_id;
+        $query = Vendor::where('business_id', $bizId)->orderByDesc('created_at');
+        if ($search = $request->search) {
+            $query->where(fn($q) => $q->where('name', 'like', "%{$search}%")->orWhere('phone', 'like', "%{$search}%"));
+        }
+        $vendors = $query->paginate(20);
         return view('people.vendors', compact('vendors'));
     }
 
@@ -83,6 +87,15 @@ class PeopleController extends Controller
         ]);
 
         return back()->with('success', 'Vendor added!');
+    }
+
+    public function showVendor(\App\Models\Vendor $vendor)
+    {
+        abort_if($vendor->business_id !== auth()->user()->business_id, 403);
+        $purchaseOrders = \App\Models\PurchaseOrder::where('vendor_id', $vendor->id)
+            ->orderByDesc('created_at')->paginate(10);
+        $totalPurchased = \App\Models\PurchaseOrder::where('vendor_id', $vendor->id)->sum('total');
+        return view('people.vendor-show', compact('vendor', 'purchaseOrders', 'totalPurchased'));
     }
 
     public function updateVendor(Request $request, \App\Models\Vendor $vendor)
