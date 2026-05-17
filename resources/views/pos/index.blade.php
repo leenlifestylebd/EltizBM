@@ -11,6 +11,12 @@
     @keyframes slideIn { from { opacity:0; transform:translateY(-6px); } to { opacity:1; transform:translateY(0); } }
     .scrollbar-hide { -ms-overflow-style:none; scrollbar-width:none; }
     .scrollbar-hide::-webkit-scrollbar { display:none; }
+    @keyframes scanMove {
+        0%   { top: 10%; }
+        50%  { top: 85%; }
+        100% { top: 10%; }
+    }
+    .scan-line { animation: scanMove 2s ease-in-out infinite; }
 </style>
 @endpush
 
@@ -28,6 +34,15 @@
                    autocomplete="off"
                    class="w-full pl-9 pr-3 py-2.5 text-sm border border-gray-200 dark:border-slate-600 rounded-xl bg-gray-50 dark:bg-slate-700 text-gray-900 dark:text-white placeholder-gray-400 focus:outline-none focus:ring-2 focus:ring-blue-500 focus:bg-white dark:focus:bg-slate-600">
         </div>
+        {{-- Camera Scan Button --}}
+        <button @click="startScan()"
+                class="p-2.5 bg-indigo-600 text-white rounded-xl hover:bg-indigo-700 transition-colors flex-shrink-0"
+                title="Scan Barcode">
+            <svg class="w-5 h-5" fill="none" stroke="currentColor" viewBox="0 0 24 24">
+                <path stroke-linecap="round" stroke-linejoin="round" stroke-width="2" d="M3 9V6a1 1 0 011-1h3M3 15v3a1 1 0 001 1h3m11-4v3a1 1 0 01-1 1h-3m4-11V6a1 1 0 00-1-1h-3M8 7h.01M12 7h.01M16 7h.01M8 12h.01M12 12h.01M16 12h.01M8 17h.01M12 17h.01M16 17h.01"/>
+            </svg>
+        </button>
+
         <button @click="holdOrder()" x-show="cart.length > 0" x-cloak
                 class="p-2.5 bg-orange-100 dark:bg-orange-900/30 text-orange-600 dark:text-orange-400 rounded-xl hover:bg-orange-200 dark:hover:bg-orange-900/50 transition-colors text-xs font-medium whitespace-nowrap">
             Hold
@@ -295,10 +310,80 @@
         </div>
     </div>
 
+    {{-- CAMERA SCANNER MODAL --}}
+    <div x-show="scanning" x-cloak
+         class="fixed inset-0 bg-black z-50 flex flex-col">
+
+        {{-- Header --}}
+        <div class="flex items-center justify-between px-4 py-3 bg-black/80 flex-shrink-0">
+            <div class="flex items-center gap-2">
+                <div class="w-2 h-2 bg-red-500 rounded-full animate-pulse"></div>
+                <span class="text-white text-sm font-semibold">Scanning...</span>
+            </div>
+            <button @click="stopScan()" class="text-white p-2 hover:bg-white/10 rounded-xl transition-colors">
+                <svg class="w-6 h-6" fill="none" stroke="currentColor" viewBox="0 0 24 24">
+                    <path stroke-linecap="round" stroke-linejoin="round" stroke-width="2" d="M6 18L18 6M6 6l12 12"/>
+                </svg>
+            </button>
+        </div>
+
+        {{-- Camera View --}}
+        <div class="relative flex-1 overflow-hidden">
+            <video id="scannerVideo" class="w-full h-full object-cover" playsinline></video>
+
+            {{-- Scan Frame --}}
+            <div class="absolute inset-0 flex items-center justify-center pointer-events-none">
+                <div class="relative w-72 h-44">
+                    {{-- Corner guides --}}
+                    <div class="absolute top-0 left-0 w-8 h-8 border-t-4 border-l-4 border-indigo-400 rounded-tl-lg"></div>
+                    <div class="absolute top-0 right-0 w-8 h-8 border-t-4 border-r-4 border-indigo-400 rounded-tr-lg"></div>
+                    <div class="absolute bottom-0 left-0 w-8 h-8 border-b-4 border-l-4 border-indigo-400 rounded-bl-lg"></div>
+                    <div class="absolute bottom-0 right-0 w-8 h-8 border-b-4 border-r-4 border-indigo-400 rounded-br-lg"></div>
+                    {{-- Scan line animation --}}
+                    <div class="absolute left-2 right-2 h-0.5 bg-indigo-400/70 scan-line"></div>
+                </div>
+                <p class="absolute bottom-20 text-white/70 text-sm">Point camera at barcode</p>
+            </div>
+
+            {{-- Last scan result flash --}}
+            <div x-show="scanFlash" x-cloak
+                 class="absolute top-4 left-4 right-4 bg-green-500 text-white text-sm font-semibold px-4 py-3 rounded-xl flex items-center gap-2 shadow-lg">
+                <svg class="w-5 h-5 flex-shrink-0" fill="none" stroke="currentColor" viewBox="0 0 24 24">
+                    <path stroke-linecap="round" stroke-linejoin="round" stroke-width="2.5" d="M5 13l4 4L19 7"/>
+                </svg>
+                <span x-text="'Added: ' + lastScannedName"></span>
+            </div>
+
+            {{-- Not found flash --}}
+            <div x-show="scanNotFound" x-cloak
+                 class="absolute top-4 left-4 right-4 bg-red-500 text-white text-sm font-semibold px-4 py-3 rounded-xl flex items-center gap-2 shadow-lg">
+                <svg class="w-5 h-5 flex-shrink-0" fill="none" stroke="currentColor" viewBox="0 0 24 24">
+                    <path stroke-linecap="round" stroke-linejoin="round" stroke-width="2" d="M6 18L18 6M6 6l12 12"/>
+                </svg>
+                <span x-text="'Not found: ' + lastScanCode"></span>
+            </div>
+        </div>
+
+        {{-- Camera switch button --}}
+        <div class="bg-black/80 px-4 py-4 flex-shrink-0 flex items-center justify-between">
+            <button @click="switchCamera()" class="flex items-center gap-2 text-white/70 text-sm px-4 py-2 bg-white/10 rounded-xl hover:bg-white/20 transition-colors">
+                <svg class="w-5 h-5" fill="none" stroke="currentColor" viewBox="0 0 24 24">
+                    <path stroke-linecap="round" stroke-linejoin="round" stroke-width="2" d="M4 4v5h.582m15.356 2A8.001 8.001 0 004.582 9m0 0H9m11 11v-5h-.581m0 0a8.003 8.003 0 01-15.357-2m15.357 2H15"/>
+                </svg>
+                Switch Camera
+            </button>
+            <p class="text-white/50 text-xs" x-text="'Cart: ' + cart.reduce((s,i)=>s+i.qty,0) + ' items'"></p>
+            <button @click="stopScan()" class="px-4 py-2 bg-indigo-600 text-white text-sm font-semibold rounded-xl hover:bg-indigo-700 transition-colors">
+                Done
+            </button>
+        </div>
+    </div>
+
 </div>
 @endsection
 
 @push('scripts')
+<script src="https://unpkg.com/@zxing/browser@0.1.4/umd/index.min.js"></script>
 <script>
 function posApp() {
     return {
@@ -327,6 +412,17 @@ function posApp() {
         heldOrders:  JSON.parse(localStorage.getItem('pos_held') || '[]'),
         lastOrderId: null,
         lastOrderNumber: null,
+
+        // Scanner
+        scanning:        false,
+        scanFlash:       false,
+        scanNotFound:    false,
+        lastScannedName: '',
+        lastScanCode:    '',
+        _scanner:        null,
+        _cameras:        [],
+        _camIdx:         0,
+        _scanLock:       false,
 
         init() {
             this.filteredProducts = this.allProducts;
@@ -437,6 +533,112 @@ function posApp() {
         removeHeld(i) {
             this.heldOrders.splice(i,1);
             localStorage.setItem('pos_held', JSON.stringify(this.heldOrders));
+        },
+
+        // ── CAMERA SCANNER ──────────────────────────────
+        async startScan() {
+            if (!window.ZXingBrowser) {
+                alert('Scanner library loading, please try again in a moment.');
+                return;
+            }
+            this.scanning = true;
+            this._scanLock = false;
+            await this.$nextTick();
+
+            try {
+                // Get available cameras
+                this._cameras = await ZXingBrowser.BrowserCodeReader.listVideoInputDevices();
+                // Prefer back camera
+                this._camIdx = this._cameras.findIndex(c =>
+                    /back|rear|environment/i.test(c.label)
+                );
+                if (this._camIdx < 0) this._camIdx = this._cameras.length - 1;
+                if (this._camIdx < 0) this._camIdx = 0;
+
+                this._startCamera();
+            } catch(e) {
+                alert('Camera access denied. Please allow camera permission.');
+                this.scanning = false;
+            }
+        },
+
+        _startCamera() {
+            const video    = document.getElementById('scannerVideo');
+            const deviceId = this._cameras[this._camIdx]?.deviceId || undefined;
+            const hints    = new Map([
+                [ZXingBrowser.DecodeHintType?.TRY_HARDER, true],
+            ]);
+            const reader = new ZXingBrowser.BrowserMultiFormatReader(hints);
+            this._scanner = reader;
+
+            reader.decodeFromVideoDevice(deviceId, video, (result, err) => {
+                if (result && !this._scanLock) {
+                    this._onScan(result.getText());
+                }
+            });
+        },
+
+        async _onScan(code) {
+            this._scanLock = true;
+            this.lastScanCode = code;
+
+            // Beep
+            this._beep();
+
+            // Vibrate if supported
+            if (navigator.vibrate) navigator.vibrate(80);
+
+            try {
+                const res  = await fetch(`/pos/scan-barcode?barcode=${encodeURIComponent(code)}`);
+                const data = await res.json();
+
+                if (data.product) {
+                    this.addToCart(data.product);
+                    this.lastScannedName = data.product.name;
+                    this.scanFlash    = true;
+                    this.scanNotFound = false;
+                    setTimeout(() => { this.scanFlash = false; }, 2000);
+                } else {
+                    this.scanNotFound = true;
+                    this.scanFlash    = false;
+                    setTimeout(() => { this.scanNotFound = false; }, 2000);
+                }
+            } catch(e) {}
+
+            // Unlock after 1.5s to allow next scan
+            setTimeout(() => { this._scanLock = false; }, 1500);
+        },
+
+        stopScan() {
+            if (this._scanner) {
+                this._scanner.reset();
+                this._scanner = null;
+            }
+            this.scanning     = false;
+            this.scanFlash    = false;
+            this.scanNotFound = false;
+        },
+
+        switchCamera() {
+            if (this._cameras.length < 2) return;
+            if (this._scanner) { this._scanner.reset(); this._scanner = null; }
+            this._camIdx = (this._camIdx + 1) % this._cameras.length;
+            this._startCamera();
+        },
+
+        _beep() {
+            try {
+                const ctx  = new (window.AudioContext || window.webkitAudioContext)();
+                const osc  = ctx.createOscillator();
+                const gain = ctx.createGain();
+                osc.connect(gain); gain.connect(ctx.destination);
+                osc.frequency.value = 1200;
+                osc.type = 'sine';
+                gain.gain.setValueAtTime(0.3, ctx.currentTime);
+                gain.gain.exponentialRampToValueAtTime(0.001, ctx.currentTime + 0.15);
+                osc.start(ctx.currentTime);
+                osc.stop(ctx.currentTime + 0.15);
+            } catch(e) {}
         },
     }
 }
