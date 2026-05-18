@@ -341,14 +341,26 @@
                 <button @click="sidebarOpen = true" class="lg:hidden p-2 rounded-lg text-gray-500 hover:bg-gray-100 dark:hover:bg-slate-700 -ml-1">
                     <svg class="w-5 h-5" fill="none" stroke="currentColor" viewBox="0 0 24 24"><path stroke-linecap="round" stroke-linejoin="round" stroke-width="2" d="M4 6h16M4 12h16M4 18h16"/></svg>
                 </button>
+                @php
+                    // Mobile header logo: detect if header bg is dark → invert
+                    $headerHex = $themeSettings['header_color'] ?? null;
+                    $headerLogoInvert = false; // default header is white
+                    if ($headerHex) {
+                        $hx = ltrim($headerHex, '#');
+                        if (strlen($hx) === 6) {
+                            [$hr, $hg, $hb] = array_map('hexdec', str_split($hx, 2));
+                            $headerLuminance = (0.299 * $hr + 0.587 * $hg + 0.114 * $hb) / 255;
+                            $headerLogoInvert = $headerLuminance < 0.5;
+                        }
+                    }
+                    $headerLogoFilter = $headerLogoInvert ? 'filter: brightness(0) invert(1);' : '';
+                    $mobileLogoSrc = ($business->logo ?? null) ? Storage::url($business->logo) : '/images/logo.png';
+                @endphp
                 <div class="flex items-center lg:hidden">
-                    @if($business->logo ?? null)
-                        <img src="{{ Storage::url($business->logo) }}" alt="{{ $business->name }}"
-                             class="h-9 w-auto object-contain object-left" style="max-width:120px;">
-                    @else
-                        <img src="/images/logo.png" alt="Eltiz ERP"
-                             class="h-9 w-auto object-contain object-left" style="max-width:120px;">
-                    @endif
+                    {{-- dark:brightness-0 dark:invert handles dark mode automatically --}}
+                    <img src="{{ $mobileLogoSrc }}" alt="{{ $business->name ?? 'Eltiz ERP' }}"
+                         class="h-9 w-auto object-contain object-left dark:brightness-0 dark:invert"
+                         style="max-width:120px; {{ $headerLogoFilter }}">
                 </div>
                 <div class="hidden lg:block">
                     <h1 class="text-base font-semibold text-gray-900 dark:text-white">@yield('title', 'Dashboard')</h1>
