@@ -327,6 +327,152 @@ class ProductController extends Controller
         return response()->json($products);
     }
 
+    // ── Import Page ───────────────────────────────────────────
+    public function importPage()
+    {
+        return view('products.import');
+    }
+
+    // ── Download CSV Template ─────────────────────────────────
+    public function downloadTemplate()
+    {
+        $headers = ['Content-Type' => 'text/csv', 'Content-Disposition' => 'attachment; filename="products-import-template.csv"'];
+        $callback = function () {
+            $h = fopen('php://output', 'w');
+            // Headers
+            fputcsv($h, ['name','sku','barcode','category','brand','price','cost_price','sale_price','stock','low_stock_alert','unit','description','is_active']);
+            // Sample rows
+            fputcsv($h, ['White Punjabi XL','SKU-001','','Punjabi','Eltiz',850,500,799,50,10,'pcs','Premium white punjabi size XL','1']);
+            fputcsv($h, ['Black Punjabi M', 'SKU-002','','Punjabi','Eltiz',750,450,'',30,5,'pcs','','1']);
+            fclose($h);
+        };
+        return response()->stream($callback, 200, $headers);
+    }
+
+    // ── Process CSV Import ────────────────────────────────────
+    public function importCsv(Request $request)
+    {
+        $request->validate([
+            'csv_file' => 'required|file|mimes:csv,txt|max:5120',
+        ]);
+
+        $bizId  = auth()->user()->business_id;
+        $file   = $request->file('csv_file');
+        $handle = fopen($file->getRealPath(), 'r');
+
+        // Read headers from first row
+        $headers = fgetcsv($handle);
+        if (!$headers) {
+            return back()->with('error', 'Could not read CSV file.');
+        }
+        $headers = array_map('trim', $headers);
+
+        $imported = 0;
+        $skipped  = 0;
+        $errors   = [];
+        $row      = 1;
+
+        // Category & Brand cache to avoid repeated DB hits
+        $catCache   = [];
+        $brandCache = [];
+
+        while (($data = fgetcsv($handle)) !== false) {
+            $row++;
+            if (count($data) < 2) continue;
+
+            // Map columns by header name
+            $col = [];
+            foreach ($headers as $i => $h) {
+                $col[strtolower(trim($h))] = trim($data[$i] ?? '');
+            }
+
+            $name = $col['name'] ?? '';
+            if (!$name) {
+                $errors[] = "Row {$row}: Name is required — skipped.";
+                $skipped++;
+                continue;
+            }
+
+            $price = (float) ($col['price'] ?? 0);
+            if ($price <= 0) {
+                $errors[] = "Row {$row}: '{$name}' — Price must be > 0, skipped.";
+                $skipped++;
+                continue;
+            }
+
+            // Resolve Category (create if not exists)
+            $categoryId = null;
+            if (!empty($col['category'])) {
+                $catName = $col['category'];
+                if (!isset($catCache[$catName])) {
+                    $cat = Category::firstOrCreate(
+                        ['business_id' => $bizId, 'name' => $catName],
+                        ['slug' => Str::slug($catName) . '-' . $bizId]
+                    );
+                    $catCache[$catName] = $cat->id;
+                }
+                $categoryId = $catCache[$catName];
+            }
+
+            // Resolve Brand (create if not exists)
+            $brandId = null;
+            if (!empty($col['brand'])) {
+                $brandName = $col['brand'];
+                if (!isset($brandCache[$brandName])) {
+                    $brand = Brand::firstOrCreate(
+                        ['business_id' => $bizId, 'name' => $brandName],
+                        ['slug' => Str::slug($brandName) . '-' . $bizId]
+                    );
+                    $brandCache[$brandName] = $brand->id;
+                }
+                $brandId = $brandCache[$brandName];
+            }
+
+            // Skip duplicate SKU if provided
+            $sku = $col['sku'] ?? '';
+            if ($sku && Product::where('business_id', $bizId)->where('sku', $sku)->exists()) {
+                $errors[] = "Row {$row}: '{$name}' — SKU '{$sku}' already exists, skipped.";
+                $skipped++;
+                continue;
+            }
+
+            try {
+                Product::create([
+                    'business_id'     => $bizId,
+                    'category_id'     => $categoryId,
+                    'brand_id'        => $brandId,
+                    'name'            => $name,
+                    'slug'            => $this->uniqueSlug($name, $bizId),
+                    'sku'             => $sku ?: 'SKU-' . strtoupper(Str::random(6)),
+                    'barcode'         => $col['barcode'] ?: null,
+                    'price'           => $price,
+                    'cost_price'      => (float) ($col['cost_price'] ?? 0),
+                    'sale_price'      => !empty($col['sale_price']) ? (float)$col['sale_price'] : null,
+                    'stock'           => (int)   ($col['stock'] ?? 0),
+                    'low_stock_alert' => (int)   ($col['low_stock_alert'] ?? 5),
+                    'unit'            => $col['unit'] ?: 'pcs',
+                    'description'     => $col['description'] ?? null,
+                    'type'            => 'simple',
+                    'is_active'       => ($col['is_active'] ?? '1') !== '0',
+                    'track_stock'     => true,
+                    'images'          => [],
+                ]);
+                $imported++;
+            } catch (\Exception $e) {
+                $errors[] = "Row {$row}: '{$name}' — Import failed: " . $e->getMessage();
+                $skipped++;
+            }
+        }
+
+        fclose($handle);
+
+        $msg = "Import complete: {$imported} products imported, {$skipped} skipped.";
+        return redirect()->route('products.import')
+            ->with('import_success', $msg)
+            ->with('import_errors', $errors)
+            ->with('import_count', $imported);
+    }
+
     // =============================================
     private function authorizeProduct(Product $product): void
     {

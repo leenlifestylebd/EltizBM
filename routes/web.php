@@ -111,7 +111,10 @@ Route::middleware(['auth', 'business'])->group(function () {
         Route::get('/',            [ProductController::class, 'index'])->name('index');
         Route::get('/create',      [ProductController::class, 'create'])->name('create');
         Route::post('/',           [ProductController::class, 'store'])->name('store');
-        Route::get('/export',      [ProductController::class, 'export'])->name('export');
+        Route::get('/export',          [ProductController::class, 'export'])->name('export');
+        Route::get('/import',          [ProductController::class, 'importPage'])->name('import');
+        Route::get('/import/template', [ProductController::class, 'downloadTemplate'])->name('import.template');
+        Route::post('/import',         [ProductController::class, 'importCsv'])->name('import.process');
         Route::get('/sync',        [ProductController::class, 'syncPage'])->name('sync');
         Route::post('/sync',       [ProductController::class, 'doSync'])->name('do-sync');
         Route::get('/{product}',     [ProductController::class, 'show'])->name('show');
