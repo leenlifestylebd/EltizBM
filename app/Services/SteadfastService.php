@@ -151,6 +151,66 @@ class SteadfastService
     }
 
     // =============================================
+    // FRAUD / RECIPIENT CHECK
+    // =============================================
+    public function fraudCheck(string $phone): array
+    {
+        try {
+            $response = Http::withHeaders($this->headers())
+                ->get("{$this->baseUrl}/verify/check/{$phone}");
+
+            $data = $response->json();
+
+            // Normalise response into a consistent shape
+            if (isset($data['data'])) {
+                $d = $data['data'];
+            } elseif (isset($data['recipient'])) {
+                $d = $data['recipient'];
+            } else {
+                $d = $data;
+            }
+
+            $total     = (int) ($d['total_orders']   ?? $d['total']     ?? 0);
+            $delivered = (int) ($d['delivered']       ?? $d['success']   ?? 0);
+            $returned  = (int) ($d['returned']        ?? $d['return']    ?? 0);
+            $cancelled = (int) ($d['cancelled']       ?? $d['cancel']    ?? 0);
+            $inReview  = (int) ($d['in_review']       ?? 0);
+
+            $successRate = $total > 0 ? round(($delivered / $total) * 100, 1) : null;
+            $returnRate  = $total > 0 ? round((($returned + $cancelled) / $total) * 100, 1) : null;
+
+            // Risk level
+            if ($total === 0) {
+                $risk = 'new';
+            } elseif ($successRate >= 80) {
+                $risk = 'low';
+            } elseif ($successRate >= 50) {
+                $risk = 'medium';
+            } else {
+                $risk = 'high';
+            }
+
+            return [
+                'found'        => true,
+                'phone'        => $phone,
+                'total'        => $total,
+                'delivered'    => $delivered,
+                'returned'     => $returned,
+                'cancelled'    => $cancelled,
+                'in_review'    => $inReview,
+                'success_rate' => $successRate,
+                'return_rate'  => $returnRate,
+                'risk'         => $risk,
+                'fraud'        => (bool) ($d['fraud'] ?? ($risk === 'high')),
+            ];
+
+        } catch (\Exception $e) {
+            Log::error('Steadfast fraudCheck error', ['phone' => $phone, 'error' => $e->getMessage()]);
+            return ['found' => false, 'error' => $e->getMessage()];
+        }
+    }
+
+    // =============================================
     // GET POLICE STATIONS
     // =============================================
     public function getPoliceStations(): array

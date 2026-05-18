@@ -357,6 +357,7 @@ Route::middleware(['auth', 'business'])->group(function () {
         Route::get('/label/{shipment}',        [SteadfastController::class, 'printLabel'])->name('label');
         Route::post('/labels',                 [SteadfastController::class, 'printLabels'])->name('labels');
         Route::get('/invoice/{shipment}',      [SteadfastController::class, 'printInvoice'])->name('invoice');
+        Route::get('/check-phone',             [SteadfastController::class, 'checkPhone'])->name('check-phone');
     });
 
     // ---- API (AJAX) ----

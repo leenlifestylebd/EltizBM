@@ -63,12 +63,95 @@
                                    placeholder="Customer name">
                             <input type="hidden" name="customer_id" id="customerId" value="{{ old('customer_id', isset($order) ? $order->customer_id : '') }}">
                         </div>
-                        <div>
-                            <label class="block text-xs font-medium text-gray-700 dark:text-slate-300 mb-1.5">Phone</label>
+                        <div x-data="fraudChecker()" class="sm:col-span-1">
+                            <label class="block text-xs font-medium text-gray-700 dark:text-slate-300 mb-1.5">
+                                Phone
+                                <span x-show="loading" class="ml-1 text-primary-500 animate-pulse">checking...</span>
+                            </label>
                             <input type="text" name="customer_phone" id="customerPhone"
                                    value="{{ old('customer_phone', isset($order) ? $order->customer_phone : '') }}"
                                    class="w-full px-3 py-2.5 text-sm border border-gray-200 dark:border-slate-600 rounded-lg bg-white dark:bg-slate-700 text-gray-900 dark:text-white focus:outline-none focus:ring-2 focus:ring-primary-500"
-                                   placeholder="01XXXXXXXXX">
+                                   placeholder="01XXXXXXXXX"
+                                   @input.debounce.700ms="checkFraud($event.target.value)"
+                                   x-ref="phoneInput">
+
+                            {{-- Fraud Result Card --}}
+                            <div x-show="result" x-cloak x-transition class="mt-2 rounded-xl border p-3 text-xs"
+                                 :class="{
+                                     'bg-green-50 border-green-200 dark:bg-green-900/20 dark:border-green-800': result?.risk === 'low',
+                                     'bg-yellow-50 border-yellow-200 dark:bg-yellow-900/20 dark:border-yellow-800': result?.risk === 'medium',
+                                     'bg-red-50 border-red-200 dark:bg-red-900/20 dark:border-red-800': result?.risk === 'high',
+                                     'bg-gray-50 border-gray-200 dark:bg-slate-700 dark:border-slate-600': result?.risk === 'new',
+                                 }">
+
+                                {{-- Header Row --}}
+                                <div class="flex items-center justify-between mb-2">
+                                    <div class="flex items-center gap-1.5">
+                                        <span x-show="result?.risk === 'low'"    class="text-green-600 dark:text-green-400 font-semibold">✅ Trusted Customer</span>
+                                        <span x-show="result?.risk === 'medium'" class="text-yellow-600 dark:text-yellow-400 font-semibold">⚠️ Moderate Risk</span>
+                                        <span x-show="result?.risk === 'high'"   class="text-red-600 dark:text-red-400 font-semibold">🚨 High Risk / Fraud Alert</span>
+                                        <span x-show="result?.risk === 'new'"    class="text-gray-600 dark:text-slate-300 font-semibold">🆕 New Customer</span>
+                                    </div>
+                                    <span class="font-bold text-sm px-2 py-0.5 rounded-full"
+                                          :class="{
+                                              'bg-green-100 text-green-700 dark:bg-green-900/40 dark:text-green-400': result?.risk === 'low',
+                                              'bg-yellow-100 text-yellow-700 dark:bg-yellow-900/40 dark:text-yellow-400': result?.risk === 'medium',
+                                              'bg-red-100 text-red-700 dark:bg-red-900/40 dark:text-red-400': result?.risk === 'high',
+                                              'bg-gray-100 text-gray-600 dark:bg-slate-600 dark:text-slate-300': result?.risk === 'new',
+                                          }"
+                                          x-text="result?.success_rate !== null ? result.success_rate + '% success' : 'No history'">
+                                    </span>
+                                </div>
+
+                                {{-- Stats Grid --}}
+                                <div x-show="result?.total > 0" class="grid grid-cols-4 gap-1.5 mt-2">
+                                    <div class="text-center bg-white/60 dark:bg-slate-800/60 rounded-lg p-1.5">
+                                        <div class="font-bold text-gray-900 dark:text-white text-sm" x-text="result?.total ?? 0"></div>
+                                        <div class="text-gray-400 dark:text-slate-500" style="font-size:10px">Total</div>
+                                    </div>
+                                    <div class="text-center bg-white/60 dark:bg-slate-800/60 rounded-lg p-1.5">
+                                        <div class="font-bold text-green-600 dark:text-green-400 text-sm" x-text="result?.delivered ?? 0"></div>
+                                        <div class="text-gray-400 dark:text-slate-500" style="font-size:10px">Delivered</div>
+                                    </div>
+                                    <div class="text-center bg-white/60 dark:bg-slate-800/60 rounded-lg p-1.5">
+                                        <div class="font-bold text-orange-500 text-sm" x-text="result?.returned ?? 0"></div>
+                                        <div class="text-gray-400 dark:text-slate-500" style="font-size:10px">Returned</div>
+                                    </div>
+                                    <div class="text-center bg-white/60 dark:bg-slate-800/60 rounded-lg p-1.5">
+                                        <div class="font-bold text-red-500 text-sm" x-text="result?.cancelled ?? 0"></div>
+                                        <div class="text-gray-400 dark:text-slate-500" style="font-size:10px">Cancelled</div>
+                                    </div>
+                                </div>
+
+                                {{-- Success Rate Bar --}}
+                                <div x-show="result?.total > 0" class="mt-2">
+                                    <div class="flex justify-between text-gray-400 dark:text-slate-500 mb-1" style="font-size:10px">
+                                        <span>Success Rate</span>
+                                        <span x-text="result?.success_rate + '%'"></span>
+                                    </div>
+                                    <div class="h-1.5 rounded-full bg-gray-200 dark:bg-slate-600">
+                                        <div class="h-1.5 rounded-full transition-all duration-500"
+                                             :class="{
+                                                 'bg-green-500': result?.risk === 'low',
+                                                 'bg-yellow-400': result?.risk === 'medium',
+                                                 'bg-red-500': result?.risk === 'high',
+                                             }"
+                                             :style="'width:' + (result?.success_rate ?? 0) + '%'">
+                                        </div>
+                                    </div>
+                                </div>
+
+                                {{-- Powered by --}}
+                                <div class="mt-2 text-right" style="font-size:10px">
+                                    <span class="text-gray-400 dark:text-slate-500">via Steadfast</span>
+                                </div>
+                            </div>
+
+                            {{-- Error state (not connected) --}}
+                            <div x-show="notConnected" x-cloak class="mt-1.5 text-xs text-gray-400 dark:text-slate-500 flex items-center gap-1">
+                                <svg class="w-3 h-3" fill="none" stroke="currentColor" viewBox="0 0 24 24"><path stroke-linecap="round" stroke-linejoin="round" stroke-width="2" d="M13 16h-1v-4h-1m1-4h.01M21 12a9 9 0 11-18 0 9 9 0 0118 0z"/></svg>
+                                Steadfast not connected — fraud check unavailable
+                            </div>
                         </div>
                         <div class="sm:col-span-2">
                             <label class="block text-xs font-medium text-gray-700 dark:text-slate-300 mb-1.5">Shipping Address</label>
@@ -357,7 +440,62 @@ function orderForm() {
             document.getElementById('customerPhone').value = c.phone || '';
             document.getElementById('customerSearch').value = '';
             this.customerResults = [];
+
+            // Trigger fraud check when customer selected from search
+            const phoneVal = c.phone || '';
+            if (phoneVal.length >= 10) {
+                const fraudEl = document.querySelector('[x-data^="fraudChecker"]');
+                if (fraudEl && fraudEl._x_dataStack) {
+                    fraudEl._x_dataStack[0].checkFraud(phoneVal);
+                }
+            }
         },
+    }
+}
+
+function fraudChecker() {
+    return {
+        loading: false,
+        result: null,
+        notConnected: false,
+        timer: null,
+
+        checkFraud(phone) {
+            const cleaned = phone.replace(/\D/g, '');
+            if (cleaned.length < 10) {
+                this.result = null;
+                this.notConnected = false;
+                return;
+            }
+
+            this.loading = true;
+            this.result = null;
+            this.notConnected = false;
+
+            fetch(`{{ route('steadfast.check-phone') }}?phone=${cleaned}`, {
+                headers: {
+                    'X-Requested-With': 'XMLHttpRequest',
+                    'Accept': 'application/json',
+                }
+            })
+            .then(r => r.json())
+            .then(data => {
+                this.loading = false;
+                if (data.error && data.error.includes('not connected')) {
+                    this.notConnected = true;
+                    return;
+                }
+                if (data.found === false && !data.risk) {
+                    // API returned no data but no error — treat as new
+                    this.result = { risk: 'new', total: 0, success_rate: null };
+                    return;
+                }
+                this.result = data;
+            })
+            .catch(() => {
+                this.loading = false;
+            });
+        }
     }
 }
 </script>

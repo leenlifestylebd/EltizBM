@@ -405,6 +405,26 @@ class SteadfastController extends Controller
         return response()->json(['status' => 'success', 'message' => 'Webhook received.'], 200);
     }
 
+    // =============================================
+    // FRAUD CHECK — AJAX (called from order form)
+    // =============================================
+    public function checkPhone(Request $request)
+    {
+        $phone = preg_replace('/\D/', '', $request->input('phone', ''));
+
+        if (strlen($phone) < 10) {
+            return response()->json(['found' => false, 'error' => 'Invalid phone number'], 422);
+        }
+
+        $service = $this->getService();
+        if (!$service) {
+            return response()->json(['found' => false, 'error' => 'Steadfast not connected'], 503);
+        }
+
+        $result = $service->fraudCheck($phone);
+        return response()->json($result);
+    }
+
     public function getBalance()
     {
         $service = $this->getService();
