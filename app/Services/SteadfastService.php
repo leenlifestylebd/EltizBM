@@ -157,29 +157,48 @@ class SteadfastService
     {
         try {
             $response = Http::withHeaders($this->headers())
-                ->get("{$this->baseUrl}/verify/check/{$phone}");
+                ->get("{$this->baseUrl}/fraud_check/{$phone}");
+
+            // Rate limit hit
+            if ($response->status() === 429) {
+                $body = $response->json();
+                return [
+                    'found'       => false,
+                    'rate_limited'=> true,
+                    'limit'       => $body['limit'] ?? null,
+                    'error'       => 'Daily fraud check limit reached (' . ($body['limit'] ?? '?') . ' searches/day)',
+                ];
+            }
+
+            if (!$response->successful()) {
+                return ['found' => false, 'error' => 'API error: ' . $response->status()];
+            }
 
             $data = $response->json();
 
-            // Normalise response into a consistent shape
-            if (isset($data['data'])) {
+            // Normalise — Steadfast may wrap in 'data' key or return flat
+            if (isset($data['data']) && is_array($data['data'])) {
                 $d = $data['data'];
-            } elseif (isset($data['recipient'])) {
-                $d = $data['recipient'];
             } else {
                 $d = $data;
             }
 
-            $total     = (int) ($d['total_orders']   ?? $d['total']     ?? 0);
-            $delivered = (int) ($d['delivered']       ?? $d['success']   ?? 0);
-            $returned  = (int) ($d['returned']        ?? $d['return']    ?? 0);
-            $cancelled = (int) ($d['cancelled']       ?? $d['cancel']    ?? 0);
-            $inReview  = (int) ($d['in_review']       ?? 0);
+            $total     = (int) ($d['total']           ?? $d['total_orders']  ?? 0);
+            $delivered = (int) ($d['delivered']        ?? $d['success']       ?? 0);
+            $returned  = (int) ($d['returned']         ?? $d['return']        ?? 0);
+            $cancelled = (int) ($d['cancelled']        ?? $d['cancel']        ?? 0);
+            $inReview  = (int) ($d['in_review']        ?? 0);
 
-            $successRate = $total > 0 ? round(($delivered / $total) * 100, 1) : null;
-            $returnRate  = $total > 0 ? round((($returned + $cancelled) / $total) * 100, 1) : null;
+            // Use API-provided rate if available, otherwise calculate
+            $successRate = null;
+            if (isset($d['success_rate'])) {
+                $successRate = round((float) $d['success_rate'], 1);
+            } elseif (isset($d['delivery_percentage'])) {
+                $successRate = round((float) $d['delivery_percentage'], 1);
+            } elseif ($total > 0) {
+                $successRate = round(($delivered / $total) * 100, 1);
+            }
 
-            // Risk level
             if ($total === 0) {
                 $risk = 'new';
             } elseif ($successRate >= 80) {
@@ -199,9 +218,7 @@ class SteadfastService
                 'cancelled'    => $cancelled,
                 'in_review'    => $inReview,
                 'success_rate' => $successRate,
-                'return_rate'  => $returnRate,
                 'risk'         => $risk,
-                'fraud'        => (bool) ($d['fraud'] ?? ($risk === 'high')),
             ];
 
         } catch (\Exception $e) {

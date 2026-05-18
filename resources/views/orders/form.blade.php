@@ -133,10 +133,8 @@
                                 </div>
                                 <div class="mt-2 text-right text-gray-400 dark:text-slate-500" style="font-size:10px">via Steadfast</div>
                             </div>
-                            {{-- Not connected --}}
-                            <div x-show="fraudNotConnected" x-cloak class="mt-1.5 text-xs text-gray-400 dark:text-slate-500">
-                                ⚠️ Steadfast not connected — fraud check unavailable
-                            </div>
+                            {{-- Not connected / rate limited --}}
+                            <div x-show="fraudNotConnected" x-cloak class="mt-1.5 text-xs text-gray-400 dark:text-slate-500" x-text="fraudNotConnectedMsg"></div>
                         </div>
                         <div class="sm:col-span-2">
                             <label class="block text-xs font-medium text-gray-700 dark:text-slate-300 mb-1.5">Shipping Address</label>
@@ -370,6 +368,7 @@ function orderForm() {
         fraudLoading: false,
         fraudResult: null,
         fraudNotConnected: false,
+        fraudNotConnectedMsg: '⚠️ Steadfast not connected — fraud check unavailable',
 
         checkFraud(phone) {
             const cleaned = phone.replace(/\D/g, '');
@@ -390,6 +389,11 @@ function orderForm() {
                 this.fraudLoading = false;
                 if (data.error && data.error.includes('not connected')) {
                     this.fraudNotConnected = true;
+                    return;
+                }
+                if (data.rate_limited) {
+                    this.fraudNotConnected = true;
+                    this.fraudNotConnectedMsg = '⏳ Daily fraud check limit reached (' + data.limit + '/day). Try tomorrow.';
                     return;
                 }
                 this.fraudResult = data;

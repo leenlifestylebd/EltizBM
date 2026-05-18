@@ -421,34 +421,8 @@ class SteadfastController extends Controller
             return response()->json(['found' => false, 'error' => 'Steadfast not connected'], 503);
         }
 
-        // DEBUG: try multiple endpoints to find correct one
-        $setting = \App\Models\CourierSetting::where('business_id', auth()->user()->business_id)
-            ->where('provider','steadfast')->first();
-        $headers = [
-            'Api-Key'      => $setting?->api_key,
-            'Secret-Key'   => $setting?->api_secret,
-            'Content-Type' => 'application/json',
-        ];
-        $base = 'https://portal.packzy.com/api/v1';
-        $endpoints = [
-            "/verify/check/{$phone}",
-            "/recipient_verify/{$phone}",
-            "/recipient/check/{$phone}",
-            "/fraud_check/{$phone}",
-            "/check_recipient/{$phone}",
-            "/delivery-report-by-phone/{$phone}",
-            "/recipient/{$phone}",
-        ];
-        $results = [];
-        foreach ($endpoints as $ep) {
-            try {
-                $r = \Illuminate\Support\Facades\Http::withHeaders($headers)->get($base.$ep);
-                $results[$ep] = ['status' => $r->status(), 'body' => $r->json()];
-            } catch (\Exception $e) {
-                $results[$ep] = ['error' => $e->getMessage()];
-            }
-        }
-        return response()->json($results);
+        $result = $service->fraudCheck($phone);
+        return response()->json($result);
     }
 
     public function getBalance()
