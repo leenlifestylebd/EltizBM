@@ -131,7 +131,7 @@ class SuperAdminController extends Controller
                 'slug'          => Str::slug($request->business_name) . '-' . Str::random(5),
                 'email'         => $request->email,
                 'plan'          => 'basic',
-                'trial_ends_at' => now()->addDays($request->trial_days ?? 14),
+                'trial_ends_at' => now()->addDays((int) ($request->trial_days ?? 14)),
             ]);
 
             User::create([
