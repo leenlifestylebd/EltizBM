@@ -51,6 +51,22 @@ Route::get('/offline', fn() => view('pwa.offline'))->name('pwa.offline');
 Route::post('/logout', [AuthController::class, 'logout'])->name('logout')->middleware('auth');
 
 // =============================================
+// SUPER ADMIN ROUTES (selected Gmail only)
+// =============================================
+Route::middleware(['auth', 'superadmin'])->prefix('super-admin')->name('super-admin.')->group(function () {
+    Route::get('/',                                      [\App\Http\Controllers\SuperAdminController::class, 'index'])->name('index');
+    Route::get('/businesses',                            [\App\Http\Controllers\SuperAdminController::class, 'businesses'])->name('businesses');
+    Route::post('/businesses',                           [\App\Http\Controllers\SuperAdminController::class, 'storeBusiness'])->name('businesses.store');
+    Route::post('/businesses/{business}/toggle',         [\App\Http\Controllers\SuperAdminController::class, 'toggleBusiness'])->name('businesses.toggle');
+    Route::post('/businesses/{business}/extend-trial',   [\App\Http\Controllers\SuperAdminController::class, 'extendTrial'])->name('businesses.extend-trial');
+    Route::delete('/businesses/{business}',              [\App\Http\Controllers\SuperAdminController::class, 'destroyBusiness'])->name('businesses.destroy');
+    Route::get('/users',                                 [\App\Http\Controllers\SuperAdminController::class, 'users'])->name('users');
+    Route::post('/users/{user}/approve',                 [\App\Http\Controllers\SuperAdminController::class, 'approveUser'])->name('users.approve');
+    Route::delete('/users/{user}/reject',                [\App\Http\Controllers\SuperAdminController::class, 'rejectUser'])->name('users.reject');
+    Route::post('/users/{user}/reset-password',          [\App\Http\Controllers\SuperAdminController::class, 'resetPassword'])->name('users.reset-password');
+});
+
+// =============================================
 // AUTHENTICATED ROUTES
 // =============================================
 Route::middleware(['auth', 'business'])->group(function () {
