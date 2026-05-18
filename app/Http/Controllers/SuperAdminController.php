@@ -125,32 +125,50 @@ class SuperAdminController extends Controller
             'trial_days'    => 'nullable|integer|min:1|max:365',
         ]);
 
-        $business = Business::create([
-            'name'          => $request->business_name,
-            'slug'          => Str::slug($request->business_name) . '-' . Str::random(5),
-            'email'         => $request->email,
-            'plan'          => 'basic',
-            'trial_ends_at' => now()->addDays($request->trial_days ?? 14),
-        ]);
+        DB::transaction(function () use ($request) {
+            $business = Business::create([
+                'name'          => $request->business_name,
+                'slug'          => Str::slug($request->business_name) . '-' . Str::random(5),
+                'email'         => $request->email,
+                'plan'          => 'basic',
+                'trial_ends_at' => now()->addDays($request->trial_days ?? 14),
+            ]);
 
-        User::create([
-            'business_id' => $business->id,
-            'name'        => $request->owner_name,
-            'email'       => $request->email,
-            'password'    => Hash::make($request->password),
-            'role'        => 'owner',
-            'is_approved' => 1,
-            'is_active'   => 1,
-        ]);
+            User::create([
+                'business_id' => $business->id,
+                'name'        => $request->owner_name,
+                'email'       => $request->email,
+                'password'    => Hash::make($request->password),
+                'role'        => 'owner',
+                'is_approved' => 1,
+                'is_active'   => 1,
+            ]);
 
-        // Seed default warehouse
-        \App\Models\Warehouse::create([
-            'business_id' => $business->id,
-            'name'        => 'Main Warehouse',
-            'is_default'  => true,
-        ]);
+            // Default warehouse
+            \App\Models\Warehouse::create([
+                'business_id' => $business->id,
+                'name'        => 'Main Warehouse',
+                'is_default'  => true,
+            ]);
 
-        return back()->with('success', "Business '{$business->name}' created with owner account.");
+            // Default account categories
+            foreach (['Sales', 'Service', 'Other Income'] as $name) {
+                \App\Models\AccountCategory::create([
+                    'business_id' => $business->id,
+                    'name'        => $name,
+                    'type'        => 'income',
+                ]);
+            }
+            foreach (['Purchase', 'Salary', 'Rent', 'Utility', 'Marketing', 'Transport', 'Other Expense'] as $name) {
+                \App\Models\AccountCategory::create([
+                    'business_id' => $business->id,
+                    'name'        => $name,
+                    'type'        => 'expense',
+                ]);
+            }
+        });
+
+        return back()->with('success', "Business '{$request->business_name}' created successfully!");
     }
 
     // ── Reset Business Data ────────────────────────────────────
