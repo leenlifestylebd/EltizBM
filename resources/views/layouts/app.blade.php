@@ -118,17 +118,30 @@
        :class="sidebarOpen ? 'translate-x-0' : '-translate-x-full lg:translate-x-0'">
 
     {{-- Logo --}}
-    <div class="flex items-center justify-between px-4 py-3 border-b border-gray-100 dark:border-slate-700 flex-shrink-0" style="min-height: 64px;">
+    @php
+        // Detect if sidebar is dark → invert logo to white
+        // Default sidebar is dark (gray-900 = #111827), so default = invert
+        $sidebarHex = $themeSettings['sidebar_color'] ?? null;
+        $logoInvert = true; // dark by default
+        if ($sidebarHex) {
+            $hex = ltrim($sidebarHex, '#');
+            if (strlen($hex) === 6) {
+                [$r, $g, $b] = array_map('hexdec', str_split($hex, 2));
+                $luminance = (0.299 * $r + 0.587 * $g + 0.114 * $b) / 255;
+                $logoInvert = $luminance < 0.5; // dark color → invert logo
+            }
+        }
+        $logoFilter = $logoInvert ? 'filter: brightness(0) invert(1);' : '';
+        $logoSrc    = ($business->logo ?? null)
+                        ? Storage::url($business->logo)
+                        : '/images/logo.png';
+        $logoAlt    = $business->name ?? 'Eltiz ERP';
+    @endphp
+    <div class="flex items-center justify-between px-4 py-3 border-b border-gray-100 dark:border-slate-700 flex-shrink-0" style="min-height: 60px;">
         <a href="{{ route('dashboard') }}" class="flex items-center min-w-0 flex-1">
-            @if($business->logo ?? null)
-                <img src="{{ Storage::url($business->logo) }}" alt="{{ $business->name }}"
-                     class="h-10 w-auto object-contain object-left"
-                     style="max-width: 148px;">
-            @else
-                <img src="/images/logo.png" alt="Eltiz ERP"
-                     class="h-10 w-auto object-contain object-left"
-                     style="max-width: 148px; filter: brightness(0) invert({{ $themeSettings['sidebar_color'] ?? '' ? '1' : '0' }});">
-            @endif
+            <img src="{{ $logoSrc }}" alt="{{ $logoAlt }}"
+                 class="h-10 w-auto object-contain object-left"
+                 style="max-width: 148px; {{ $logoFilter }}">
         </a>
         <button @click="sidebarOpen = false" class="lg:hidden p-1.5 rounded-lg text-gray-400 hover:text-gray-600 hover:bg-gray-100 dark:hover:bg-slate-700 flex-shrink-0 ml-2">
             <svg class="w-5 h-5" fill="none" stroke="currentColor" viewBox="0 0 24 24">
