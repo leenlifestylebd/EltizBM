@@ -268,6 +268,45 @@
                         </div>
                     </form>
                     @endif
+
+                    {{-- bKash / Nagad Payment Buttons --}}
+                    @if($order->due_amount > 0)
+                    @php
+                        $bkashGw = \App\Models\PaymentGatewaySetting::forBusiness($order->business_id, 'bkash');
+                        $nagadGw = \App\Models\PaymentGatewaySetting::forBusiness($order->business_id, 'nagad');
+                    @endphp
+                    @if($bkashGw || $nagadGw)
+                    <div class="border-t border-gray-100 dark:border-slate-700 pt-3 mt-3">
+                        <p class="text-xs font-semibold text-gray-500 dark:text-slate-400 mb-2">Online Payment</p>
+                        <div class="space-y-2">
+                        @if($bkashGw)
+                        <form method="POST" action="{{ route('payment.bkash.create', $order) }}">
+                            @csrf
+                            <button type="submit"
+                                    class="w-full flex items-center justify-center gap-2 py-2.5 rounded-xl text-sm font-bold text-white transition-colors"
+                                    style="background: #E2136E;">
+                                <span class="text-base font-black">b</span>
+                                Pay with bKash
+                                <span class="text-xs font-normal opacity-80">৳{{ number_format($order->due_amount) }}</span>
+                            </button>
+                        </form>
+                        @endif
+                        @if($nagadGw)
+                        <form method="POST" action="{{ route('payment.nagad.create', $order) }}">
+                            @csrf
+                            <button type="submit"
+                                    class="w-full flex items-center justify-center gap-2 py-2.5 rounded-xl text-sm font-bold text-white transition-colors"
+                                    style="background: #F05825;">
+                                <span class="text-base font-black">N</span>
+                                Pay with Nagad
+                                <span class="text-xs font-normal opacity-80">৳{{ number_format($order->due_amount) }}</span>
+                            </button>
+                        </form>
+                        @endif
+                        </div>
+                    </div>
+                    @endif
+                    @endif
                 </div>
             </div>
 

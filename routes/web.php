@@ -324,9 +324,18 @@ Route::middleware(['auth', 'business'])->group(function () {
     });
 
     // ---- INTEGRATIONS ----
+    // Payment Gateways
+    Route::post('/payment/settings',           [\App\Http\Controllers\PaymentController::class, 'saveSettings'])->name('payment.settings.save');
+    Route::post('/payment/disable',            [\App\Http\Controllers\PaymentController::class, 'disableGateway'])->name('payment.disable');
+    Route::post('/payment/bkash/{order}',      [\App\Http\Controllers\PaymentController::class, 'bkashCreate'])->name('payment.bkash.create');
+    Route::get('/payment/bkash/{order}/callback', [\App\Http\Controllers\PaymentController::class, 'bkashCallback'])->name('payment.bkash.callback');
+    Route::post('/payment/nagad/{order}',      [\App\Http\Controllers\PaymentController::class, 'nagadCreate'])->name('payment.nagad.create');
+    Route::get('/payment/nagad/{order}/callback', [\App\Http\Controllers\PaymentController::class, 'nagadCallback'])->name('payment.nagad.callback');
+
     Route::prefix('integrations')->name('integrations.')->group(function () {
         Route::get('/',                   [IntegrationController::class, 'index'])->name('index');
         Route::get('/woocommerce',        [WooCommerceController::class, 'settings'])->name('woocommerce');
+        Route::get('/payment-gateways',   [IntegrationController::class, 'paymentGateways'])->name('payment-gateways');
         Route::post('/woocommerce',       [WooCommerceController::class, 'saveSettings'])->name('woocommerce.save');
         Route::post('/woocommerce/test',  [WooCommerceController::class, 'testConnection'])->name('woocommerce.test');
         Route::post('/woocommerce/sync',  [WooCommerceController::class, 'syncAll'])->name('woocommerce.sync');
