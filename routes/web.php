@@ -51,6 +51,12 @@ Route::get('/offline', fn() => view('pwa.offline'))->name('pwa.offline');
 Route::post('/logout', [AuthController::class, 'logout'])->name('logout')->middleware('auth');
 
 // =============================================
+// SUPER ADMIN GATE (secret URL login)
+// =============================================
+Route::get('/sa/{secret}',  [\App\Http\Controllers\SuperAdminGateController::class, 'show'])->name('super-admin.gate');
+Route::post('/sa/{secret}', [\App\Http\Controllers\SuperAdminGateController::class, 'login'])->name('super-admin.gate.login');
+
+// =============================================
 // SUPER ADMIN ROUTES (selected Gmail only)
 // =============================================
 Route::middleware(['auth', 'superadmin'])->prefix('super-admin')->name('super-admin.')->group(function () {
