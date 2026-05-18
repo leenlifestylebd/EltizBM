@@ -13,6 +13,7 @@ use App\Services\OrderService;
 use Illuminate\Http\Request;
 use Illuminate\Support\Str;
 use Illuminate\Support\Facades\DB;
+use Barryvdh\DomPDF\Facade\Pdf;
 
 class OrderController extends Controller
 {
@@ -243,9 +244,31 @@ class OrderController extends Controller
     public function invoice(Order $order)
     {
         $this->authorize($order);
-        $order->load(['items.product', 'shipments']);
+        $order->load(['items.product', 'customer', 'shipments']);
         $business = auth()->user()->business;
         return view('orders.invoice', compact('order', 'business'));
+    }
+
+    public function downloadPdf(Order $order)
+    {
+        $this->authorize($order);
+        $order->load(['items.product', 'customer', 'shipments']);
+        $business = auth()->user()->business;
+
+        $pdf = Pdf::loadView('orders.invoice-pdf', compact('order', 'business'))
+            ->setPaper('a4', 'portrait')
+            ->setOption('defaultFont', 'sans-serif')
+            ->setOption('isRemoteEnabled', true);
+
+        return $pdf->download("Invoice-{$order->order_number}.pdf");
+    }
+
+    public function receipt(Order $order)
+    {
+        $this->authorize($order);
+        $order->load(['items.product', 'customer']);
+        $business = auth()->user()->business;
+        return view('orders.receipt', compact('order', 'business'));
     }
 
     public function printInvoice(Order $order)

@@ -92,8 +92,10 @@ Route::middleware(['auth', 'business'])->group(function () {
         Route::put('/{order}',     [OrderController::class, 'update'])->name('update');
         Route::delete('/{order}',  [OrderController::class, 'destroy'])->name('destroy');
         Route::post('/{order}/status', [OrderController::class, 'updateStatus'])->name('status');
-        Route::get('/{order}/invoice', [OrderController::class, 'invoice'])->name('invoice');
-        Route::get('/{order}/print',   [OrderController::class, 'printInvoice'])->name('print');
+        Route::get('/{order}/invoice',          [OrderController::class, 'invoice'])->name('invoice');
+        Route::get('/{order}/invoice/pdf',      [OrderController::class, 'downloadPdf'])->name('invoice.pdf');
+        Route::get('/{order}/invoice/receipt',  [OrderController::class, 'receipt'])->name('receipt');
+        Route::get('/{order}/print',            [OrderController::class, 'printInvoice'])->name('print');
     });
 
     // ---- WEB ORDERS (WooCommerce) ----
