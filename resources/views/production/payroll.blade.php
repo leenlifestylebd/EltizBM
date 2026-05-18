@@ -1,4 +1,4 @@
-@extends('layouts.app')
+﻿@extends('layouts.app')
 @section('title', 'Payroll')
 
 @section('content')
@@ -30,8 +30,8 @@
     <form method="GET" class="flex items-center gap-3">
         <label class="text-xs font-medium text-gray-700 dark:text-slate-300">Month:</label>
         <input type="month" name="month" value="{{ $month }}"
-               class="px-3 py-2 text-sm border border-gray-200 dark:border-slate-600 rounded-lg bg-white dark:bg-slate-700 text-gray-900 dark:text-white focus:outline-none focus:ring-2 focus:ring-blue-500">
-        <button type="submit" class="px-3 py-2 bg-blue-600 text-white text-sm rounded-lg hover:bg-blue-700">View</button>
+               class="px-3 py-2 text-sm border border-gray-200 dark:border-slate-600 rounded-lg bg-white dark:bg-slate-700 text-gray-900 dark:text-white focus:outline-none focus:ring-2 focus:ring-primary-500">
+        <button type="submit" class="px-3 py-2 bg-primary-600 text-white text-sm rounded-lg hover:bg-primary-700">View</button>
     </form>
 </div>
 
@@ -63,7 +63,7 @@
                     </td>
                     <td class="px-4 py-3 text-center">
                         <span class="inline-flex px-2 py-0.5 rounded-full text-xs font-medium
-                            {{ $emp->type === 'production' ? 'bg-blue-100 text-blue-700' : 'bg-purple-100 text-purple-700' }}">
+                            {{ $emp->type === 'production' ? 'bg-primary-100 text-primary-700' : 'bg-purple-100 text-purple-700' }}">
                             {{ ucfirst($emp->type) }}
                         </span>
                     </td>
@@ -98,7 +98,7 @@
                                 Pay
                             </button>
                             <button onclick="openFinalize({{ $emp->id }}, '{{ addslashes($emp->name) }}', {{ $emp->total_earning }}, {{ $emp->type === 'production' ? $emp->productionEntries->sum('quantity') : 0 }}, {{ $emp->total_paid }}, {{ $emp->net_payable }})"
-                                    class="px-2.5 py-1.5 bg-indigo-600 text-white text-xs rounded-lg hover:bg-indigo-700 transition-colors">
+                                    class="px-2.5 py-1.5 bg-primary-600 text-white text-xs rounded-lg hover:bg-primary-700 transition-colors">
                                 Finalize
                             </button>
                             @else
@@ -133,7 +133,7 @@
             <div>
                 <label class="block text-xs font-medium text-gray-700 dark:text-slate-300 mb-1.5">Employee <span class="text-red-500">*</span></label>
                 <select name="employee_id" id="paymentEmployee" required
-                        class="w-full px-3 py-2.5 text-sm border border-gray-200 dark:border-slate-600 rounded-lg bg-white dark:bg-slate-700 text-gray-700 dark:text-slate-200 focus:outline-none focus:ring-2 focus:ring-blue-500">
+                        class="w-full px-3 py-2.5 text-sm border border-gray-200 dark:border-slate-600 rounded-lg bg-white dark:bg-slate-700 text-gray-700 dark:text-slate-200 focus:outline-none focus:ring-2 focus:ring-primary-500">
                     <option value="">Select Employee</option>
                     @foreach($employees as $emp)
                         <option value="{{ $emp->id }}">{{ $emp->name }}</option>
@@ -143,7 +143,7 @@
             <div class="grid grid-cols-2 gap-3">
                 <div>
                     <label class="block text-xs font-medium text-gray-700 dark:text-slate-300 mb-1.5">Type <span class="text-red-500">*</span></label>
-                    <select name="type" required class="w-full px-3 py-2.5 text-sm border border-gray-200 dark:border-slate-600 rounded-lg bg-white dark:bg-slate-700 text-gray-700 dark:text-slate-200 focus:outline-none focus:ring-2 focus:ring-blue-500">
+                    <select name="type" required class="w-full px-3 py-2.5 text-sm border border-gray-200 dark:border-slate-600 rounded-lg bg-white dark:bg-slate-700 text-gray-700 dark:text-slate-200 focus:outline-none focus:ring-2 focus:ring-primary-500">
                         <option value="advance">Advance</option>
                         <option value="salary">Salary</option>
                         <option value="bonus">Bonus</option>
@@ -153,7 +153,7 @@
                 <div>
                     <label class="block text-xs font-medium text-gray-700 dark:text-slate-300 mb-1.5">Amount <span class="text-red-500">*</span></label>
                     <input type="number" name="amount" required min="1" step="0.01"
-                           class="w-full px-3 py-2.5 text-sm border border-gray-200 dark:border-slate-600 rounded-lg bg-white dark:bg-slate-700 text-gray-900 dark:text-white focus:outline-none focus:ring-2 focus:ring-blue-500"
+                           class="w-full px-3 py-2.5 text-sm border border-gray-200 dark:border-slate-600 rounded-lg bg-white dark:bg-slate-700 text-gray-900 dark:text-white focus:outline-none focus:ring-2 focus:ring-primary-500"
                            placeholder="0.00">
                 </div>
             </div>
@@ -161,11 +161,11 @@
                 <div>
                     <label class="block text-xs font-medium text-gray-700 dark:text-slate-300 mb-1.5">Date <span class="text-red-500">*</span></label>
                     <input type="date" name="payment_date" value="{{ today()->toDateString() }}" required
-                           class="w-full px-3 py-2.5 text-sm border border-gray-200 dark:border-slate-600 rounded-lg bg-white dark:bg-slate-700 text-gray-900 dark:text-white focus:outline-none focus:ring-2 focus:ring-blue-500">
+                           class="w-full px-3 py-2.5 text-sm border border-gray-200 dark:border-slate-600 rounded-lg bg-white dark:bg-slate-700 text-gray-900 dark:text-white focus:outline-none focus:ring-2 focus:ring-primary-500">
                 </div>
                 <div>
                     <label class="block text-xs font-medium text-gray-700 dark:text-slate-300 mb-1.5">Method</label>
-                    <select name="payment_method" class="w-full px-3 py-2.5 text-sm border border-gray-200 dark:border-slate-600 rounded-lg bg-white dark:bg-slate-700 text-gray-700 dark:text-slate-200 focus:outline-none focus:ring-2 focus:ring-blue-500">
+                    <select name="payment_method" class="w-full px-3 py-2.5 text-sm border border-gray-200 dark:border-slate-600 rounded-lg bg-white dark:bg-slate-700 text-gray-700 dark:text-slate-200 focus:outline-none focus:ring-2 focus:ring-primary-500">
                         <option value="cash">Cash</option>
                         <option value="bkash">bKash</option>
                         <option value="nagad">Nagad</option>
@@ -176,7 +176,7 @@
             <div>
                 <label class="block text-xs font-medium text-gray-700 dark:text-slate-300 mb-1.5">Notes</label>
                 <input type="text" name="notes"
-                       class="w-full px-3 py-2.5 text-sm border border-gray-200 dark:border-slate-600 rounded-lg bg-white dark:bg-slate-700 text-gray-900 dark:text-white focus:outline-none focus:ring-2 focus:ring-blue-500"
+                       class="w-full px-3 py-2.5 text-sm border border-gray-200 dark:border-slate-600 rounded-lg bg-white dark:bg-slate-700 text-gray-900 dark:text-white focus:outline-none focus:ring-2 focus:ring-primary-500"
                        placeholder="Optional...">
             </div>
             <button type="submit" class="w-full bg-green-600 hover:bg-green-700 text-white font-medium py-2.5 text-sm rounded-lg transition-colors">
@@ -225,7 +225,7 @@
             <div>
                 <label class="block text-xs font-medium text-gray-700 dark:text-slate-300 mb-1.5">Notes (optional)</label>
                 <textarea name="notes" rows="2"
-                          class="w-full px-3 py-2 text-sm border border-gray-200 dark:border-slate-600 rounded-lg bg-white dark:bg-slate-700 text-gray-900 dark:text-white focus:outline-none focus:ring-2 focus:ring-indigo-500 resize-none"
+                          class="w-full px-3 py-2 text-sm border border-gray-200 dark:border-slate-600 rounded-lg bg-white dark:bg-slate-700 text-gray-900 dark:text-white focus:outline-none focus:ring-2 focus:ring-primary-500 resize-none"
                           placeholder="Any remarks about this payroll..."></textarea>
             </div>
 
@@ -237,7 +237,7 @@
             </div>
 
             <button type="submit"
-                    class="w-full bg-indigo-600 hover:bg-indigo-700 text-white font-medium py-2.5 text-sm rounded-lg transition-colors">
+                    class="w-full bg-primary-600 hover:bg-primary-700 text-white font-medium py-2.5 text-sm rounded-lg transition-colors">
                 🔒 Confirm & Finalize
             </button>
         </form>

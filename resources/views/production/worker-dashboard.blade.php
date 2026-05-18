@@ -1,4 +1,4 @@
-@extends('layouts.app')
+﻿@extends('layouts.app')
 @section('title', 'My Dashboard')
 
 @php $isWorker = auth()->user()->role === 'employee'; @endphp
@@ -17,7 +17,7 @@
     {{-- Header --}}
     <div class="flex items-center justify-between mb-4">
         <div class="flex items-center gap-3">
-            <div class="w-11 h-11 rounded-full bg-gradient-to-br from-blue-500 to-blue-700 flex items-center justify-center text-white font-bold text-sm flex-shrink-0 shadow">
+            <div class="w-11 h-11 rounded-full bg-gradient-to-br from-primary-500 to-primary-700 flex items-center justify-center text-white font-bold text-sm flex-shrink-0 shadow">
                 {{ strtoupper(substr($employee->name, 0, 2)) }}
             </div>
             <div>
@@ -46,10 +46,10 @@
             @endif
             <div class="flex gap-2">
                 <input type="date" name="from" value="{{ $from }}"
-                       class="flex-1 px-2 py-2 text-xs border border-gray-200 dark:border-slate-600 rounded-lg bg-white dark:bg-slate-700 text-gray-900 dark:text-white focus:outline-none focus:ring-2 focus:ring-blue-500">
+                       class="flex-1 px-2 py-2 text-xs border border-gray-200 dark:border-slate-600 rounded-lg bg-white dark:bg-slate-700 text-gray-900 dark:text-white focus:outline-none focus:ring-2 focus:ring-primary-500">
                 <input type="date" name="to" value="{{ $to }}"
-                       class="flex-1 px-2 py-2 text-xs border border-gray-200 dark:border-slate-600 rounded-lg bg-white dark:bg-slate-700 text-gray-900 dark:text-white focus:outline-none focus:ring-2 focus:ring-blue-500">
-                <button type="submit" class="px-3 py-2 bg-blue-600 text-white text-xs rounded-lg font-medium">Filter</button>
+                       class="flex-1 px-2 py-2 text-xs border border-gray-200 dark:border-slate-600 rounded-lg bg-white dark:bg-slate-700 text-gray-900 dark:text-white focus:outline-none focus:ring-2 focus:ring-primary-500">
+                <button type="submit" class="px-3 py-2 bg-primary-600 text-white text-xs rounded-lg font-medium">Filter</button>
             </div>
             <div class="flex gap-1.5 flex-wrap">
                 @foreach([
@@ -60,7 +60,7 @@
                 ] as $q)
                 <a href="{{ route('production.worker.dashboard', array_merge(['from'=>$q['from'], 'to'=>$q['to']], in_array(auth()->user()->role, ['admin','owner']) ? ['employee_id'=>$employee->id] : [])) }}"
                    class="px-2.5 py-1 text-xs rounded-lg border transition-colors
-                          {{ $from === $q['from'] && $to === $q['to'] ? 'bg-blue-600 text-white border-blue-600' : 'bg-white dark:bg-slate-700 text-gray-600 dark:text-slate-300 border-gray-200 dark:border-slate-600 hover:bg-gray-50' }}">
+                          {{ $from === $q['from'] && $to === $q['to'] ? 'bg-primary-600 text-white border-primary-600' : 'bg-white dark:bg-slate-700 text-gray-600 dark:text-slate-300 border-gray-200 dark:border-slate-600 hover:bg-gray-50' }}">
                     {{ $q['label'] }}
                 </a>
                 @endforeach
@@ -75,7 +75,7 @@
             <p class="text-xl font-bold text-green-600 dark:text-green-400">৳{{ number_format($totalEarning) }}</p>
             <p class="text-xs text-gray-400 mt-0.5">{{ number_format($totalQty) }} পিস</p>
         </div>
-        <div class="bg-gradient-to-br from-blue-50 to-indigo-50 dark:from-blue-900/20 dark:to-indigo-900/20 rounded-xl p-3.5 border border-blue-100 dark:border-blue-900/40">
+        <div class="bg-gradient-to-br from-primary-50 to-primary-50 dark:from-primary-900/20 dark:to-primary-900/20 rounded-xl p-3.5 border border-primary-100 dark:border-primary-900/40">
             <p class="text-xs text-gray-500 dark:text-slate-400 mb-1">অগ্রিম নেওয়া</p>
             <p class="text-xl font-bold text-red-500 dark:text-red-400">৳{{ number_format($totalAdvance) }}</p>
             <p class="text-xs text-gray-400 mt-0.5">কাটা যাবে</p>
@@ -97,13 +97,13 @@
     {{-- Task Overview Card --}}
     @if($taskStats['total'] > 0)
     @php $taskPct = round(($taskStats['completed'] / $taskStats['total']) * 100); @endphp
-    <div class="bg-white dark:bg-slate-800 rounded-xl p-3.5 border border-indigo-100 dark:border-indigo-900/30 mb-4">
+    <div class="bg-white dark:bg-slate-800 rounded-xl p-3.5 border border-primary-100 dark:border-primary-900/30 mb-4">
         <div class="flex items-center justify-between mb-2">
             <p class="text-xs font-semibold text-gray-700 dark:text-slate-300">কাজের অগ্রগতি</p>
-            <span class="text-sm font-bold text-indigo-600 dark:text-indigo-400">{{ $taskPct }}%</span>
+            <span class="text-sm font-bold text-primary-600 dark:text-primary-400">{{ $taskPct }}%</span>
         </div>
         <div class="w-full bg-gray-100 dark:bg-slate-700 rounded-full h-2 mb-2.5">
-            <div class="bg-indigo-500 h-2 rounded-full transition-all" style="width: {{ $taskPct }}%"></div>
+            <div class="bg-primary-500 h-2 rounded-full transition-all" style="width: {{ $taskPct }}%"></div>
         </div>
         <div class="flex gap-3 text-xs">
             <span class="text-gray-500">মোট: <strong class="text-gray-700 dark:text-white">{{ $taskStats['total'] }}</strong></span>
@@ -152,10 +152,10 @@
                 $statusColor = match($task->status) {
                     'completed'   => 'bg-green-100 text-green-700 dark:bg-green-900/40 dark:text-green-400',
                     'partial'     => 'bg-yellow-100 text-yellow-700 dark:bg-yellow-900/40 dark:text-yellow-400',
-                    'in_progress' => 'bg-blue-100 text-blue-700 dark:bg-blue-900/40 dark:text-blue-400',
+                    'in_progress' => 'bg-primary-100 text-primary-700 dark:bg-primary-900/40 dark:text-primary-400',
                     default       => 'bg-gray-100 text-gray-600 dark:bg-slate-700 dark:text-slate-300',
                 };
-                $barColor = $task->status === 'completed' ? 'bg-green-500' : ($pct > 50 ? 'bg-blue-500' : 'bg-orange-400');
+                $barColor = $task->status === 'completed' ? 'bg-green-500' : ($pct > 50 ? 'bg-primary-500' : 'bg-orange-400');
             @endphp
             <div class="bg-white dark:bg-slate-800 rounded-xl border border-gray-100 dark:border-slate-700 mb-3 overflow-hidden">
                 {{-- Task Header --}}
@@ -187,7 +187,7 @@
                     <div class="mb-3">
                         <div class="flex justify-between text-xs mb-1.5">
                             <span class="text-gray-500">সম্পন্ন: <strong class="text-gray-700 dark:text-white">{{ $task->completed_quantity }}</strong> / {{ $task->assigned_quantity }} পিস</span>
-                            <span class="font-semibold {{ $pct >= 100 ? 'text-green-600' : 'text-blue-600' }}">{{ $pct }}%</span>
+                            <span class="font-semibold {{ $pct >= 100 ? 'text-green-600' : 'text-primary-600' }}">{{ $pct }}%</span>
                         </div>
                         <div class="w-full bg-gray-100 dark:bg-slate-700 rounded-full h-2.5">
                             <div class="{{ $barColor }} h-2.5 rounded-full transition-all" style="width: {{ $pct }}%"></div>
@@ -221,7 +221,7 @@
                             size: '{{ addslashes($task->size ?? '') }}',
                             max: {{ $task->pending_quantity }}
                         })"
-                        class="w-full py-3 bg-blue-600 hover:bg-blue-700 active:bg-blue-800 text-white text-sm font-semibold rounded-xl transition-colors flex items-center justify-center gap-2">
+                        class="w-full py-3 bg-primary-600 hover:bg-primary-700 active:bg-primary-800 text-white text-sm font-semibold rounded-xl transition-colors flex items-center justify-center gap-2">
                         <svg class="w-4 h-4" fill="none" stroke="currentColor" viewBox="0 0 24 24"><path stroke-linecap="round" stroke-linejoin="round" stroke-width="2" d="M5 13l4 4L19 7"/></svg>
                         কাজ জমা দিন (বাকি {{ $task->pending_quantity }} পিস)
                     </button>
@@ -396,7 +396,7 @@
 
         <h3 class="text-base font-bold text-gray-900 dark:text-white mb-0.5">কাজ জমা দিন</h3>
         <p class="text-sm font-medium text-gray-700 dark:text-slate-300" x-text="taskName"></p>
-        <p class="text-xs text-indigo-500 mb-4" x-show="taskColor || taskSize">
+        <p class="text-xs text-primary-500 mb-4" x-show="taskColor || taskSize">
             <span x-text="[taskColor, taskSize].filter(Boolean).join(' · ')"></span>
         </p>
 
@@ -414,7 +414,7 @@
                     <input type="number" name="submitted_quantity"
                            x-model.number="qty"
                            :max="maxQty" min="1" required
-                           class="flex-1 h-12 text-center text-xl font-bold border-2 border-blue-300 dark:border-blue-600 rounded-xl bg-white dark:bg-slate-700 text-gray-900 dark:text-white focus:outline-none focus:border-blue-500">
+                           class="flex-1 h-12 text-center text-xl font-bold border-2 border-primary-300 dark:border-primary-600 rounded-xl bg-white dark:bg-slate-700 text-gray-900 dark:text-white focus:outline-none focus:border-primary-500">
                     <button type="button" @click="qty = Math.min(maxQty, qty + 1)"
                             class="w-12 h-12 rounded-xl bg-gray-100 dark:bg-slate-700 text-gray-700 dark:text-white text-xl font-bold flex items-center justify-center active:bg-gray-200">+</button>
                 </div>
@@ -422,7 +422,7 @@
             </div>
             <div class="mb-4">
                 <input type="text" name="quality_note" placeholder="মন্তব্য (ঐচ্ছিক)"
-                       class="w-full px-4 py-3 text-sm border border-gray-200 dark:border-slate-600 rounded-xl bg-white dark:bg-slate-700 text-gray-900 dark:text-white focus:outline-none focus:ring-2 focus:ring-blue-500">
+                       class="w-full px-4 py-3 text-sm border border-gray-200 dark:border-slate-600 rounded-xl bg-white dark:bg-slate-700 text-gray-900 dark:text-white focus:outline-none focus:ring-2 focus:ring-primary-500">
             </div>
             <div class="flex gap-3">
                 <button type="button" @click="show = false"
@@ -430,7 +430,7 @@
                     বাতিল
                 </button>
                 <button type="submit"
-                        class="flex-1 py-3.5 bg-blue-600 hover:bg-blue-700 text-white text-sm font-bold rounded-xl flex items-center justify-center gap-2">
+                        class="flex-1 py-3.5 bg-primary-600 hover:bg-primary-700 text-white text-sm font-bold rounded-xl flex items-center justify-center gap-2">
                     <svg class="w-4 h-4" fill="none" stroke="currentColor" viewBox="0 0 24 24"><path stroke-linecap="round" stroke-linejoin="round" stroke-width="2" d="M5 13l4 4L19 7"/></svg>
                     জমা দিন
                 </button>

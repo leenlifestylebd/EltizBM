@@ -12,7 +12,7 @@
     </div>
 
     {{-- Current Plan Banner --}}
-    <div class="bg-gradient-to-r from-blue-600 to-blue-700 rounded-xl p-5 mb-4 text-white">
+    <div class="bg-gradient-to-r from-primary-600 to-primary-700 rounded-xl p-5 mb-4 text-white">
         <div class="flex items-center justify-between">
             <div>
                 <p class="text-xs opacity-80 mb-1">Current Plan</p>
@@ -67,12 +67,12 @@
     </div>
 
     {{-- Upgrade CTA --}}
-    <div class="mt-4 bg-blue-50 dark:bg-blue-900/20 border border-blue-100 dark:border-blue-800 rounded-xl p-4 flex items-center justify-between gap-4">
+    <div class="mt-4 bg-primary-50 dark:bg-primary-900/20 border border-primary-100 dark:border-primary-800 rounded-xl p-4 flex items-center justify-between gap-4">
         <div>
-            <p class="text-sm font-medium text-blue-900 dark:text-blue-200">Upgrade to Pro</p>
-            <p class="text-xs text-blue-600 dark:text-blue-400 mt-0.5">Get unlimited orders, advanced reports, and priority support</p>
+            <p class="text-sm font-medium text-primary-900 dark:text-primary-200">Upgrade to Pro</p>
+            <p class="text-xs text-primary-600 dark:text-primary-400 mt-0.5">Get unlimited orders, advanced reports, and priority support</p>
         </div>
-        <button class="flex-shrink-0 px-4 py-2 bg-blue-600 hover:bg-blue-700 text-white text-sm font-medium rounded-lg transition-colors">
+        <button class="flex-shrink-0 px-4 py-2 bg-primary-600 hover:bg-primary-700 text-white text-sm font-medium rounded-lg transition-colors">
             Upgrade Now
         </button>
     </div>

@@ -1,4 +1,4 @@
-@extends('layouts.app')
+﻿@extends('layouts.app')
 @section('title', 'Customers')
 
 @section('content')
@@ -6,13 +6,13 @@
 <div class="flex items-center justify-between mb-4">
     <div>
         <div class="flex items-center gap-3 mb-1">
-            <a href="{{ route('people.customers') }}" class="text-xs font-medium px-3 py-1.5 rounded-lg {{ request()->routeIs('people.customers') ? 'bg-blue-50 text-blue-600 dark:bg-blue-900/20 dark:text-blue-400' : 'text-gray-500 dark:text-slate-400 hover:text-blue-600' }}">Customers</a>
-            <a href="{{ route('people.vendors') }}" class="text-xs font-medium px-3 py-1.5 rounded-lg {{ request()->routeIs('people.vendors') ? 'bg-blue-50 text-blue-600 dark:bg-blue-900/20 dark:text-blue-400' : 'text-gray-500 dark:text-slate-400 hover:text-blue-600' }}">Vendors</a>
+            <a href="{{ route('people.customers') }}" class="text-xs font-medium px-3 py-1.5 rounded-lg {{ request()->routeIs('people.customers') ? 'bg-primary-50 text-primary-600 dark:bg-primary-900/20 dark:text-primary-400' : 'text-gray-500 dark:text-slate-400 hover:text-primary-600' }}">Customers</a>
+            <a href="{{ route('people.vendors') }}" class="text-xs font-medium px-3 py-1.5 rounded-lg {{ request()->routeIs('people.vendors') ? 'bg-primary-50 text-primary-600 dark:bg-primary-900/20 dark:text-primary-400' : 'text-gray-500 dark:text-slate-400 hover:text-primary-600' }}">Vendors</a>
         </div>
         <p class="text-xs text-gray-500 dark:text-slate-400 mt-0.5">{{ $customers->total() }} total customers</p>
     </div>
     <button onclick="document.getElementById('addModal').classList.remove('hidden')"
-            class="flex items-center gap-1.5 px-3 py-2 text-xs font-medium text-white bg-blue-600 rounded-lg hover:bg-blue-700 transition-colors">
+            class="flex items-center gap-1.5 px-3 py-2 text-xs font-medium text-white bg-primary-600 rounded-lg hover:bg-primary-700 transition-colors">
         + Add Customer
     </button>
 </div>
@@ -20,8 +20,8 @@
 {{-- Search --}}
 <form method="GET" class="flex gap-2 mb-4">
     <input type="text" name="search" value="{{ request('search') }}" placeholder="Search name or phone..."
-           class="flex-1 px-3 py-2 text-sm border border-gray-200 dark:border-slate-600 rounded-lg bg-white dark:bg-slate-700 text-gray-900 dark:text-white focus:outline-none focus:ring-2 focus:ring-blue-500">
-    <button type="submit" class="px-3 py-2 bg-blue-600 text-white rounded-lg text-sm hover:bg-blue-700 transition-colors">Search</button>
+           class="flex-1 px-3 py-2 text-sm border border-gray-200 dark:border-slate-600 rounded-lg bg-white dark:bg-slate-700 text-gray-900 dark:text-white focus:outline-none focus:ring-2 focus:ring-primary-500">
+    <button type="submit" class="px-3 py-2 bg-primary-600 text-white rounded-lg text-sm hover:bg-primary-700 transition-colors">Search</button>
 </form>
 
 {{-- Table --}}
@@ -43,7 +43,7 @@
                 <tr class="hover:bg-gray-50 dark:hover:bg-slate-700/30 transition-colors">
                     <td class="px-4 py-3 text-xs text-gray-400">{{ ($customers->currentPage()-1)*$customers->perPage()+$i+1 }}</td>
                     <td class="px-4 py-3">
-                        <a href="{{ route('people.customers.show', $customer) }}" class="font-medium text-gray-900 dark:text-white hover:text-blue-600">{{ $customer->name }}</a>
+                        <a href="{{ route('people.customers.show', $customer) }}" class="font-medium text-gray-900 dark:text-white hover:text-primary-600">{{ $customer->name }}</a>
                         @if($customer->email)<p class="text-xs text-gray-400 dark:text-slate-500 mt-0.5">{{ $customer->email }}</p>@endif
                     </td>
                     <td class="px-4 py-3 text-sm text-gray-600 dark:text-slate-300">{{ $customer->phone ?? '—' }}</td>
@@ -77,33 +77,33 @@
             @csrf
             <div>
                 <label class="block text-xs font-medium text-gray-700 dark:text-slate-300 mb-1.5">Name <span class="text-red-500">*</span></label>
-                <input type="text" name="name" required class="w-full px-3 py-2.5 text-sm border border-gray-200 dark:border-slate-600 rounded-lg bg-white dark:bg-slate-700 text-gray-900 dark:text-white focus:outline-none focus:ring-2 focus:ring-blue-500" placeholder="Customer name">
+                <input type="text" name="name" required class="w-full px-3 py-2.5 text-sm border border-gray-200 dark:border-slate-600 rounded-lg bg-white dark:bg-slate-700 text-gray-900 dark:text-white focus:outline-none focus:ring-2 focus:ring-primary-500" placeholder="Customer name">
             </div>
             <div class="grid grid-cols-2 gap-3">
                 <div>
                     <label class="block text-xs font-medium text-gray-700 dark:text-slate-300 mb-1.5">Phone</label>
-                    <input type="text" name="phone" class="w-full px-3 py-2.5 text-sm border border-gray-200 dark:border-slate-600 rounded-lg bg-white dark:bg-slate-700 text-gray-900 dark:text-white focus:outline-none focus:ring-2 focus:ring-blue-500" placeholder="01XXXXXXXXX">
+                    <input type="text" name="phone" class="w-full px-3 py-2.5 text-sm border border-gray-200 dark:border-slate-600 rounded-lg bg-white dark:bg-slate-700 text-gray-900 dark:text-white focus:outline-none focus:ring-2 focus:ring-primary-500" placeholder="01XXXXXXXXX">
                 </div>
                 <div>
                     <label class="block text-xs font-medium text-gray-700 dark:text-slate-300 mb-1.5">Email</label>
-                    <input type="email" name="email" class="w-full px-3 py-2.5 text-sm border border-gray-200 dark:border-slate-600 rounded-lg bg-white dark:bg-slate-700 text-gray-900 dark:text-white focus:outline-none focus:ring-2 focus:ring-blue-500">
+                    <input type="email" name="email" class="w-full px-3 py-2.5 text-sm border border-gray-200 dark:border-slate-600 rounded-lg bg-white dark:bg-slate-700 text-gray-900 dark:text-white focus:outline-none focus:ring-2 focus:ring-primary-500">
                 </div>
             </div>
             <div>
                 <label class="block text-xs font-medium text-gray-700 dark:text-slate-300 mb-1.5">Address</label>
-                <input type="text" name="address" class="w-full px-3 py-2.5 text-sm border border-gray-200 dark:border-slate-600 rounded-lg bg-white dark:bg-slate-700 text-gray-900 dark:text-white focus:outline-none focus:ring-2 focus:ring-blue-500">
+                <input type="text" name="address" class="w-full px-3 py-2.5 text-sm border border-gray-200 dark:border-slate-600 rounded-lg bg-white dark:bg-slate-700 text-gray-900 dark:text-white focus:outline-none focus:ring-2 focus:ring-primary-500">
             </div>
             <div class="grid grid-cols-2 gap-3">
                 <div>
                     <label class="block text-xs font-medium text-gray-700 dark:text-slate-300 mb-1.5">Area</label>
-                    <input type="text" name="area" class="w-full px-3 py-2.5 text-sm border border-gray-200 dark:border-slate-600 rounded-lg bg-white dark:bg-slate-700 text-gray-900 dark:text-white focus:outline-none focus:ring-2 focus:ring-blue-500">
+                    <input type="text" name="area" class="w-full px-3 py-2.5 text-sm border border-gray-200 dark:border-slate-600 rounded-lg bg-white dark:bg-slate-700 text-gray-900 dark:text-white focus:outline-none focus:ring-2 focus:ring-primary-500">
                 </div>
                 <div>
                     <label class="block text-xs font-medium text-gray-700 dark:text-slate-300 mb-1.5">District</label>
-                    <input type="text" name="district" class="w-full px-3 py-2.5 text-sm border border-gray-200 dark:border-slate-600 rounded-lg bg-white dark:bg-slate-700 text-gray-900 dark:text-white focus:outline-none focus:ring-2 focus:ring-blue-500">
+                    <input type="text" name="district" class="w-full px-3 py-2.5 text-sm border border-gray-200 dark:border-slate-600 rounded-lg bg-white dark:bg-slate-700 text-gray-900 dark:text-white focus:outline-none focus:ring-2 focus:ring-primary-500">
                 </div>
             </div>
-            <button type="submit" class="w-full bg-blue-600 hover:bg-blue-700 text-white font-medium py-2.5 text-sm rounded-lg transition-colors">Add Customer</button>
+            <button type="submit" class="w-full bg-primary-600 hover:bg-primary-700 text-white font-medium py-2.5 text-sm rounded-lg transition-colors">Add Customer</button>
         </form>
     </div>
 </div>

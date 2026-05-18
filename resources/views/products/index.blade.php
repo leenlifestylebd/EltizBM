@@ -1,4 +1,4 @@
-@extends('layouts.app')
+﻿@extends('layouts.app')
 @section('title', 'Products')
 
 @section('content')
@@ -28,7 +28,7 @@
             Sync
         </a>
         <a href="{{ route('products.create') }}"
-           class="flex items-center gap-1.5 px-3 py-2 text-xs font-medium text-white bg-blue-600 rounded-lg hover:bg-blue-700 transition-colors">
+           class="flex items-center gap-1.5 px-3 py-2 text-xs font-medium text-white bg-primary-600 rounded-lg hover:bg-primary-700 transition-colors">
             <svg class="w-3.5 h-3.5" fill="none" stroke="currentColor" viewBox="0 0 24 24">
                 <path stroke-linecap="round" stroke-linejoin="round" stroke-width="2" d="M12 4v16m8-8H4"/>
             </svg>
@@ -46,22 +46,22 @@
             </svg>
             <input type="text" name="search" value="{{ request('search') }}"
                    placeholder="Search by name, SKU, barcode..."
-                   class="w-full pl-9 pr-3 py-2 text-sm border border-gray-200 dark:border-slate-600 rounded-lg bg-transparent text-gray-900 dark:text-white placeholder-gray-400 focus:outline-none focus:ring-2 focus:ring-blue-500">
+                   class="w-full pl-9 pr-3 py-2 text-sm border border-gray-200 dark:border-slate-600 rounded-lg bg-transparent text-gray-900 dark:text-white placeholder-gray-400 focus:outline-none focus:ring-2 focus:ring-primary-500">
         </div>
         <div class="flex gap-2">
-            <select name="category" class="flex-1 sm:flex-none text-sm px-3 py-2 border border-gray-200 dark:border-slate-600 rounded-lg bg-white dark:bg-slate-700 text-gray-700 dark:text-slate-200 focus:outline-none focus:ring-2 focus:ring-blue-500">
+            <select name="category" class="flex-1 sm:flex-none text-sm px-3 py-2 border border-gray-200 dark:border-slate-600 rounded-lg bg-white dark:bg-slate-700 text-gray-700 dark:text-slate-200 focus:outline-none focus:ring-2 focus:ring-primary-500">
                 <option value="">All Categories</option>
                 @foreach($categories as $cat)
                     <option value="{{ $cat->id }}" {{ request('category') == $cat->id ? 'selected' : '' }}>{{ $cat->name }}</option>
                 @endforeach
             </select>
-            <select name="stock" class="flex-1 sm:flex-none text-sm px-3 py-2 border border-gray-200 dark:border-slate-600 rounded-lg bg-white dark:bg-slate-700 text-gray-700 dark:text-slate-200 focus:outline-none focus:ring-2 focus:ring-blue-500">
+            <select name="stock" class="flex-1 sm:flex-none text-sm px-3 py-2 border border-gray-200 dark:border-slate-600 rounded-lg bg-white dark:bg-slate-700 text-gray-700 dark:text-slate-200 focus:outline-none focus:ring-2 focus:ring-primary-500">
                 <option value="">All Stock</option>
                 <option value="low"  {{ request('stock') === 'low'  ? 'selected' : '' }}>Low Stock</option>
                 <option value="out"  {{ request('stock') === 'out'  ? 'selected' : '' }}>Out of Stock</option>
                 <option value="in"   {{ request('stock') === 'in'   ? 'selected' : '' }}>In Stock</option>
             </select>
-            <button type="submit" class="px-3 py-2 bg-blue-600 text-white text-sm rounded-lg hover:bg-blue-700 transition-colors">
+            <button type="submit" class="px-3 py-2 bg-primary-600 text-white text-sm rounded-lg hover:bg-primary-700 transition-colors">
                 <svg class="w-4 h-4" fill="none" stroke="currentColor" viewBox="0 0 24 24">
                     <path stroke-linecap="round" stroke-linejoin="round" stroke-width="2" d="M3 4a1 1 0 011-1h16a1 1 0 011 1v2a1 1 0 01-.293.707L13 13.414V19a1 1 0 01-.553.894l-4 2A1 1 0 017 21v-7.586L3.293 6.707A1 1 0 013 6V4z"/>
                 </svg>
@@ -95,7 +95,7 @@
             <thead>
                 <tr class="bg-gray-50 dark:bg-slate-700/50 border-b border-gray-100 dark:border-slate-700">
                     <th class="text-left px-4 py-3 font-medium text-gray-500 dark:text-slate-400 text-xs">
-                        <input type="checkbox" class="rounded border-gray-300 text-blue-600" id="selectAll">
+                        <input type="checkbox" class="rounded border-gray-300 text-primary-600" id="selectAll">
                     </th>
                     <th class="text-left px-4 py-3 font-medium text-gray-500 dark:text-slate-400 text-xs">Product</th>
                     <th class="text-left px-4 py-3 font-medium text-gray-500 dark:text-slate-400 text-xs">SKU</th>
@@ -117,7 +117,7 @@
                 @endphp
                 <tr class="hover:bg-gray-50 dark:hover:bg-slate-700/30 transition-colors group">
                     <td class="px-4 py-3">
-                        <input type="checkbox" class="rounded border-gray-300 text-blue-600 product-checkbox" value="{{ $product->id }}">
+                        <input type="checkbox" class="rounded border-gray-300 text-primary-600 product-checkbox" value="{{ $product->id }}">
                     </td>
                     <td class="px-4 py-3">
                         <div class="flex items-center gap-3">
@@ -134,7 +134,7 @@
                             </div>
                             <div class="min-w-0">
                                 <a href="{{ route('products.show', $product) }}"
-                                   class="font-medium text-gray-900 dark:text-white hover:text-blue-600 dark:hover:text-blue-400 truncate block max-w-48">
+                                   class="font-medium text-gray-900 dark:text-white hover:text-primary-600 dark:hover:text-primary-400 truncate block max-w-48">
                                     {{ $product->name }}
                                 </a>
                                 @if($product->brand)
@@ -169,7 +169,7 @@
                     <td class="px-4 py-3">
                         <div class="flex items-center justify-center gap-1 opacity-0 group-hover:opacity-100 transition-opacity">
                             <a href="{{ route('products.edit', $product) }}"
-                               class="p-1.5 text-gray-400 hover:text-blue-600 hover:bg-blue-50 dark:hover:bg-blue-900/20 rounded-lg transition-colors">
+                               class="p-1.5 text-gray-400 hover:text-primary-600 hover:bg-primary-50 dark:hover:bg-primary-900/20 rounded-lg transition-colors">
                                 <svg class="w-4 h-4" fill="none" stroke="currentColor" viewBox="0 0 24 24">
                                     <path stroke-linecap="round" stroke-linejoin="round" stroke-width="2" d="M11 5H6a2 2 0 00-2 2v11a2 2 0 002 2h11a2 2 0 002-2v-5m-1.414-9.414a2 2 0 112.828 2.828L11.828 15H9v-2.828l8.586-8.586z"/>
                                 </svg>
@@ -198,7 +198,7 @@
                             <path stroke-linecap="round" stroke-linejoin="round" stroke-width="1.5" d="M20 7l-8-4-8 4m16 0l-8 4m8-4v10l-8 4m0-10L4 7m8 4v10M4 7v10l8 4"/>
                         </svg>
                         <p class="text-sm font-medium text-gray-400 dark:text-slate-500">No products found</p>
-                        <a href="{{ route('products.create') }}" class="mt-2 inline-block text-xs text-blue-600 hover:underline">Add your first product</a>
+                        <a href="{{ route('products.create') }}" class="mt-2 inline-block text-xs text-primary-600 hover:underline">Add your first product</a>
                     </td>
                 </tr>
                 @endforelse
@@ -257,7 +257,7 @@
                         </div>
                         <div class="flex items-center gap-2">
                             <a href="{{ route('products.edit', $product) }}"
-                               class="p-1.5 text-gray-400 hover:text-blue-600 bg-gray-100 dark:bg-slate-700 rounded-lg">
+                               class="p-1.5 text-gray-400 hover:text-primary-600 bg-gray-100 dark:bg-slate-700 rounded-lg">
                                 <svg class="w-3.5 h-3.5" fill="none" stroke="currentColor" viewBox="0 0 24 24">
                                     <path stroke-linecap="round" stroke-linejoin="round" stroke-width="2" d="M11 5H6a2 2 0 00-2 2v11a2 2 0 002 2h11a2 2 0 002-2v-5m-1.414-9.414a2 2 0 112.828 2.828L11.828 15H9v-2.828l8.586-8.586z"/>
                                 </svg>

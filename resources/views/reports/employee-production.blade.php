@@ -1,4 +1,4 @@
-@extends('layouts.app')
+﻿@extends('layouts.app')
 @section('title', 'Employee Production Report')
 
 @push('scripts')
@@ -50,7 +50,7 @@ $presets = [
         @php $active = $from === $p['from'] && $to === $p['to'] && !$empId; @endphp
         <a href="{{ route('reports.employee-production', ['from'=>$p['from'],'to'=>$p['to']]) }}"
            class="px-3 py-1 text-xs font-medium rounded-lg border transition-colors
-                  {{ $active ? 'bg-blue-600 text-white border-blue-600' : 'bg-gray-50 dark:bg-slate-700 text-gray-600 dark:text-slate-300 border-gray-200 dark:border-slate-600 hover:bg-gray-100' }}">
+                  {{ $active ? 'bg-primary-600 text-white border-primary-600' : 'bg-gray-50 dark:bg-slate-700 text-gray-600 dark:text-slate-300 border-gray-200 dark:border-slate-600 hover:bg-gray-100' }}">
             {{ $p['label'] }}
         </a>
         @endforeach
@@ -59,24 +59,24 @@ $presets = [
         <div>
             <label class="block text-xs text-gray-400 mb-1">From</label>
             <input type="date" name="from" value="{{ $from }}"
-                   class="px-3 py-2 text-xs border border-gray-200 dark:border-slate-600 rounded-lg bg-white dark:bg-slate-700 text-gray-700 dark:text-slate-200 focus:outline-none focus:ring-2 focus:ring-blue-500">
+                   class="px-3 py-2 text-xs border border-gray-200 dark:border-slate-600 rounded-lg bg-white dark:bg-slate-700 text-gray-700 dark:text-slate-200 focus:outline-none focus:ring-2 focus:ring-primary-500">
         </div>
         <div>
             <label class="block text-xs text-gray-400 mb-1">To</label>
             <input type="date" name="to" value="{{ $to }}"
-                   class="px-3 py-2 text-xs border border-gray-200 dark:border-slate-600 rounded-lg bg-white dark:bg-slate-700 text-gray-700 dark:text-slate-200 focus:outline-none focus:ring-2 focus:ring-blue-500">
+                   class="px-3 py-2 text-xs border border-gray-200 dark:border-slate-600 rounded-lg bg-white dark:bg-slate-700 text-gray-700 dark:text-slate-200 focus:outline-none focus:ring-2 focus:ring-primary-500">
         </div>
         <div>
             <label class="block text-xs text-gray-400 mb-1">Employee</label>
             <select name="employee"
-                    class="px-3 py-2 text-xs border border-gray-200 dark:border-slate-600 rounded-lg bg-white dark:bg-slate-700 text-gray-700 dark:text-slate-200 focus:outline-none focus:ring-2 focus:ring-blue-500">
+                    class="px-3 py-2 text-xs border border-gray-200 dark:border-slate-600 rounded-lg bg-white dark:bg-slate-700 text-gray-700 dark:text-slate-200 focus:outline-none focus:ring-2 focus:ring-primary-500">
                 <option value="">All Employees</option>
                 @foreach($employees as $emp)
                 <option value="{{ $emp->id }}" {{ $empId == $emp->id ? 'selected' : '' }}>{{ $emp->name }}</option>
                 @endforeach
             </select>
         </div>
-        <button type="submit" class="px-4 py-2 bg-blue-600 text-white text-xs font-semibold rounded-lg hover:bg-blue-700 transition-colors">Apply</button>
+        <button type="submit" class="px-4 py-2 bg-primary-600 text-white text-xs font-semibold rounded-lg hover:bg-primary-700 transition-colors">Apply</button>
         @if($empId)
         <a href="{{ route('reports.employee-production', ['from'=>$from,'to'=>$to]) }}"
            class="px-4 py-2 bg-gray-100 dark:bg-slate-700 text-gray-600 dark:text-slate-300 text-xs font-semibold rounded-lg hover:bg-gray-200 transition-colors">
@@ -88,10 +88,10 @@ $presets = [
 
 {{-- KPI Cards --}}
 <div class="grid grid-cols-2 sm:grid-cols-4 gap-3 mb-5">
-    <div class="bg-gradient-to-br from-blue-50 to-blue-100 dark:from-blue-900/30 dark:to-blue-900/10 rounded-xl p-4 border border-blue-100 dark:border-blue-900/40">
-        <p class="text-xs text-blue-600 dark:text-blue-400 font-medium mb-1">Total Wages</p>
-        <p class="text-2xl font-bold text-blue-700 dark:text-blue-300">৳{{ number_format($totalAmount) }}</p>
-        <p class="text-xs text-blue-500 mt-1">{{ \Carbon\Carbon::parse($from)->format('d M') }} – {{ \Carbon\Carbon::parse($to)->format('d M Y') }}</p>
+    <div class="bg-gradient-to-br from-primary-50 to-primary-100 dark:from-primary-900/30 dark:to-primary-900/10 rounded-xl p-4 border border-primary-100 dark:border-primary-900/40">
+        <p class="text-xs text-primary-600 dark:text-primary-400 font-medium mb-1">Total Wages</p>
+        <p class="text-2xl font-bold text-primary-700 dark:text-primary-300">৳{{ number_format($totalAmount) }}</p>
+        <p class="text-xs text-primary-500 mt-1">{{ \Carbon\Carbon::parse($from)->format('d M') }} – {{ \Carbon\Carbon::parse($to)->format('d M Y') }}</p>
     </div>
     <div class="bg-white dark:bg-slate-800 rounded-xl p-4 border border-gray-100 dark:border-slate-700">
         <p class="text-xs text-gray-500 dark:text-slate-400 font-medium mb-1">Total Pieces</p>
@@ -133,15 +133,15 @@ $presets = [
 
         {{-- Employee Header --}}
         <div class="px-4 py-4 border-b border-gray-50 dark:border-slate-700 flex items-center gap-3">
-            <div class="w-9 h-9 rounded-full bg-blue-100 dark:bg-blue-900/30 flex items-center justify-center flex-shrink-0">
-                <span class="text-sm font-bold text-blue-600 dark:text-blue-400">{{ strtoupper(substr($emp?->name ?? 'U', 0, 1)) }}</span>
+            <div class="w-9 h-9 rounded-full bg-primary-100 dark:bg-primary-900/30 flex items-center justify-center flex-shrink-0">
+                <span class="text-sm font-bold text-primary-600 dark:text-primary-400">{{ strtoupper(substr($emp?->name ?? 'U', 0, 1)) }}</span>
             </div>
             <div class="flex-1 min-w-0">
                 <p class="text-sm font-semibold text-gray-900 dark:text-white">{{ $emp?->name ?? 'Unknown Employee' }}</p>
                 <p class="text-xs text-gray-400 dark:text-slate-500">{{ $emp?->designation ?? $emp?->department ?? 'Worker' }}</p>
             </div>
             <div class="text-right flex-shrink-0">
-                <p class="text-lg font-bold text-blue-600 dark:text-blue-400">৳{{ number_format($summary['total_amount']) }}</p>
+                <p class="text-lg font-bold text-primary-600 dark:text-primary-400">৳{{ number_format($summary['total_amount']) }}</p>
                 <p class="text-xs text-gray-400 dark:text-slate-500">{{ number_format($summary['total_qty']) }} pcs · {{ $summary['entry_count'] }} entries</p>
             </div>
         </div>
@@ -149,12 +149,12 @@ $presets = [
         {{-- Tabs --}}
         <div class="flex border-b border-gray-50 dark:border-slate-700">
             <button @click="tab='summary'"
-                    :class="tab==='summary' ? 'border-b-2 border-blue-600 text-blue-600 dark:text-blue-400' : 'text-gray-500 dark:text-slate-400'"
+                    :class="tab==='summary' ? 'border-b-2 border-primary-600 text-primary-600 dark:text-primary-400' : 'text-gray-500 dark:text-slate-400'"
                     class="px-4 py-2.5 text-xs font-medium transition-colors">
                 Product Summary
             </button>
             <button @click="tab='entries'"
-                    :class="tab==='entries' ? 'border-b-2 border-blue-600 text-blue-600 dark:text-blue-400' : 'text-gray-500 dark:text-slate-400'"
+                    :class="tab==='entries' ? 'border-b-2 border-primary-600 text-primary-600 dark:text-primary-400' : 'text-gray-500 dark:text-slate-400'"
                     class="px-4 py-2.5 text-xs font-medium transition-colors">
                 All Entries ({{ $summary['entry_count'] }})
             </button>
@@ -189,7 +189,7 @@ $presets = [
                             </td>
                             <td class="px-4 py-3 text-center">
                                 @if($prod['size'] !== '—')
-                                <span class="px-2 py-0.5 text-xs rounded-full bg-blue-50 dark:bg-blue-900/30 text-blue-700 dark:text-blue-400 font-medium">{{ $prod['size'] }}</span>
+                                <span class="px-2 py-0.5 text-xs rounded-full bg-primary-50 dark:bg-primary-900/30 text-primary-700 dark:text-primary-400 font-medium">{{ $prod['size'] }}</span>
                                 @else
                                 <span class="text-gray-400 dark:text-slate-500 text-xs">—</span>
                                 @endif
@@ -198,18 +198,18 @@ $presets = [
                                 {{ number_format($prod['quantity']) }}
                             </td>
                             <td class="px-4 py-3 text-center text-gray-500 dark:text-slate-400 hidden sm:table-cell">{{ $prod['entry_count'] }}</td>
-                            <td class="px-4 py-3 text-right font-bold text-blue-600 dark:text-blue-400">
+                            <td class="px-4 py-3 text-right font-bold text-primary-600 dark:text-primary-400">
                                 ৳{{ number_format($prod['amount']) }}
                             </td>
                         </tr>
                         @endforeach
                     </tbody>
-                    <tfoot class="bg-blue-50 dark:bg-blue-900/10 border-t-2 border-blue-100 dark:border-blue-900/30">
+                    <tfoot class="bg-primary-50 dark:bg-primary-900/10 border-t-2 border-primary-100 dark:border-primary-900/30">
                         <tr>
                             <td colspan="3" class="px-4 py-2.5 font-bold text-gray-900 dark:text-white text-xs">Total</td>
                             <td class="px-4 py-2.5 text-center font-bold text-gray-900 dark:text-white">{{ number_format($summary['total_qty']) }}</td>
                             <td class="hidden sm:table-cell px-4 py-2.5 text-center font-bold text-gray-900 dark:text-white">{{ $summary['entry_count'] }}</td>
-                            <td class="px-4 py-2.5 text-right font-bold text-blue-700 dark:text-blue-400">৳{{ number_format($summary['total_amount']) }}</td>
+                            <td class="px-4 py-2.5 text-right font-bold text-primary-700 dark:text-primary-400">৳{{ number_format($summary['total_amount']) }}</td>
                         </tr>
                     </tfoot>
                 </table>
@@ -251,13 +251,13 @@ $presets = [
                             </td>
                             <td class="px-4 py-2.5 text-center hidden sm:table-cell">
                                 @if($entry->productionRate?->size)
-                                <span class="px-2 py-0.5 text-xs rounded-full bg-blue-50 dark:bg-blue-900/30 text-blue-700 dark:text-blue-400">{{ $entry->productionRate->size }}</span>
+                                <span class="px-2 py-0.5 text-xs rounded-full bg-primary-50 dark:bg-primary-900/30 text-primary-700 dark:text-primary-400">{{ $entry->productionRate->size }}</span>
                                 @else
                                 <span class="text-gray-400 text-xs">—</span>
                                 @endif
                             </td>
                             <td class="px-4 py-2.5 text-center font-bold text-gray-900 dark:text-white">{{ $entry->quantity }}</td>
-                            <td class="px-4 py-2.5 text-right font-bold text-blue-600 dark:text-blue-400">৳{{ number_format($entry->amount) }}</td>
+                            <td class="px-4 py-2.5 text-right font-bold text-primary-600 dark:text-primary-400">৳{{ number_format($entry->amount) }}</td>
                         </tr>
                         @endforeach
                     </tbody>

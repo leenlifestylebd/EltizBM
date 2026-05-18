@@ -1,4 +1,4 @@
-@extends('layouts.app')
+﻿@extends('layouts.app')
 @section('title', 'Business Overview')
 
 @section('content')
@@ -10,12 +10,12 @@
     </div>
     <div class="flex items-center gap-2">
         <form method="GET" class="flex items-center gap-2">
-            <select name="year" class="text-sm px-3 py-2 border border-gray-200 dark:border-slate-600 rounded-lg bg-white dark:bg-slate-700 text-gray-700 dark:text-slate-200 focus:outline-none focus:ring-2 focus:ring-blue-500">
+            <select name="year" class="text-sm px-3 py-2 border border-gray-200 dark:border-slate-600 rounded-lg bg-white dark:bg-slate-700 text-gray-700 dark:text-slate-200 focus:outline-none focus:ring-2 focus:ring-primary-500">
                 @for($y = now()->year; $y >= now()->year - 4; $y--)
                     <option value="{{ $y }}" {{ $year == $y ? 'selected':'' }}>{{ $y }}</option>
                 @endfor
             </select>
-            <button type="submit" class="px-3 py-2 bg-blue-600 text-white rounded-lg hover:bg-blue-700 text-sm transition-colors">View</button>
+            <button type="submit" class="px-3 py-2 bg-primary-600 text-white rounded-lg hover:bg-primary-700 text-sm transition-colors">View</button>
         </form>
         <div x-data="{ open: false }" @click.outside="open = false" class="relative">
             <button @click="open = !open" class="flex items-center gap-1.5 px-3 py-2 text-xs font-semibold bg-white dark:bg-slate-800 border border-gray-200 dark:border-slate-600 rounded-lg hover:bg-gray-50 text-gray-700 dark:text-slate-300 shadow-sm">
@@ -39,10 +39,10 @@
 {{-- Year Summary --}}
 <div class="grid grid-cols-2 sm:grid-cols-4 lg:grid-cols-7 gap-3 mb-5">
     @foreach([
-        ['label'=>'Revenue',   'value'=>'৳'.number_format($yearStats['revenue']),  'color'=>'blue'],
+        ['label'=>'Revenue',   'value'=>'৳'.number_format($yearStats['revenue']),  'color'=>'primary'],
         ['label'=>'Expenses',  'value'=>'৳'.number_format($yearStats['expense']),  'color'=>'red'],
         ['label'=>'Net Profit','value'=>'৳'.number_format($yearStats['profit']),   'color'=>$yearStats['profit']>=0?'green':'orange'],
-        ['label'=>'Orders',    'value'=>number_format($yearStats['orders']),        'color'=>'indigo'],
+        ['label'=>'Orders',    'value'=>number_format($yearStats['orders']),        'color'=>'violet'],
         ['label'=>'Products',  'value'=>$yearStats['products'],                    'color'=>'purple'],
         ['label'=>'Customers', 'value'=>$yearStats['customers'],                   'color'=>'teal'],
         ['label'=>'Employees', 'value'=>$yearStats['employees'],                   'color'=>'pink'],
@@ -56,15 +56,15 @@
 
 {{-- Best Month --}}
 @if($bestMonth)
-<div class="bg-gradient-to-r from-blue-500 to-blue-600 rounded-xl p-4 mb-5 text-white">
+<div class="bg-gradient-to-r from-primary-500 to-primary-600 rounded-xl p-4 mb-5 text-white">
     <div class="flex items-center justify-between">
         <div>
-            <p class="text-blue-100 text-xs">🏆 Best Month of {{ $year }}</p>
+            <p class="text-primary-100 text-xs">🏆 Best Month of {{ $year }}</p>
             <p class="text-2xl font-bold mt-1">{{ $bestMonth['month'] }}</p>
-            <p class="text-blue-100 text-sm mt-0.5">৳{{ number_format($bestMonth['revenue']) }} revenue · {{ $bestMonth['orders'] }} orders</p>
+            <p class="text-primary-100 text-sm mt-0.5">৳{{ number_format($bestMonth['revenue']) }} revenue · {{ $bestMonth['orders'] }} orders</p>
         </div>
         <div class="text-right">
-            <p class="text-blue-100 text-xs">Profit</p>
+            <p class="text-primary-100 text-xs">Profit</p>
             <p class="text-xl font-bold">৳{{ number_format($bestMonth['profit']) }}</p>
         </div>
     </div>
@@ -91,11 +91,11 @@
             <tbody class="divide-y divide-gray-50 dark:divide-slate-700">
                 @php $maxRev = collect($months)->max('revenue') ?: 1; @endphp
                 @foreach($months as $m)
-                <tr class="hover:bg-gray-50 dark:hover:bg-slate-700/30 transition-colors {{ $m['month'] === now()->format('M') && $year == now()->year ? 'bg-blue-50 dark:bg-blue-900/10' : '' }}">
+                <tr class="hover:bg-gray-50 dark:hover:bg-slate-700/30 transition-colors {{ $m['month'] === now()->format('M') && $year == now()->year ? 'bg-primary-50 dark:bg-primary-900/10' : '' }}">
                     <td class="px-4 py-2.5 font-medium text-gray-900 dark:text-white text-sm">
                         {{ $m['month'] }}
                         @if($m['month'] === now()->format('M') && $year == now()->year)
-                            <span class="ml-1 text-xs text-blue-600 dark:text-blue-400">(current)</span>
+                            <span class="ml-1 text-xs text-primary-600 dark:text-primary-400">(current)</span>
                         @endif
                     </td>
                     <td class="px-4 py-2.5 text-right text-sm text-gray-900 dark:text-white">{{ $m['revenue']>0?'৳'.number_format($m['revenue']):'—' }}</td>
@@ -107,7 +107,7 @@
                     <td class="px-4 py-2.5 hidden md:table-cell">
                         <div class="flex items-center gap-1">
                             <div class="bg-gray-100 dark:bg-slate-700 rounded-full h-1.5 w-full">
-                                <div class="h-1.5 rounded-full bg-blue-400 dark:bg-blue-500" style="width:{{ $maxRev>0?min(100,($m['revenue']/$maxRev)*100):0 }}%"></div>
+                                <div class="h-1.5 rounded-full bg-primary-400 dark:bg-primary-500" style="width:{{ $maxRev>0?min(100,($m['revenue']/$maxRev)*100):0 }}%"></div>
                             </div>
                         </div>
                     </td>
@@ -117,7 +117,7 @@
             <tfoot class="bg-gray-50 dark:bg-slate-700/50 border-t-2 border-gray-200 dark:border-slate-600">
                 <tr>
                     <td class="px-4 py-2.5 font-bold text-gray-900 dark:text-white">Total</td>
-                    <td class="px-4 py-2.5 text-right font-bold text-blue-600 dark:text-blue-400">৳{{ number_format($yearStats['revenue']) }}</td>
+                    <td class="px-4 py-2.5 text-right font-bold text-primary-600 dark:text-primary-400">৳{{ number_format($yearStats['revenue']) }}</td>
                     <td class="px-4 py-2.5 text-right font-bold text-red-600 dark:text-red-400">৳{{ number_format($yearStats['expense']) }}</td>
                     <td class="px-4 py-2.5 text-right font-bold text-lg {{ $yearStats['profit']>=0?'text-green-600 dark:text-green-400':'text-red-600 dark:text-red-400' }}">৳{{ number_format(abs($yearStats['profit'])) }}</td>
                     <td class="px-4 py-2.5 text-center font-bold text-gray-900 dark:text-white">{{ number_format($yearStats['orders']) }}</td>

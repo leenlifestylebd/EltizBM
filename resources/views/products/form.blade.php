@@ -1,4 +1,4 @@
-@extends('layouts.app')
+﻿@extends('layouts.app')
 @section('title', isset($product) ? 'Edit Product' : 'Add Product')
 
 @section('content')
@@ -41,7 +41,7 @@
                                 Product Name <span class="text-red-500">*</span>
                             </label>
                             <input type="text" name="name" value="{{ old('name', $product->name ?? '') }}" required
-                                   class="w-full px-3 py-2.5 text-sm border border-gray-200 dark:border-slate-600 rounded-lg bg-white dark:bg-slate-700 text-gray-900 dark:text-white focus:outline-none focus:ring-2 focus:ring-blue-500"
+                                   class="w-full px-3 py-2.5 text-sm border border-gray-200 dark:border-slate-600 rounded-lg bg-white dark:bg-slate-700 text-gray-900 dark:text-white focus:outline-none focus:ring-2 focus:ring-primary-500"
                                    placeholder="e.g. Samsung Galaxy S24">
                             @error('name')<p class="text-xs text-red-500 mt-1">{{ $message }}</p>@enderror
                         </div>
@@ -49,7 +49,7 @@
                         <div>
                             <label class="block text-xs font-medium text-gray-700 dark:text-slate-300 mb-1.5">Description</label>
                             <textarea name="description" rows="3"
-                                      class="w-full px-3 py-2.5 text-sm border border-gray-200 dark:border-slate-600 rounded-lg bg-white dark:bg-slate-700 text-gray-900 dark:text-white focus:outline-none focus:ring-2 focus:ring-blue-500 resize-none"
+                                      class="w-full px-3 py-2.5 text-sm border border-gray-200 dark:border-slate-600 rounded-lg bg-white dark:bg-slate-700 text-gray-900 dark:text-white focus:outline-none focus:ring-2 focus:ring-primary-500 resize-none"
                                       placeholder="Product description...">{{ old('description', $product->description ?? '') }}</textarea>
                         </div>
 
@@ -57,13 +57,13 @@
                             <div>
                                 <label class="block text-xs font-medium text-gray-700 dark:text-slate-300 mb-1.5">SKU</label>
                                 <input type="text" name="sku" value="{{ old('sku', $product->sku ?? '') }}"
-                                       class="w-full px-3 py-2.5 text-sm border border-gray-200 dark:border-slate-600 rounded-lg bg-white dark:bg-slate-700 text-gray-900 dark:text-white focus:outline-none focus:ring-2 focus:ring-blue-500 font-mono"
+                                       class="w-full px-3 py-2.5 text-sm border border-gray-200 dark:border-slate-600 rounded-lg bg-white dark:bg-slate-700 text-gray-900 dark:text-white focus:outline-none focus:ring-2 focus:ring-primary-500 font-mono"
                                        placeholder="SKU-001">
                             </div>
                             <div>
                                 <label class="block text-xs font-medium text-gray-700 dark:text-slate-300 mb-1.5">Barcode</label>
                                 <input type="text" name="barcode" value="{{ old('barcode', $product->barcode ?? '') }}"
-                                       class="w-full px-3 py-2.5 text-sm border border-gray-200 dark:border-slate-600 rounded-lg bg-white dark:bg-slate-700 text-gray-900 dark:text-white focus:outline-none focus:ring-2 focus:ring-blue-500 font-mono"
+                                       class="w-full px-3 py-2.5 text-sm border border-gray-200 dark:border-slate-600 rounded-lg bg-white dark:bg-slate-700 text-gray-900 dark:text-white focus:outline-none focus:ring-2 focus:ring-primary-500 font-mono"
                                        placeholder="8901234567890">
                             </div>
                         </div>
@@ -83,7 +83,7 @@
                                 <span class="absolute left-3 top-1/2 -translate-y-1/2 text-gray-500 dark:text-slate-400 text-sm">৳</span>
                                 <input type="number" name="price" value="{{ old('price', $product->price ?? '') }}" required
                                        step="0.01" min="0"
-                                       class="w-full pl-7 pr-3 py-2.5 text-sm border border-gray-200 dark:border-slate-600 rounded-lg bg-white dark:bg-slate-700 text-gray-900 dark:text-white focus:outline-none focus:ring-2 focus:ring-blue-500"
+                                       class="w-full pl-7 pr-3 py-2.5 text-sm border border-gray-200 dark:border-slate-600 rounded-lg bg-white dark:bg-slate-700 text-gray-900 dark:text-white focus:outline-none focus:ring-2 focus:ring-primary-500"
                                        placeholder="0.00">
                             </div>
                             @error('price')<p class="text-xs text-red-500 mt-1">{{ $message }}</p>@enderror
@@ -94,7 +94,7 @@
                                 <span class="absolute left-3 top-1/2 -translate-y-1/2 text-gray-500 dark:text-slate-400 text-sm">৳</span>
                                 <input type="number" name="cost_price" value="{{ old('cost_price', $product->cost_price ?? '') }}"
                                        step="0.01" min="0"
-                                       class="w-full pl-7 pr-3 py-2.5 text-sm border border-gray-200 dark:border-slate-600 rounded-lg bg-white dark:bg-slate-700 text-gray-900 dark:text-white focus:outline-none focus:ring-2 focus:ring-blue-500"
+                                       class="w-full pl-7 pr-3 py-2.5 text-sm border border-gray-200 dark:border-slate-600 rounded-lg bg-white dark:bg-slate-700 text-gray-900 dark:text-white focus:outline-none focus:ring-2 focus:ring-primary-500"
                                        placeholder="0.00">
                             </div>
                         </div>
@@ -104,7 +104,7 @@
                                 <span class="absolute left-3 top-1/2 -translate-y-1/2 text-gray-500 dark:text-slate-400 text-sm">৳</span>
                                 <input type="number" name="sale_price" value="{{ old('sale_price', $product->sale_price ?? '') }}"
                                        step="0.01" min="0"
-                                       class="w-full pl-7 pr-3 py-2.5 text-sm border border-gray-200 dark:border-slate-600 rounded-lg bg-white dark:bg-slate-700 text-gray-900 dark:text-white focus:outline-none focus:ring-2 focus:ring-blue-500"
+                                       class="w-full pl-7 pr-3 py-2.5 text-sm border border-gray-200 dark:border-slate-600 rounded-lg bg-white dark:bg-slate-700 text-gray-900 dark:text-white focus:outline-none focus:ring-2 focus:ring-primary-500"
                                        placeholder="Optional">
                             </div>
                         </div>
@@ -119,16 +119,16 @@
                         <div>
                             <label class="block text-xs font-medium text-gray-700 dark:text-slate-300 mb-1.5">Stock Quantity</label>
                             <input type="number" name="stock" value="{{ old('stock', $product->stock ?? 0) }}" min="0"
-                                   class="w-full px-3 py-2.5 text-sm border border-gray-200 dark:border-slate-600 rounded-lg bg-white dark:bg-slate-700 text-gray-900 dark:text-white focus:outline-none focus:ring-2 focus:ring-blue-500">
+                                   class="w-full px-3 py-2.5 text-sm border border-gray-200 dark:border-slate-600 rounded-lg bg-white dark:bg-slate-700 text-gray-900 dark:text-white focus:outline-none focus:ring-2 focus:ring-primary-500">
                         </div>
                         <div>
                             <label class="block text-xs font-medium text-gray-700 dark:text-slate-300 mb-1.5">Low Stock Alert</label>
                             <input type="number" name="low_stock_alert" value="{{ old('low_stock_alert', $product->low_stock_alert ?? 5) }}" min="0"
-                                   class="w-full px-3 py-2.5 text-sm border border-gray-200 dark:border-slate-600 rounded-lg bg-white dark:bg-slate-700 text-gray-900 dark:text-white focus:outline-none focus:ring-2 focus:ring-blue-500">
+                                   class="w-full px-3 py-2.5 text-sm border border-gray-200 dark:border-slate-600 rounded-lg bg-white dark:bg-slate-700 text-gray-900 dark:text-white focus:outline-none focus:ring-2 focus:ring-primary-500">
                         </div>
                         <div>
                             <label class="block text-xs font-medium text-gray-700 dark:text-slate-300 mb-1.5">Unit</label>
-                            <select name="unit" class="w-full px-3 py-2.5 text-sm border border-gray-200 dark:border-slate-600 rounded-lg bg-white dark:bg-slate-700 text-gray-700 dark:text-slate-200 focus:outline-none focus:ring-2 focus:ring-blue-500">
+                            <select name="unit" class="w-full px-3 py-2.5 text-sm border border-gray-200 dark:border-slate-600 rounded-lg bg-white dark:bg-slate-700 text-gray-700 dark:text-slate-200 focus:outline-none focus:ring-2 focus:ring-primary-500">
                                 @foreach(['pcs','kg','g','litre','ml','box','pack','dozen','meter','yard'] as $unit)
                                     <option value="{{ $unit }}" {{ old('unit', $product->unit ?? 'pcs') === $unit ? 'selected' : '' }}>{{ $unit }}</option>
                                 @endforeach
@@ -138,7 +138,7 @@
                             <label class="block text-xs font-medium text-gray-700 dark:text-slate-300 mb-1.5">Weight (kg)</label>
                             <input type="number" name="weight" value="{{ old('weight', $product->weight ?? '') }}"
                                    step="0.01" min="0"
-                                   class="w-full px-3 py-2.5 text-sm border border-gray-200 dark:border-slate-600 rounded-lg bg-white dark:bg-slate-700 text-gray-900 dark:text-white focus:outline-none focus:ring-2 focus:ring-blue-500"
+                                   class="w-full px-3 py-2.5 text-sm border border-gray-200 dark:border-slate-600 rounded-lg bg-white dark:bg-slate-700 text-gray-900 dark:text-white focus:outline-none focus:ring-2 focus:ring-primary-500"
                                    placeholder="0.00">
                         </div>
                     </div>
@@ -147,7 +147,7 @@
                         <input type="hidden" name="track_stock" value="0">
                         <input type="checkbox" name="track_stock" id="track_stock" value="1"
                                {{ old('track_stock', $product->track_stock ?? true) ? 'checked' : '' }}
-                               class="w-4 h-4 text-blue-600 border-gray-300 rounded">
+                               class="w-4 h-4 text-primary-600 border-gray-300 rounded">
                         <label for="track_stock" class="text-xs text-gray-600 dark:text-slate-300">Track stock quantity</label>
                     </div>
                 </div>
@@ -171,7 +171,7 @@
                     </div>
 
                     <label for="images"
-                           class="flex flex-col items-center justify-center w-full h-28 border-2 border-dashed border-gray-200 dark:border-slate-600 rounded-xl cursor-pointer hover:border-blue-400 hover:bg-blue-50 dark:hover:bg-blue-900/10 transition-colors">
+                           class="flex flex-col items-center justify-center w-full h-28 border-2 border-dashed border-gray-200 dark:border-slate-600 rounded-xl cursor-pointer hover:border-primary-400 hover:bg-primary-50 dark:hover:bg-primary-900/10 transition-colors">
                         <svg class="w-8 h-8 text-gray-300 dark:text-slate-600 mb-2" fill="none" stroke="currentColor" viewBox="0 0 24 24">
                             <path stroke-linecap="round" stroke-linejoin="round" stroke-width="1.5" d="M4 16l4.586-4.586a2 2 0 012.828 0L16 16m-2-2l1.586-1.586a2 2 0 012.828 0L20 14m-6-6h.01M6 20h12a2 2 0 002-2V6a2 2 0 00-2-2H6a2 2 0 00-2 2v12a2 2 0 002 2z"/>
                         </svg>
@@ -195,11 +195,11 @@
                             <input type="hidden" name="is_active" value="0">
                             <input type="checkbox" name="is_active" value="1" class="sr-only peer"
                                    {{ old('is_active', $product->is_active ?? true) ? 'checked' : '' }}>
-                            <div class="w-9 h-5 bg-gray-200 dark:bg-slate-600 peer-focus:ring-2 peer-focus:ring-blue-300 rounded-full peer peer-checked:after:translate-x-full peer-checked:after:border-white after:content-[''] after:absolute after:top-0.5 after:left-0.5 after:bg-white after:border-gray-300 after:border after:rounded-full after:h-4 after:w-4 after:transition-all peer-checked:bg-blue-600"></div>
+                            <div class="w-9 h-5 bg-gray-200 dark:bg-slate-600 peer-focus:ring-2 peer-focus:ring-primary-300 rounded-full peer peer-checked:after:translate-x-full peer-checked:after:border-white after:content-[''] after:absolute after:top-0.5 after:left-0.5 after:bg-white after:border-gray-300 after:border after:rounded-full after:h-4 after:w-4 after:transition-all peer-checked:bg-primary-600"></div>
                         </label>
                     </div>
                     <button type="submit"
-                            class="w-full bg-blue-600 hover:bg-blue-700 text-white font-medium py-2.5 px-4 rounded-lg text-sm transition-colors">
+                            class="w-full bg-primary-600 hover:bg-primary-700 text-white font-medium py-2.5 px-4 rounded-lg text-sm transition-colors">
                         {{ isset($product) ? 'Update Product' : 'Save Product' }}
                     </button>
                     <a href="{{ route('products.index') }}"
@@ -214,7 +214,7 @@
                     <div class="space-y-3">
                         <div>
                             <label class="block text-xs font-medium text-gray-700 dark:text-slate-300 mb-1.5">Category</label>
-                            <select name="category_id" class="w-full px-3 py-2.5 text-sm border border-gray-200 dark:border-slate-600 rounded-lg bg-white dark:bg-slate-700 text-gray-700 dark:text-slate-200 focus:outline-none focus:ring-2 focus:ring-blue-500">
+                            <select name="category_id" class="w-full px-3 py-2.5 text-sm border border-gray-200 dark:border-slate-600 rounded-lg bg-white dark:bg-slate-700 text-gray-700 dark:text-slate-200 focus:outline-none focus:ring-2 focus:ring-primary-500">
                                 <option value="">Select Category</option>
                                 @foreach($categories as $cat)
                                     <option value="{{ $cat->id }}" {{ old('category_id', $product->category_id ?? '') == $cat->id ? 'selected' : '' }}>
@@ -225,7 +225,7 @@
                         </div>
                         <div>
                             <label class="block text-xs font-medium text-gray-700 dark:text-slate-300 mb-1.5">Brand</label>
-                            <select name="brand_id" class="w-full px-3 py-2.5 text-sm border border-gray-200 dark:border-slate-600 rounded-lg bg-white dark:bg-slate-700 text-gray-700 dark:text-slate-200 focus:outline-none focus:ring-2 focus:ring-blue-500">
+                            <select name="brand_id" class="w-full px-3 py-2.5 text-sm border border-gray-200 dark:border-slate-600 rounded-lg bg-white dark:bg-slate-700 text-gray-700 dark:text-slate-200 focus:outline-none focus:ring-2 focus:ring-primary-500">
                                 <option value="">Select Brand</option>
                                 @foreach($brands as $brand)
                                     <option value="{{ $brand->id }}" {{ old('brand_id', $product->brand_id ?? '') == $brand->id ? 'selected' : '' }}>
@@ -236,7 +236,7 @@
                         </div>
                         <div>
                             <label class="block text-xs font-medium text-gray-700 dark:text-slate-300 mb-1.5">Product Type</label>
-                            <select name="type" x-model="productType" class="w-full px-3 py-2.5 text-sm border border-gray-200 dark:border-slate-600 rounded-lg bg-white dark:bg-slate-700 text-gray-700 dark:text-slate-200 focus:outline-none focus:ring-2 focus:ring-blue-500">
+                            <select name="type" x-model="productType" class="w-full px-3 py-2.5 text-sm border border-gray-200 dark:border-slate-600 rounded-lg bg-white dark:bg-slate-700 text-gray-700 dark:text-slate-200 focus:outline-none focus:ring-2 focus:ring-primary-500">
                                 <option value="simple"   {{ old('type', $product->type ?? 'simple') === 'simple' ? 'selected' : '' }}>Simple Product</option>
                                 <option value="variable" {{ old('type', $product->type ?? '') === 'variable' ? 'selected' : '' }}>Variable Product</option>
                             </select>
@@ -282,7 +282,7 @@ function previewImages(input) {
             const div = document.createElement('div');
             div.className = 'relative aspect-square rounded-lg overflow-hidden bg-gray-100';
             div.innerHTML = `<img src="${e.target.result}" class="w-full h-full object-cover">
-                <span class="absolute top-1 left-1 bg-blue-500 text-white text-xs px-1.5 py-0.5 rounded">New</span>`;
+                <span class="absolute top-1 left-1 bg-primary-500 text-white text-xs px-1.5 py-0.5 rounded">New</span>`;
             grid.appendChild(div);
         };
         reader.readAsDataURL(file);

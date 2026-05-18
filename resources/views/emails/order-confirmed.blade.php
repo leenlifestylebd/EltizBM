@@ -7,19 +7,20 @@
 <style>
   body { font-family: Arial, sans-serif; background: #f4f6f8; margin: 0; padding: 0; }
   .wrapper { max-width: 600px; margin: 30px auto; background: #fff; border-radius: 12px; overflow: hidden; box-shadow: 0 2px 12px rgba(0,0,0,0.08); }
-  .header { background: #2563eb; color: #fff; padding: 28px 32px; }
+  @php $pc = $order->business?->themeColor('600') ?? '#2563eb'; $p700 = $order->business?->themeColor('700') ?? '#1d4ed8'; $p50 = $order->business?->themeColor('50') ?? '#eff6ff'; $p100 = $order->business?->themeColor('100') ?? '#dbeafe'; @endphp
+  .header { background: {{ $pc }}; color: #fff; padding: 28px 32px; }
   .header h1 { margin: 0; font-size: 22px; font-weight: 700; }
   .header p  { margin: 4px 0 0; font-size: 13px; opacity: 0.85; }
   .body { padding: 28px 32px; }
   .greeting { font-size: 15px; color: #374151; margin-bottom: 16px; }
-  .order-box { background: #f0f4ff; border: 1px solid #dbeafe; border-radius: 8px; padding: 16px 20px; margin-bottom: 20px; }
-  .order-box .order-num { font-size: 20px; font-weight: 700; color: #1d4ed8; }
+  .order-box { background: {{ $p50 }}; border: 1px solid {{ $p100 }}; border-radius: 8px; padding: 16px 20px; margin-bottom: 20px; }
+  .order-box .order-num { font-size: 20px; font-weight: 700; color: {{ $p700 }}; }
   .order-box .meta { font-size: 13px; color: #6b7280; margin-top: 4px; }
   table.items { width: 100%; border-collapse: collapse; margin-bottom: 16px; font-size: 13px; }
   table.items th { background: #f9fafb; text-align: left; padding: 8px 10px; color: #6b7280; border-bottom: 1px solid #e5e7eb; }
   table.items td { padding: 8px 10px; border-bottom: 1px solid #f3f4f6; color: #374151; }
   .totals { text-align: right; font-size: 13px; color: #374151; }
-  .totals .grand { font-size: 17px; font-weight: 700; color: #1d4ed8; }
+  .totals .grand { font-size: 17px; font-weight: 700; color: {{ $p700 }}; }
   .footer { background: #f9fafb; padding: 18px 32px; font-size: 12px; color: #9ca3af; border-top: 1px solid #f3f4f6; }
 </style>
 </head>

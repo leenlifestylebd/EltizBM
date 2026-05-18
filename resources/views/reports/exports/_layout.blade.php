@@ -1,3 +1,9 @@
+@php
+    $pc  = isset($biz) ? $biz->themeColor('600') : '#2563eb';
+    $p50 = isset($biz) ? $biz->themeColor('50')  : '#eff6ff';
+    $p100= isset($biz) ? $biz->themeColor('100') : '#dbeafe';
+    $p800= isset($biz) ? $biz->themeColor('800') : '#1e40af';
+@endphp
 <!DOCTYPE html>
 <html lang="en">
 <head>
@@ -8,11 +14,11 @@
   .page { padding: 32px; }
 
   /* Header */
-  .header { display: flex; justify-content: space-between; align-items: flex-start; margin-bottom: 20px; padding-bottom: 14px; border-bottom: 2px solid #2563eb; }
+  .header { display: flex; justify-content: space-between; align-items: flex-start; margin-bottom: 20px; padding-bottom: 14px; border-bottom: 2px solid {{ $pc }}; }
   .header-left h1 { font-size: 18px; font-weight: 700; color: #1e293b; }
   .header-left p  { font-size: 10px; color: #64748b; margin-top: 2px; }
   .header-right   { text-align: right; }
-  .header-right .biz { font-size: 13px; font-weight: 700; color: #2563eb; }
+  .header-right .biz { font-size: 13px; font-weight: 700; color: {{ $pc }}; }
   .header-right p { font-size: 10px; color: #64748b; margin-top: 2px; }
 
   /* Summary Strip */
@@ -20,18 +26,19 @@
   .summary-card { flex: 1; background: #f8fafc; border: 1px solid #e2e8f0; border-radius: 6px; padding: 10px 12px; }
   .summary-card .lbl { font-size: 9px; color: #64748b; text-transform: uppercase; letter-spacing: 0.5px; font-weight: 600; }
   .summary-card .val { font-size: 14px; font-weight: 700; color: #1e293b; margin-top: 2px; }
-  .summary-card.blue  .val { color: #2563eb; }
+  .summary-card.primary .val { color: {{ $pc }}; }
+  .summary-card.blue  .val { color: {{ $pc }}; }
   .summary-card.green .val { color: #16a34a; }
   .summary-card.red   .val { color: #dc2626; }
   .summary-card.purple .val { color: #7c3aed; }
 
   /* Table */
   table { width: 100%; border-collapse: collapse; margin-bottom: 16px; }
-  thead th { background: #1e40af; color: #fff; font-size: 9px; font-weight: 700; text-transform: uppercase; letter-spacing: 0.5px; padding: 7px 10px; text-align: left; }
+  thead th { background: {{ $p800 }}; color: #fff; font-size: 9px; font-weight: 700; text-transform: uppercase; letter-spacing: 0.5px; padding: 7px 10px; text-align: left; }
   thead th.right { text-align: right; }
   thead th.center { text-align: center; }
   tbody tr:nth-child(even) { background: #f8fafc; }
-  tbody tr:hover { background: #eff6ff; }
+  tbody tr:hover { background: {{ $p50 }}; }
   tbody td { padding: 7px 10px; font-size: 10px; color: #374151; border-bottom: 1px solid #f1f5f9; vertical-align: middle; }
   tbody td.right { text-align: right; }
   tbody td.center { text-align: center; }
@@ -45,7 +52,7 @@
   /* Statement Row */
   .stmt-row { display: flex; justify-content: space-between; padding: 8px 10px; border-bottom: 1px solid #f1f5f9; }
   .stmt-row.total { background: #f8fafc; font-weight: 700; border-top: 2px solid #cbd5e1; }
-  .stmt-row.grand { background: #1e40af; color: #fff; font-weight: 700; font-size: 12px; border-radius: 4px; margin-top: 4px; }
+  .stmt-row.grand { background: {{ $p800 }}; color: #fff; font-weight: 700; font-size: 12px; border-radius: 4px; margin-top: 4px; }
   .stmt-row .label { color: #374151; }
   .stmt-row .amount { font-weight: 600; }
   .stmt-row.grand .label, .stmt-row.grand .amount { color: #fff; }
@@ -59,7 +66,8 @@
   .badge-green  { background: #dcfce7; color: #166534; }
   .badge-red    { background: #fee2e2; color: #991b1b; }
   .badge-yellow { background: #fef9c3; color: #854d0e; }
-  .badge-blue   { background: #dbeafe; color: #1e40af; }
+  .badge-primary { background: {{ $p100 }}; color: {{ $p800 }}; }
+  .badge-blue   { background: {{ $p100 }}; color: {{ $p800 }}; }
 
   /* Footer */
   .footer { margin-top: 24px; padding-top: 10px; border-top: 1px solid #e2e8f0; display: flex; justify-content: space-between; font-size: 9px; color: #94a3b8; }

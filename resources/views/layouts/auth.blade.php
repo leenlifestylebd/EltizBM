@@ -1,4 +1,4 @@
-<!DOCTYPE html>
+﻿<!DOCTYPE html>
 <html lang="en">
 <head>
     <meta charset="UTF-8">
@@ -28,7 +28,7 @@
     {{-- ══ LEFT: Brand Panel ══ --}}
     <div class="hidden lg:flex w-[38%] bg-[#09090b] flex-col justify-between p-10 dot-bg relative overflow-hidden flex-shrink-0">
         {{-- Ambient glows --}}
-        <div class="absolute -top-20 -left-20 w-72 h-72 bg-blue-600/10 rounded-full blur-3xl pointer-events-none"></div>
+        <div class="absolute -top-20 -left-20 w-72 h-72 bg-primary-600/10 rounded-full blur-3xl pointer-events-none"></div>
         <div class="absolute bottom-0 right-0 w-56 h-56 bg-violet-600/10 rounded-full blur-3xl pointer-events-none"></div>
 
         {{-- Brand mark --}}
@@ -50,7 +50,7 @@
             <h2 class="text-3xl font-black text-white leading-tight mb-3">
                 Start growing<br>
                 your business<br>
-                <span class="text-transparent bg-clip-text bg-gradient-to-r from-blue-400 to-violet-400">today.</span>
+                <span class="text-transparent bg-clip-text bg-gradient-to-r from-primary-400 to-violet-400">today.</span>
             </h2>
             <p class="text-gray-500 text-sm leading-relaxed mb-8">
                 Join businesses already managing orders, inventory &amp; couriers with ELTIZ.
@@ -59,7 +59,7 @@
             {{-- Social proof chip --}}
             <div class="flex items-center gap-3 bg-white/5 border border-white/10 rounded-2xl p-4">
                 <div class="flex -space-x-2">
-                    @foreach(['bg-blue-400','bg-violet-400','bg-green-400'] as $c)
+                    @foreach(['bg-primary-400','bg-violet-400','bg-green-400'] as $c)
                     <div class="w-7 h-7 rounded-full {{ $c }} border-2 border-[#09090b]"></div>
                     @endforeach
                 </div>

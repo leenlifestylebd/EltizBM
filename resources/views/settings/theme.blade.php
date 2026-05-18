@@ -1,4 +1,4 @@
-@extends('layouts.app')
+﻿@extends('layouts.app')
 @section('title', 'Theme Settings')
 
 @section('content')
@@ -177,7 +177,7 @@
 
             <label class="flex items-center gap-2 mt-3 cursor-pointer">
                 <input type="checkbox" name="dark_sidebar" value="1" {{ $darkSide ? 'checked' : '' }}
-                       class="w-4 h-4 rounded border-gray-300 text-blue-600 focus:ring-blue-500">
+                       class="w-4 h-4 rounded border-gray-300 text-primary-600 focus:ring-primary-500">
                 <span class="text-xs text-gray-600 dark:text-slate-400">Use dark text theme for sidebar (for light sidebar backgrounds)</span>
             </label>
         </div>
@@ -217,7 +217,7 @@
         {{-- Actions --}}
         <div class="flex items-center gap-3">
             <button type="submit"
-                    class="flex-1 bg-blue-600 hover:bg-blue-700 text-white font-medium py-3 rounded-xl text-sm transition-colors">
+                    class="flex-1 bg-primary-600 hover:bg-primary-700 text-white font-medium py-3 rounded-xl text-sm transition-colors">
                 Save Theme
             </button>
             <form method="POST" action="{{ route('settings.theme.reset') }}">

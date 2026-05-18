@@ -1,4 +1,4 @@
-@extends('layouts.app')
+﻿@extends('layouts.app')
 @section('title', 'Order Statuses')
 
 @section('content')
@@ -43,7 +43,7 @@
                     <div class="flex-1">
                         <p class="text-xs text-gray-500 dark:text-slate-400 mb-1">Key: <code class="text-xs bg-gray-100 dark:bg-slate-700 px-1 rounded">{{ $key }}</code></p>
                         <input type="text" name="statuses[{{ $key }}][label]" value="{{ $current['label'] }}"
-                               class="w-full px-2.5 py-1.5 text-sm border border-gray-200 dark:border-slate-600 rounded-lg bg-white dark:bg-slate-700 text-gray-900 dark:text-white focus:outline-none focus:ring-2 focus:ring-blue-500">
+                               class="w-full px-2.5 py-1.5 text-sm border border-gray-200 dark:border-slate-600 rounded-lg bg-white dark:bg-slate-700 text-gray-900 dark:text-white focus:outline-none focus:ring-2 focus:ring-primary-500">
                     </div>
                     <div class="flex items-center gap-2 flex-shrink-0">
                         <input type="color" name="statuses[{{ $key }}][color]" value="{{ $current['color'] }}"
@@ -56,7 +56,7 @@
         </div>
 
         <div class="flex justify-end">
-            <button type="submit" class="px-5 py-2.5 bg-blue-600 hover:bg-blue-700 text-white font-medium text-sm rounded-lg transition-colors">
+            <button type="submit" class="px-5 py-2.5 bg-primary-600 hover:bg-primary-700 text-white font-medium text-sm rounded-lg transition-colors">
                 Save Status Settings
             </button>
         </div>

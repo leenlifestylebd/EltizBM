@@ -1,4 +1,4 @@
-@extends('layouts.app')
+﻿@extends('layouts.app')
 @section('title', $employee->name)
 
 @section('content')
@@ -25,7 +25,7 @@
     <div class="bg-white dark:bg-slate-800 rounded-xl border border-gray-100 dark:border-slate-700 p-5 mb-4">
         <div class="flex items-center gap-4 mb-4">
             <div class="w-16 h-16 rounded-full flex items-center justify-center text-white font-bold text-xl flex-shrink-0
-                {{ ['bg-blue-500','bg-purple-500','bg-green-500','bg-orange-500','bg-pink-500','bg-teal-500'][crc32($employee->name) % 6] }}">
+                {{ ['bg-primary-500','bg-purple-500','bg-green-500','bg-orange-500','bg-pink-500','bg-teal-500'][crc32($employee->name) % 6] }}">
                 {{ strtoupper(substr($employee->name, 0, 2)) }}
             </div>
             <div>
@@ -59,8 +59,8 @@
             <p class="text-xl font-bold text-gray-900 dark:text-white">{{ $employee->todayProduction() }}</p>
             <p class="text-xs text-gray-500 dark:text-slate-400">Today</p>
         </div>
-        <div class="bg-white dark:bg-slate-800 rounded-xl border border-blue-100 dark:border-blue-900/30 p-3 text-center">
-            <p class="text-xl font-bold text-blue-600 dark:text-blue-400">{{ $monthProduction }}</p>
+        <div class="bg-white dark:bg-slate-800 rounded-xl border border-primary-100 dark:border-primary-900/30 p-3 text-center">
+            <p class="text-xl font-bold text-primary-600 dark:text-primary-400">{{ $monthProduction }}</p>
             <p class="text-xs text-gray-500 dark:text-slate-400">This Month</p>
         </div>
         <div class="bg-white dark:bg-slate-800 rounded-xl border border-green-100 dark:border-green-900/30 p-3 text-center">
@@ -97,7 +97,7 @@
                 @foreach($last7Days as $day)
                 <div class="flex-1 flex flex-col items-center gap-1">
                     <span class="text-xs text-gray-400 dark:text-slate-500">{{ $day['qty'] }}</span>
-                    <div class="w-full rounded-t-sm bg-blue-500 dark:bg-blue-600 transition-all"
+                    <div class="w-full rounded-t-sm bg-primary-500 dark:bg-primary-600 transition-all"
                          style="height: {{ $day['qty'] > 0 ? max(4, ($day['qty'] / max(collect($last7Days)->max('qty'), 1)) * 80) : 4 }}px; min-height:4px;"></div>
                     <span class="text-xs text-gray-400 dark:text-slate-500">{{ $day['label'] }}</span>
                 </div>
@@ -148,12 +148,12 @@
                     <div>
                         <label class="block text-xs font-medium text-gray-700 dark:text-slate-300 mb-1.5">Task / Product <span class="text-red-500">*</span></label>
                         <input type="text" name="task_name" required
-                               class="w-full px-3 py-2.5 text-sm border border-gray-200 dark:border-slate-600 rounded-lg bg-white dark:bg-slate-700 text-gray-900 dark:text-white focus:outline-none focus:ring-2 focus:ring-blue-500"
+                               class="w-full px-3 py-2.5 text-sm border border-gray-200 dark:border-slate-600 rounded-lg bg-white dark:bg-slate-700 text-gray-900 dark:text-white focus:outline-none focus:ring-2 focus:ring-primary-500"
                                placeholder="e.g. Packing boxes, Cutting fabric...">
                     </div>
                     <div>
                         <label class="block text-xs font-medium text-gray-700 dark:text-slate-300 mb-1.5">Product (optional)</label>
-                        <select name="product_id" class="w-full px-3 py-2.5 text-sm border border-gray-200 dark:border-slate-600 rounded-lg bg-white dark:bg-slate-700 text-gray-700 dark:text-slate-200 focus:outline-none focus:ring-2 focus:ring-blue-500">
+                        <select name="product_id" class="w-full px-3 py-2.5 text-sm border border-gray-200 dark:border-slate-600 rounded-lg bg-white dark:bg-slate-700 text-gray-700 dark:text-slate-200 focus:outline-none focus:ring-2 focus:ring-primary-500">
                             <option value="">Select product</option>
                             @foreach($products as $p)
                                 <option value="{{ $p->id }}">{{ $p->name }}</option>
@@ -163,41 +163,41 @@
                     <div>
                         <label class="block text-xs font-medium text-gray-700 dark:text-slate-300 mb-1.5">Quantity Done <span class="text-red-500">*</span></label>
                         <input type="number" name="quantity" required min="0"
-                               class="w-full px-3 py-2.5 text-sm border border-gray-200 dark:border-slate-600 rounded-lg bg-white dark:bg-slate-700 text-gray-900 dark:text-white focus:outline-none focus:ring-2 focus:ring-blue-500"
+                               class="w-full px-3 py-2.5 text-sm border border-gray-200 dark:border-slate-600 rounded-lg bg-white dark:bg-slate-700 text-gray-900 dark:text-white focus:outline-none focus:ring-2 focus:ring-primary-500"
                                placeholder="0">
                     </div>
                     <div>
                         <label class="block text-xs font-medium text-gray-700 dark:text-slate-300 mb-1.5">Target Quantity</label>
                         <input type="number" name="target_quantity" min="0"
-                               class="w-full px-3 py-2.5 text-sm border border-gray-200 dark:border-slate-600 rounded-lg bg-white dark:bg-slate-700 text-gray-900 dark:text-white focus:outline-none focus:ring-2 focus:ring-blue-500"
+                               class="w-full px-3 py-2.5 text-sm border border-gray-200 dark:border-slate-600 rounded-lg bg-white dark:bg-slate-700 text-gray-900 dark:text-white focus:outline-none focus:ring-2 focus:ring-primary-500"
                                placeholder="0">
                     </div>
                     <div>
                         <label class="block text-xs font-medium text-gray-700 dark:text-slate-300 mb-1.5">Date <span class="text-red-500">*</span></label>
                         <input type="date" name="log_date" required value="{{ today()->format('Y-m-d') }}"
-                               class="w-full px-3 py-2.5 text-sm border border-gray-200 dark:border-slate-600 rounded-lg bg-white dark:bg-slate-700 text-gray-900 dark:text-white focus:outline-none focus:ring-2 focus:ring-blue-500">
+                               class="w-full px-3 py-2.5 text-sm border border-gray-200 dark:border-slate-600 rounded-lg bg-white dark:bg-slate-700 text-gray-900 dark:text-white focus:outline-none focus:ring-2 focus:ring-primary-500">
                     </div>
                     <div>
                         <label class="block text-xs font-medium text-gray-700 dark:text-slate-300 mb-1.5">Quality Rate (%)</label>
                         <input type="number" name="quality_rate" min="0" max="100" value="100"
-                               class="w-full px-3 py-2.5 text-sm border border-gray-200 dark:border-slate-600 rounded-lg bg-white dark:bg-slate-700 text-gray-900 dark:text-white focus:outline-none focus:ring-2 focus:ring-blue-500">
+                               class="w-full px-3 py-2.5 text-sm border border-gray-200 dark:border-slate-600 rounded-lg bg-white dark:bg-slate-700 text-gray-900 dark:text-white focus:outline-none focus:ring-2 focus:ring-primary-500">
                     </div>
                     <div class="grid grid-cols-2 gap-2">
                         <div>
                             <label class="block text-xs font-medium text-gray-700 dark:text-slate-300 mb-1.5">Start Time</label>
                             <input type="time" name="start_time"
-                                   class="w-full px-3 py-2.5 text-sm border border-gray-200 dark:border-slate-600 rounded-lg bg-white dark:bg-slate-700 text-gray-900 dark:text-white focus:outline-none focus:ring-2 focus:ring-blue-500">
+                                   class="w-full px-3 py-2.5 text-sm border border-gray-200 dark:border-slate-600 rounded-lg bg-white dark:bg-slate-700 text-gray-900 dark:text-white focus:outline-none focus:ring-2 focus:ring-primary-500">
                         </div>
                         <div>
                             <label class="block text-xs font-medium text-gray-700 dark:text-slate-300 mb-1.5">End Time</label>
                             <input type="time" name="end_time"
-                                   class="w-full px-3 py-2.5 text-sm border border-gray-200 dark:border-slate-600 rounded-lg bg-white dark:bg-slate-700 text-gray-900 dark:text-white focus:outline-none focus:ring-2 focus:ring-blue-500">
+                                   class="w-full px-3 py-2.5 text-sm border border-gray-200 dark:border-slate-600 rounded-lg bg-white dark:bg-slate-700 text-gray-900 dark:text-white focus:outline-none focus:ring-2 focus:ring-primary-500">
                         </div>
                     </div>
                     <div>
                         <label class="block text-xs font-medium text-gray-700 dark:text-slate-300 mb-1.5">Notes</label>
                         <input type="text" name="notes"
-                               class="w-full px-3 py-2.5 text-sm border border-gray-200 dark:border-slate-600 rounded-lg bg-white dark:bg-slate-700 text-gray-900 dark:text-white focus:outline-none focus:ring-2 focus:ring-blue-500"
+                               class="w-full px-3 py-2.5 text-sm border border-gray-200 dark:border-slate-600 rounded-lg bg-white dark:bg-slate-700 text-gray-900 dark:text-white focus:outline-none focus:ring-2 focus:ring-primary-500"
                                placeholder="Optional notes...">
                     </div>
                 </div>
@@ -278,11 +278,11 @@
                     <div>
                         <label class="block text-xs font-medium text-gray-700 dark:text-slate-300 mb-1.5">Date <span class="text-red-500">*</span></label>
                         <input type="date" name="attendance_date" required value="{{ today()->format('Y-m-d') }}"
-                               class="w-full px-3 py-2.5 text-sm border border-gray-200 dark:border-slate-600 rounded-lg bg-white dark:bg-slate-700 text-gray-900 dark:text-white focus:outline-none focus:ring-2 focus:ring-blue-500">
+                               class="w-full px-3 py-2.5 text-sm border border-gray-200 dark:border-slate-600 rounded-lg bg-white dark:bg-slate-700 text-gray-900 dark:text-white focus:outline-none focus:ring-2 focus:ring-primary-500">
                     </div>
                     <div>
                         <label class="block text-xs font-medium text-gray-700 dark:text-slate-300 mb-1.5">Status <span class="text-red-500">*</span></label>
-                        <select name="status" required class="w-full px-3 py-2.5 text-sm border border-gray-200 dark:border-slate-600 rounded-lg bg-white dark:bg-slate-700 text-gray-700 dark:text-slate-200 focus:outline-none focus:ring-2 focus:ring-blue-500">
+                        <select name="status" required class="w-full px-3 py-2.5 text-sm border border-gray-200 dark:border-slate-600 rounded-lg bg-white dark:bg-slate-700 text-gray-700 dark:text-slate-200 focus:outline-none focus:ring-2 focus:ring-primary-500">
                             <option value="present">✅ Present</option>
                             <option value="absent">❌ Absent</option>
                             <option value="late">⏰ Late</option>
@@ -294,12 +294,12 @@
                         <div>
                             <label class="block text-xs font-medium text-gray-700 dark:text-slate-300 mb-1.5">Check In</label>
                             <input type="time" name="check_in"
-                                   class="w-full px-2 py-2.5 text-sm border border-gray-200 dark:border-slate-600 rounded-lg bg-white dark:bg-slate-700 text-gray-900 dark:text-white focus:outline-none focus:ring-2 focus:ring-blue-500">
+                                   class="w-full px-2 py-2.5 text-sm border border-gray-200 dark:border-slate-600 rounded-lg bg-white dark:bg-slate-700 text-gray-900 dark:text-white focus:outline-none focus:ring-2 focus:ring-primary-500">
                         </div>
                         <div>
                             <label class="block text-xs font-medium text-gray-700 dark:text-slate-300 mb-1.5">Check Out</label>
                             <input type="time" name="check_out"
-                                   class="w-full px-2 py-2.5 text-sm border border-gray-200 dark:border-slate-600 rounded-lg bg-white dark:bg-slate-700 text-gray-900 dark:text-white focus:outline-none focus:ring-2 focus:ring-blue-500">
+                                   class="w-full px-2 py-2.5 text-sm border border-gray-200 dark:border-slate-600 rounded-lg bg-white dark:bg-slate-700 text-gray-900 dark:text-white focus:outline-none focus:ring-2 focus:ring-primary-500">
                         </div>
                     </div>
                 </div>
@@ -335,10 +335,10 @@
                         $dateKey = now()->format('Y-m') . '-' . str_pad($day, 2, '0', STR_PAD_LEFT);
                         $att = $attendanceMap[$dateKey] ?? null;
                         $isToday = $dateKey === today()->format('Y-m-d');
-                        $colors = ['present'=>'bg-green-500','absent'=>'bg-red-400','late'=>'bg-yellow-400','half_day'=>'bg-orange-400','holiday'=>'bg-blue-400'];
+                        $colors = ['present'=>'bg-green-500','absent'=>'bg-red-400','late'=>'bg-yellow-400','half_day'=>'bg-orange-400','holiday'=>'bg-primary-400'];
                     @endphp
                     <div class="aspect-square rounded-lg flex items-center justify-center text-xs font-medium relative
-                        {{ $isToday ? 'ring-2 ring-blue-500' : '' }}
+                        {{ $isToday ? 'ring-2 ring-primary-500' : '' }}
                         {{ $att ? ($colors[$att->status] ?? 'bg-gray-200 dark:bg-slate-600') . ' text-white' : 'bg-gray-50 dark:bg-slate-700/50 text-gray-600 dark:text-slate-300' }}"
                          title="{{ $att ? ucfirst($att->status) : '' }}">
                         {{ $day }}
@@ -356,7 +356,7 @@
                 @forelse($attendanceRecords as $record)
                 <div class="flex items-center gap-3 px-4 py-3">
                     <div class="w-8 h-8 rounded-full flex items-center justify-center flex-shrink-0
-                        {{ ['present'=>'bg-green-100 dark:bg-green-900/30','absent'=>'bg-red-100 dark:bg-red-900/30','late'=>'bg-yellow-100 dark:bg-yellow-900/30','half_day'=>'bg-orange-100 dark:bg-orange-900/30','holiday'=>'bg-blue-100 dark:bg-blue-900/30'][$record->status] ?? 'bg-gray-100 dark:bg-slate-700' }}">
+                        {{ ['present'=>'bg-green-100 dark:bg-green-900/30','absent'=>'bg-red-100 dark:bg-red-900/30','late'=>'bg-yellow-100 dark:bg-yellow-900/30','half_day'=>'bg-orange-100 dark:bg-orange-900/30','holiday'=>'bg-primary-100 dark:bg-primary-900/30'][$record->status] ?? 'bg-gray-100 dark:bg-slate-700' }}">
                         <span class="text-sm">
                             {{ ['present'=>'✅','absent'=>'❌','late'=>'⏰','half_day'=>'½','holiday'=>'🏖️'][$record->status] ?? '—' }}
                         </span>
@@ -371,7 +371,7 @@
                         @endif
                     </div>
                     <span class="text-xs font-medium px-2 py-0.5 rounded-full
-                        {{ ['present'=>'bg-green-100 text-green-700 dark:bg-green-900/30 dark:text-green-400','absent'=>'bg-red-100 text-red-700 dark:bg-red-900/30 dark:text-red-400','late'=>'bg-yellow-100 text-yellow-700','half_day'=>'bg-orange-100 text-orange-700','holiday'=>'bg-blue-100 text-blue-700'][$record->status] ?? 'bg-gray-100 text-gray-600' }}">
+                        {{ ['present'=>'bg-green-100 text-green-700 dark:bg-green-900/30 dark:text-green-400','absent'=>'bg-red-100 text-red-700 dark:bg-red-900/30 dark:text-red-400','late'=>'bg-yellow-100 text-yellow-700','half_day'=>'bg-orange-100 text-orange-700','holiday'=>'bg-primary-100 text-primary-700'][$record->status] ?? 'bg-gray-100 text-gray-600' }}">
                         {{ ucfirst(str_replace('_',' ',$record->status)) }}
                     </span>
                 </div>

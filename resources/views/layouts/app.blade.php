@@ -1,4 +1,4 @@
-<!DOCTYPE html>
+﻿<!DOCTYPE html>
 <html lang="en" x-data="{ sidebarOpen: false, darkMode: localStorage.getItem('darkMode') === 'true' }" :class="{ 'dark': darkMode }" x-init="$watch('darkMode', val => localStorage.setItem('darkMode', val))">
 <head>
     <meta charset="UTF-8">
@@ -49,6 +49,7 @@
         $darkSidebar= $themeSettings['dark_sidebar']  ?? false;
         $p600       = $themePalette['600'] ?? '#2563eb';
         $p700       = $themePalette['700'] ?? '#1d4ed8';
+        $p400       = $themePalette['400'] ?? '#60a5fa';
         $p50        = $themePalette['50']  ?? '#eff6ff';
         $p100       = $themePalette['100'] ?? '#dbeafe';
     @endphp
@@ -86,14 +87,16 @@
         ::-webkit-scrollbar { width: 4px; height: 4px; }
         ::-webkit-scrollbar-track { background: #f1f5f9; }
         ::-webkit-scrollbar-thumb { background: #cbd5e1; border-radius: 4px; }
+        .dark ::-webkit-scrollbar-track { background: #1e293b; }
+        .dark ::-webkit-scrollbar-thumb { background: #334155; }
         .sidebar-transition { transition: transform 0.3s ease, width 0.3s ease; }
-        .nav-active { background: #eff6ff; color: #2563eb; font-weight: 500; }
-        .nav-active svg { color: #2563eb; }
-        .bottom-nav-active { color: #2563eb; }
+        .nav-active { background: {{ $p50 }}; color: {{ $p600 }}; font-weight: 500; }
+        .nav-active svg { color: {{ $p600 }}; }
+        .bottom-nav-active { color: {{ $p600 }}; }
         .stat-card:hover { transform: translateY(-2px); box-shadow: 0 4px 20px rgba(0,0,0,0.08); }
         .stat-card { transition: all 0.2s ease; }
         .dark .sidebar { background: #1e293b; border-color: #334155; }
-        .dark .nav-active { background: #1e3a5f; color: #60a5fa; }
+        .dark .nav-active { background: {{ $p600 }}1a; color: {{ $p400 }}; }
         .dark body { background: #0f172a; color: #e2e8f0; }
     </style>
 
@@ -172,7 +175,7 @@
             <svg class="w-4 h-4 flex-shrink-0" fill="none" stroke="currentColor" viewBox="0 0 24 24"><path stroke-linecap="round" stroke-linejoin="round" stroke-width="2" d="M21 12a9 9 0 01-9 9m9-9a9 9 0 00-9-9m9 9H3m9 9a9 9 0 01-9-9m9 9c1.657 0 3-4.03 3-9s-1.343-9-3-9m0 18c-1.657 0-3-4.03-3-9s1.343-9 3-9"/></svg>
             Web Orders
             @if(isset($pendingWooOrders) && $pendingWooOrders > 0)
-                <span class="ml-auto bg-blue-100 text-blue-600 text-xs font-medium px-2 py-0.5 rounded-full">{{ $pendingWooOrders }}</span>
+                <span class="ml-auto bg-primary-100 text-primary-600 text-xs font-medium px-2 py-0.5 rounded-full">{{ $pendingWooOrders }}</span>
             @endif
         </a>
 
@@ -374,7 +377,7 @@
                 <div class="relative hidden lg:block" x-data="{ qaOpen: false }" @keydown.escape.window="qaOpen = false">
 
                     <button @click="qaOpen = !qaOpen" @click.outside="qaOpen = false"
-                            class="flex items-center gap-1.5 px-3 py-1.5 bg-blue-600 hover:bg-blue-700 text-white text-xs font-semibold rounded-lg shadow-sm transition-colors"
+                            class="flex items-center gap-1.5 px-3 py-1.5 bg-primary-600 hover:bg-primary-700 text-white text-xs font-semibold rounded-lg shadow-sm transition-colors"
                             title="Quick Actions">
                         <svg class="w-3.5 h-3.5 transition-transform duration-200" :class="qaOpen ? 'rotate-45' : ''" fill="none" stroke="currentColor" viewBox="0 0 24 24">
                             <path stroke-linecap="round" stroke-linejoin="round" stroke-width="2.5" d="M12 4v16m8-8H4"/>
@@ -401,8 +404,8 @@
                             {{-- New Order --}}
                             <a href="{{ route('orders.create') }}" @click="qaOpen = false"
                                class="flex items-center gap-3 px-3 py-2.5 rounded-xl hover:bg-gray-50 dark:hover:bg-slate-700 transition-colors group">
-                                <div class="w-8 h-8 bg-blue-100 dark:bg-blue-900/30 rounded-lg flex items-center justify-center flex-shrink-0 group-hover:bg-blue-200 dark:group-hover:bg-blue-900/50 transition-colors">
-                                    <svg class="w-4 h-4 text-blue-600 dark:text-blue-400" fill="none" stroke="currentColor" viewBox="0 0 24 24"><path stroke-linecap="round" stroke-linejoin="round" stroke-width="2" d="M3 3h2l.4 2M7 13h10l4-8H5.4M7 13L5.4 5M7 13l-2.293 2.293c-.63.63-.184 1.707.707 1.707H17m0 0a2 2 0 100 4 2 2 0 000-4zm-8 2a2 2 0 11-4 0 2 2 0 014 0z"/></svg>
+                                <div class="w-8 h-8 bg-primary-100 dark:bg-primary-900/30 rounded-lg flex items-center justify-center flex-shrink-0 group-hover:bg-primary-200 dark:group-hover:bg-primary-900/50 transition-colors">
+                                    <svg class="w-4 h-4 text-primary-600 dark:text-primary-400" fill="none" stroke="currentColor" viewBox="0 0 24 24"><path stroke-linecap="round" stroke-linejoin="round" stroke-width="2" d="M3 3h2l.4 2M7 13h10l4-8H5.4M7 13L5.4 5M7 13l-2.293 2.293c-.63.63-.184 1.707.707 1.707H17m0 0a2 2 0 100 4 2 2 0 000-4zm-8 2a2 2 0 11-4 0 2 2 0 014 0z"/></svg>
                                 </div>
                                 <div>
                                     <p class="text-sm font-medium text-gray-800 dark:text-white">New Order</p>
@@ -461,8 +464,8 @@
                             {{-- Assign Task --}}
                             <a href="{{ route('production.tasks.create') }}" @click="qaOpen = false"
                                class="flex items-center gap-3 px-3 py-2.5 rounded-xl hover:bg-gray-50 dark:hover:bg-slate-700 transition-colors group">
-                                <div class="w-8 h-8 bg-indigo-100 dark:bg-indigo-900/30 rounded-lg flex items-center justify-center flex-shrink-0 group-hover:bg-indigo-200 dark:group-hover:bg-indigo-900/50 transition-colors">
-                                    <svg class="w-4 h-4 text-indigo-600 dark:text-indigo-400" fill="none" stroke="currentColor" viewBox="0 0 24 24"><path stroke-linecap="round" stroke-linejoin="round" stroke-width="2" d="M9 5H7a2 2 0 00-2 2v12a2 2 0 002 2h10a2 2 0 002-2V7a2 2 0 00-2-2h-2M9 5a2 2 0 002 2h2a2 2 0 002-2M9 5a2 2 0 012-2h2a2 2 0 012 2m-6 9l2 2 4-4"/></svg>
+                                <div class="w-8 h-8 bg-primary-100 dark:bg-primary-900/30 rounded-lg flex items-center justify-center flex-shrink-0 group-hover:bg-primary-200 dark:group-hover:bg-primary-900/50 transition-colors">
+                                    <svg class="w-4 h-4 text-primary-600 dark:text-primary-400" fill="none" stroke="currentColor" viewBox="0 0 24 24"><path stroke-linecap="round" stroke-linejoin="round" stroke-width="2" d="M9 5H7a2 2 0 00-2 2v12a2 2 0 002 2h10a2 2 0 002-2V7a2 2 0 00-2-2h-2M9 5a2 2 0 002 2h2a2 2 0 002-2M9 5a2 2 0 012-2h2a2 2 0 012 2m-6 9l2 2 4-4"/></svg>
                                 </div>
                                 <div>
                                     <p class="text-sm font-medium text-gray-800 dark:text-white">Assign Task</p>
@@ -514,7 +517,7 @@
                         <div class="px-4 py-3 border-b border-gray-100 dark:border-slate-700">
                             <p class="text-sm font-semibold text-gray-900 dark:text-white">{{ auth()->user()->name }}</p>
                             <p class="text-xs text-gray-500 dark:text-slate-400 truncate">{{ auth()->user()->email }}</p>
-                            <span class="inline-flex mt-1 px-2 py-0.5 rounded-full text-xs font-medium bg-blue-100 text-blue-700 dark:bg-blue-900/30 dark:text-blue-400">
+                            <span class="inline-flex mt-1 px-2 py-0.5 rounded-full text-xs font-medium bg-primary-100 text-primary-700 dark:bg-primary-900/30 dark:text-primary-400">
                                 {{ ucfirst(auth()->user()->role ?? 'user') }}
                             </span>
                         </div>
@@ -622,11 +625,11 @@
         <div class="p-3 grid grid-cols-3 gap-2.5">
 
             <a href="{{ route('orders.create') }}" @click="qaSheet = false"
-               class="flex flex-col items-center gap-2 p-3 bg-blue-50 dark:bg-blue-900/20 rounded-2xl hover:bg-blue-100 dark:hover:bg-blue-900/30 active:scale-95 transition-all">
-                <div class="w-10 h-10 bg-blue-600 rounded-xl flex items-center justify-center shadow-sm">
+               class="flex flex-col items-center gap-2 p-3 bg-primary-50 dark:bg-primary-900/20 rounded-2xl hover:bg-primary-100 dark:hover:bg-primary-900/30 active:scale-95 transition-all">
+                <div class="w-10 h-10 bg-primary-600 rounded-xl flex items-center justify-center shadow-sm">
                     <svg class="w-5 h-5 text-white" fill="none" stroke="currentColor" viewBox="0 0 24 24"><path stroke-linecap="round" stroke-linejoin="round" stroke-width="2" d="M3 3h2l.4 2M7 13h10l4-8H5.4M7 13L5.4 5M7 13l-2.293 2.293c-.63.63-.184 1.707.707 1.707H17m0 0a2 2 0 100 4 2 2 0 000-4zm-8 2a2 2 0 11-4 0 2 2 0 014 0z"/></svg>
                 </div>
-                <span class="text-xs font-semibold text-blue-700 dark:text-blue-400 text-center leading-tight">New Order</span>
+                <span class="text-xs font-semibold text-primary-700 dark:text-primary-400 text-center leading-tight">New Order</span>
             </a>
 
             <a href="{{ route('pos.index') }}" @click="qaSheet = false"
@@ -662,11 +665,11 @@
             </a>
 
             <a href="{{ route('production.tasks.create') }}" @click="qaSheet = false"
-               class="flex flex-col items-center gap-2 p-3 bg-indigo-50 dark:bg-indigo-900/20 rounded-2xl hover:bg-indigo-100 dark:hover:bg-indigo-900/30 active:scale-95 transition-all">
-                <div class="w-10 h-10 bg-indigo-600 rounded-xl flex items-center justify-center shadow-sm">
+               class="flex flex-col items-center gap-2 p-3 bg-primary-50 dark:bg-primary-900/20 rounded-2xl hover:bg-primary-100 dark:hover:bg-primary-900/30 active:scale-95 transition-all">
+                <div class="w-10 h-10 bg-primary-600 rounded-xl flex items-center justify-center shadow-sm">
                     <svg class="w-5 h-5 text-white" fill="none" stroke="currentColor" viewBox="0 0 24 24"><path stroke-linecap="round" stroke-linejoin="round" stroke-width="2" d="M9 5H7a2 2 0 00-2 2v12a2 2 0 002 2h10a2 2 0 002-2V7a2 2 0 00-2-2h-2M9 5a2 2 0 002 2h2a2 2 0 002-2M9 5a2 2 0 012-2h2a2 2 0 012 2m-6 9l2 2 4-4"/></svg>
                 </div>
-                <span class="text-xs font-semibold text-indigo-700 dark:text-indigo-400 text-center leading-tight">Assign Task</span>
+                <span class="text-xs font-semibold text-primary-700 dark:text-primary-400 text-center leading-tight">Assign Task</span>
             </a>
 
             <a href="{{ route('inventory.purchase-orders') }}" @click="qaSheet = false"
@@ -714,7 +717,7 @@
             <button @click="qaSheet = !qaSheet"
                     class="flex flex-col items-center justify-center gap-1 text-xs text-gray-400 dark:text-slate-500">
                 <div class="w-12 h-12 -mt-6 rounded-full flex items-center justify-center shadow-lg transition-all"
-                     :class="qaSheet ? 'bg-gray-700 rotate-45' : 'bg-blue-600'"
+                     :class="qaSheet ? 'bg-gray-700 rotate-45' : 'bg-primary-600'"
                      style="transition: transform 0.2s, background-color 0.2s;">
                     <svg class="w-6 h-6 text-white" fill="none" stroke="currentColor" viewBox="0 0 24 24">
                         <path stroke-linecap="round" stroke-linejoin="round" stroke-width="2.5" d="M12 4v16m8-8H4"/>

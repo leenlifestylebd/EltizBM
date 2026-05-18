@@ -1,4 +1,4 @@
-@extends('reports.exports._layout')
+﻿@extends('reports.exports._layout')
 @section('content')
 <div class="page">
 
@@ -39,7 +39,7 @@
   @php $emp = $summary['employee']; @endphp
   <div style="margin-bottom: 20px;">
     {{-- Employee name bar --}}
-    <div style="background:#1e40af; color:#fff; padding:8px 12px; border-radius:4px 4px 0 0; margin-bottom:0;">
+    <div style="background:{{ $p800 }}; color:#fff; padding:8px 12px; border-radius:4px 4px 0 0; margin-bottom:0;">
       <span style="font-size:12px; font-weight:700;">{{ $emp?->name ?? 'Unknown Employee' }}</span>
       <span style="font-size:10px; margin-left:12px; opacity:0.8;">{{ $emp?->designation ?? '' }}</span>
       <span style="float:right; font-size:12px; font-weight:700;">&#2547;{{ number_format($summary['total_amount']) }} &nbsp;|&nbsp; {{ number_format($summary['total_qty']) }} pcs</span>
@@ -63,7 +63,7 @@
           <td class="center">{{ $prod['size'] }}</td>
           <td class="center bold">{{ number_format($prod['quantity']) }}</td>
           <td class="center">{{ $prod['entry_count'] }}</td>
-          <td class="right bold" style="color:#2563eb;">{{ number_format($prod['amount']) }}</td>
+          <td class="right bold" style="color:{{ $pc }};">{{ number_format($prod['amount']) }}</td>
         </tr>
         @endforeach
       </tbody>

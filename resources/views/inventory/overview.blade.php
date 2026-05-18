@@ -1,4 +1,4 @@
-@extends('layouts.app')
+﻿@extends('layouts.app')
 @section('title', 'Inventory Overview')
 
 @section('content')
@@ -16,7 +16,7 @@
             Adjust
         </a>
         <a href="{{ route('inventory.purchase-orders') }}"
-           class="flex items-center gap-1.5 px-3 py-2 text-xs font-medium text-white bg-blue-600 rounded-lg hover:bg-blue-700 transition-colors">
+           class="flex items-center gap-1.5 px-3 py-2 text-xs font-medium text-white bg-primary-600 rounded-lg hover:bg-primary-700 transition-colors">
             <svg class="w-3.5 h-3.5" fill="none" stroke="currentColor" viewBox="0 0 24 24"><path stroke-linecap="round" stroke-linejoin="round" stroke-width="2" d="M12 4v16m8-8H4"/></svg>
             <span class="hidden xs:inline">Purchase Order</span>
             <span class="xs:hidden">PO</span>
@@ -52,8 +52,8 @@
 <div class="grid grid-cols-2 sm:grid-cols-3 lg:grid-cols-6 gap-3 mb-5">
     @php
     $navItems = [
-        ['route'=>'inventory.overview',        'icon'=>'M9 19v-6a2 2 0 00-2-2H5a2 2 0 00-2 2v6a2 2 0 002 2h2a2 2 0 002-2zm0 0V9a2 2 0 012-2h2a2 2 0 012 2v10m-6 0a2 2 0 002 2h2a2 2 0 002-2m0 0V5a2 2 0 012-2h2a2 2 0 012 2v14a2 2 0 01-2 2h-2a2 2 0 01-2-2z','label'=>'Overview','color'=>'blue','active'=>true],
-        ['route'=>'inventory.stock-levels',    'icon'=>'M5 8h14M5 8a2 2 0 110-4h14a2 2 0 110 4M5 8v10a2 2 0 002 2h10a2 2 0 002-2V8m-9 4h4','label'=>'Stock Levels','color'=>'indigo','active'=>false],
+        ['route'=>'inventory.overview',        'icon'=>'M9 19v-6a2 2 0 00-2-2H5a2 2 0 00-2 2v6a2 2 0 002 2h2a2 2 0 002-2zm0 0V9a2 2 0 012-2h2a2 2 0 012 2v10m-6 0a2 2 0 002 2h2a2 2 0 002-2m0 0V5a2 2 0 012-2h2a2 2 0 012 2v14a2 2 0 01-2 2h-2a2 2 0 01-2-2z','label'=>'Overview','color'=>'primary','active'=>true],
+        ['route'=>'inventory.stock-levels',    'icon'=>'M5 8h14M5 8a2 2 0 110-4h14a2 2 0 110 4M5 8v10a2 2 0 002 2h10a2 2 0 002-2V8m-9 4h4','label'=>'Stock Levels','color'=>'violet','active'=>false],
         ['route'=>'inventory.purchase-orders', 'icon'=>'M9 5H7a2 2 0 00-2 2v12a2 2 0 002 2h10a2 2 0 002-2V7a2 2 0 00-2-2h-2M9 5a2 2 0 002 2h2a2 2 0 002-2M9 5a2 2 0 012-2h2a2 2 0 012 2','label'=>'Purchase Orders','color'=>'green','active'=>false],
         ['route'=>'inventory.adjustments',     'icon'=>'M12 6v6m0 0v6m0-6h6m-6 0H6','label'=>'Adjustments','color'=>'orange','active'=>false],
         ['route'=>'inventory.barcode',         'icon'=>'M12 4v1m6 11h2m-6 0h-2v4m0-11v3m0 0h.01M12 12h4.01M16 20h4M4 12h4m12 0h.01M5 8h2a1 1 0 001-1V5a1 1 0 00-1-1H5a1 1 0 00-1 1v2a1 1 0 001 1zm12 0h2a1 1 0 001-1V5a1 1 0 00-1-1h-2a1 1 0 00-1 1v2a1 1 0 001 1zM5 20h2a1 1 0 001-1v-2a1 1 0 00-1-1H5a1 1 0 00-1 1v2a1 1 0 001 1z','label'=>'Barcode Print','color'=>'purple','active'=>false],
@@ -83,7 +83,7 @@
                 <span class="w-2 h-2 bg-yellow-400 rounded-full"></span>
                 <h3 class="text-sm font-semibold text-gray-900 dark:text-white">Low Stock Alert</h3>
             </div>
-            <a href="{{ route('inventory.stock-levels') }}?filter=low" class="text-xs text-blue-600 dark:text-blue-400 hover:underline">View all</a>
+            <a href="{{ route('inventory.stock-levels') }}?filter=low" class="text-xs text-primary-600 dark:text-primary-400 hover:underline">View all</a>
         </div>
         @forelse($lowStockProducts as $product)
         <div class="flex items-center gap-3 px-4 py-3 border-b border-gray-50 dark:border-slate-700 last:border-0">
@@ -119,7 +119,7 @@
     <div class="bg-white dark:bg-slate-800 rounded-xl border border-gray-100 dark:border-slate-700 overflow-hidden">
         <div class="flex items-center justify-between px-4 py-3 border-b border-gray-50 dark:border-slate-700">
             <h3 class="text-sm font-semibold text-gray-900 dark:text-white">Recent Adjustments</h3>
-            <a href="{{ route('inventory.adjustments') }}" class="text-xs text-blue-600 dark:text-blue-400 hover:underline">View all</a>
+            <a href="{{ route('inventory.adjustments') }}" class="text-xs text-primary-600 dark:text-primary-400 hover:underline">View all</a>
         </div>
         @forelse($recentAdjustments as $adj)
         <div class="flex items-center gap-3 px-4 py-3 border-b border-gray-50 dark:border-slate-700 last:border-0">

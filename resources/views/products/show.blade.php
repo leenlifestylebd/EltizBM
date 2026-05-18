@@ -1,4 +1,4 @@
-@extends('layouts.app')
+﻿@extends('layouts.app')
 @section('title', $product->name)
 
 @section('content')
@@ -18,7 +18,7 @@
         </div>
         <div class="flex items-center gap-2">
             <a href="{{ route('products.edit', $product) }}"
-               class="flex items-center gap-1.5 px-3 py-2 text-xs font-medium text-white bg-blue-600 rounded-lg hover:bg-blue-700 transition-colors">
+               class="flex items-center gap-1.5 px-3 py-2 text-xs font-medium text-white bg-primary-600 rounded-lg hover:bg-primary-700 transition-colors">
                 <svg class="w-3.5 h-3.5" fill="none" stroke="currentColor" viewBox="0 0 24 24"><path stroke-linecap="round" stroke-linejoin="round" stroke-width="2" d="M11 5H6a2 2 0 00-2 2v11a2 2 0 002 2h11a2 2 0 002-2v-5m-1.414-9.414a2 2 0 112.828 2.828L11.828 15H9v-2.828l8.586-8.586z"/></svg>
                 Edit
             </a>
@@ -45,7 +45,7 @@
                             @foreach($product->images as $i => $img)
                             <button @click="active = {{ $i }}"
                                     class="w-10 h-10 rounded-lg overflow-hidden border-2 transition-colors"
-                                    :class="active === {{ $i }} ? 'border-blue-500' : 'border-transparent'">
+                                    :class="active === {{ $i }} ? 'border-primary-500' : 'border-transparent'">
                                 <img src="{{ Str::startsWith($img, 'http') ? $img : Storage::url($img) }}" class="w-full h-full object-cover">
                             </button>
                             @endforeach
@@ -89,9 +89,9 @@
             <div class="bg-white dark:bg-slate-800 rounded-xl border border-gray-100 dark:border-slate-700 p-4">
                 <h3 class="text-sm font-semibold text-gray-900 dark:text-white mb-3">Pricing</h3>
                 <div class="grid grid-cols-3 gap-4">
-                    <div class="text-center p-3 bg-blue-50 dark:bg-blue-900/20 rounded-lg">
-                        <p class="text-xs text-blue-600 dark:text-blue-400 mb-1">Selling Price</p>
-                        <p class="text-lg font-bold text-blue-700 dark:text-blue-300">৳{{ number_format($product->price, 2) }}</p>
+                    <div class="text-center p-3 bg-primary-50 dark:bg-primary-900/20 rounded-lg">
+                        <p class="text-xs text-primary-600 dark:text-primary-400 mb-1">Selling Price</p>
+                        <p class="text-lg font-bold text-primary-700 dark:text-primary-300">৳{{ number_format($product->price, 2) }}</p>
                     </div>
                     <div class="text-center p-3 bg-gray-50 dark:bg-slate-700/50 rounded-lg">
                         <p class="text-xs text-gray-500 dark:text-slate-400 mb-1">Cost Price</p>
@@ -207,52 +207,52 @@
                         <p class="text-xs text-gray-400 dark:text-slate-500 mt-0.5">Raw materials required per piece</p>
                     </div>
                     <button @click="addOpen = !addOpen"
-                            class="flex items-center gap-1.5 px-2.5 py-1.5 text-xs font-medium text-blue-600 bg-blue-50 dark:bg-blue-900/20 rounded-lg hover:bg-blue-100 dark:hover:bg-blue-900/30 transition-colors">
+                            class="flex items-center gap-1.5 px-2.5 py-1.5 text-xs font-medium text-primary-600 bg-primary-50 dark:bg-primary-900/20 rounded-lg hover:bg-primary-100 dark:hover:bg-primary-900/30 transition-colors">
                         <svg class="w-3.5 h-3.5" fill="none" stroke="currentColor" viewBox="0 0 24 24"><path stroke-linecap="round" stroke-linejoin="round" stroke-width="2" d="M12 4v16m8-8H4"/></svg>
                         Add Material
                     </button>
                 </div>
 
                 {{-- Add Form --}}
-                <div x-show="addOpen" x-cloak class="px-4 py-3 bg-blue-50/50 dark:bg-blue-900/10 border-b border-blue-100 dark:border-blue-900/30">
+                <div x-show="addOpen" x-cloak class="px-4 py-3 bg-primary-50/50 dark:bg-primary-900/10 border-b border-primary-100 dark:border-primary-900/30">
                     <form method="POST" action="{{ route('products.bom.store', $product) }}" class="space-y-3">
                         @csrf
                         <div class="grid grid-cols-2 sm:grid-cols-3 gap-3">
                             <div class="col-span-2 sm:col-span-1">
                                 <label class="block text-xs text-gray-500 dark:text-slate-400 mb-1">Material Name <span class="text-red-500">*</span></label>
                                 <input type="text" name="material_name" placeholder="e.g. Cotton Fabric" required
-                                       class="w-full px-3 py-2 text-xs border border-gray-200 dark:border-slate-600 rounded-lg bg-white dark:bg-slate-700 text-gray-900 dark:text-white focus:ring-2 focus:ring-blue-500 focus:border-transparent">
+                                       class="w-full px-3 py-2 text-xs border border-gray-200 dark:border-slate-600 rounded-lg bg-white dark:bg-slate-700 text-gray-900 dark:text-white focus:ring-2 focus:ring-primary-500 focus:border-transparent">
                             </div>
                             <div>
                                 <label class="block text-xs text-gray-500 dark:text-slate-400 mb-1">Category</label>
                                 <input type="text" name="category" placeholder="e.g. Fabric"
-                                       class="w-full px-3 py-2 text-xs border border-gray-200 dark:border-slate-600 rounded-lg bg-white dark:bg-slate-700 text-gray-900 dark:text-white focus:ring-2 focus:ring-blue-500 focus:border-transparent">
+                                       class="w-full px-3 py-2 text-xs border border-gray-200 dark:border-slate-600 rounded-lg bg-white dark:bg-slate-700 text-gray-900 dark:text-white focus:ring-2 focus:ring-primary-500 focus:border-transparent">
                             </div>
                             <div>
                                 <label class="block text-xs text-gray-500 dark:text-slate-400 mb-1">Color</label>
                                 <input type="text" name="color" placeholder="e.g. White"
-                                       class="w-full px-3 py-2 text-xs border border-gray-200 dark:border-slate-600 rounded-lg bg-white dark:bg-slate-700 text-gray-900 dark:text-white focus:ring-2 focus:ring-blue-500 focus:border-transparent">
+                                       class="w-full px-3 py-2 text-xs border border-gray-200 dark:border-slate-600 rounded-lg bg-white dark:bg-slate-700 text-gray-900 dark:text-white focus:ring-2 focus:ring-primary-500 focus:border-transparent">
                             </div>
                             <div>
                                 <label class="block text-xs text-gray-500 dark:text-slate-400 mb-1">Qty per Piece <span class="text-red-500">*</span></label>
                                 <input type="number" name="quantity_per_piece" step="0.001" min="0.001" placeholder="2.5" required
-                                       class="w-full px-3 py-2 text-xs border border-gray-200 dark:border-slate-600 rounded-lg bg-white dark:bg-slate-700 text-gray-900 dark:text-white focus:ring-2 focus:ring-blue-500 focus:border-transparent">
+                                       class="w-full px-3 py-2 text-xs border border-gray-200 dark:border-slate-600 rounded-lg bg-white dark:bg-slate-700 text-gray-900 dark:text-white focus:ring-2 focus:ring-primary-500 focus:border-transparent">
                             </div>
                             <div>
                                 <label class="block text-xs text-gray-500 dark:text-slate-400 mb-1">Unit <span class="text-red-500">*</span></label>
                                 <input type="text" name="unit" placeholder="yard / meter / pcs" required
-                                       class="w-full px-3 py-2 text-xs border border-gray-200 dark:border-slate-600 rounded-lg bg-white dark:bg-slate-700 text-gray-900 dark:text-white focus:ring-2 focus:ring-blue-500 focus:border-transparent">
+                                       class="w-full px-3 py-2 text-xs border border-gray-200 dark:border-slate-600 rounded-lg bg-white dark:bg-slate-700 text-gray-900 dark:text-white focus:ring-2 focus:ring-primary-500 focus:border-transparent">
                             </div>
                             <div>
                                 <label class="block text-xs text-gray-500 dark:text-slate-400 mb-1">Wastage %</label>
                                 <input type="number" name="wastage_percent" step="0.1" min="0" max="100" placeholder="5"
-                                       class="w-full px-3 py-2 text-xs border border-gray-200 dark:border-slate-600 rounded-lg bg-white dark:bg-slate-700 text-gray-900 dark:text-white focus:ring-2 focus:ring-blue-500 focus:border-transparent">
+                                       class="w-full px-3 py-2 text-xs border border-gray-200 dark:border-slate-600 rounded-lg bg-white dark:bg-slate-700 text-gray-900 dark:text-white focus:ring-2 focus:ring-primary-500 focus:border-transparent">
                             </div>
                         </div>
                         <div>
                             <label class="block text-xs text-gray-500 dark:text-slate-400 mb-1">Notes</label>
                             <input type="text" name="notes" placeholder="Optional notes"
-                                   class="w-full px-3 py-2 text-xs border border-gray-200 dark:border-slate-600 rounded-lg bg-white dark:bg-slate-700 text-gray-900 dark:text-white focus:ring-2 focus:ring-blue-500 focus:border-transparent">
+                                   class="w-full px-3 py-2 text-xs border border-gray-200 dark:border-slate-600 rounded-lg bg-white dark:bg-slate-700 text-gray-900 dark:text-white focus:ring-2 focus:ring-primary-500 focus:border-transparent">
                         </div>
                         <div class="flex gap-2 justify-end">
                             <button type="button" @click="addOpen = false"
@@ -260,7 +260,7 @@
                                 Cancel
                             </button>
                             <button type="submit"
-                                    class="px-3 py-1.5 text-xs font-medium text-white bg-blue-600 rounded-lg hover:bg-blue-700 transition-colors">
+                                    class="px-3 py-1.5 text-xs font-medium text-white bg-primary-600 rounded-lg hover:bg-primary-700 transition-colors">
                                 Add Material
                             </button>
                         </div>
@@ -299,7 +299,7 @@
                                 <td class="px-4 py-2.5 text-right font-mono text-gray-700 dark:text-slate-200">{{ $bom->quantity_per_piece }}</td>
                                 <td class="px-4 py-2.5 text-gray-600 dark:text-slate-300">{{ $bom->unit }}</td>
                                 <td class="px-4 py-2.5 text-right text-gray-600 dark:text-slate-300">{{ $bom->wastage_percent > 0 ? $bom->wastage_percent.'%' : '—' }}</td>
-                                <td class="px-4 py-2.5 text-right font-mono font-medium text-blue-600 dark:text-blue-400">{{ number_format($bom->effective_qty, 3) }}</td>
+                                <td class="px-4 py-2.5 text-right font-mono font-medium text-primary-600 dark:text-primary-400">{{ number_format($bom->effective_qty, 3) }}</td>
                                 <td class="px-4 py-2.5 text-center">
                                     <form method="POST" action="{{ route('products.bom.toggle', [$product, $bom]) }}" class="inline">
                                         @csrf @method('PATCH')
@@ -323,9 +323,9 @@
                             @endforeach
                         </tbody>
                         <tfoot>
-                            <tr class="bg-blue-50/60 dark:bg-blue-900/10">
+                            <tr class="bg-primary-50/60 dark:bg-primary-900/10">
                                 <td colspan="5" class="px-4 py-2 text-xs text-gray-500 dark:text-slate-400 font-medium">Total for 1 piece (active only)</td>
-                                <td class="px-4 py-2 text-right text-xs font-bold text-blue-700 dark:text-blue-300">
+                                <td class="px-4 py-2 text-right text-xs font-bold text-primary-700 dark:text-primary-300">
                                     @php
                                         $activeByUnit = $product->billOfMaterials->where('is_active', true)->groupBy('unit');
                                     @endphp
@@ -342,7 +342,7 @@
                 <div class="flex flex-col items-center justify-center py-8 text-center">
                     <svg class="w-10 h-10 text-gray-200 dark:text-slate-600 mb-2" fill="none" stroke="currentColor" viewBox="0 0 24 24"><path stroke-linecap="round" stroke-linejoin="round" stroke-width="1.5" d="M19.428 15.428a2 2 0 00-1.022-.547l-2.387-.477a6 6 0 00-3.86.517l-.318.158a6 6 0 01-3.86.517L6.05 15.21a2 2 0 00-1.806.547M8 4h8l-1 1v5.172a2 2 0 00.586 1.414l5 5c1.26 1.26.367 3.414-1.415 3.414H4.828c-1.782 0-2.674-2.154-1.414-3.414l5-5A2 2 0 009 10.172V5L8 4z"/></svg>
                     <p class="text-sm text-gray-400 dark:text-slate-500">No materials added yet</p>
-                    <button @click="addOpen = true" class="mt-2 text-xs text-blue-600 hover:underline dark:text-blue-400">+ Add first material</button>
+                    <button @click="addOpen = true" class="mt-2 text-xs text-primary-600 hover:underline dark:text-primary-400">+ Add first material</button>
                 </div>
                 @endif
             </div>
@@ -350,7 +350,7 @@
             {{-- Quick Actions --}}
             <div class="flex gap-2">
                 <a href="{{ route('products.edit', $product) }}"
-                   class="flex-1 py-2.5 text-center text-sm font-medium text-white bg-blue-600 rounded-lg hover:bg-blue-700 transition-colors">
+                   class="flex-1 py-2.5 text-center text-sm font-medium text-white bg-primary-600 rounded-lg hover:bg-primary-700 transition-colors">
                     Edit Product
                 </a>
                 <a href="{{ route('inventory.adjustments', ['product' => $product->id]) }}"

@@ -1,4 +1,4 @@
-{{-- ===================================================
+﻿{{-- ===================================================
      FILE: resources/views/integrations/index.blade.php
      =================================================== --}}
 @extends('layouts.app')
@@ -35,18 +35,18 @@
 
     {{-- Courier Providers --}}
     <a href="{{ route('integrations.courier-providers') }}"
-       class="bg-white dark:bg-slate-800 rounded-xl border border-gray-100 dark:border-slate-700 p-5 hover:border-blue-300 dark:hover:border-blue-600 hover:shadow-sm transition-all group">
+       class="bg-white dark:bg-slate-800 rounded-xl border border-gray-100 dark:border-slate-700 p-5 hover:border-primary-300 dark:hover:border-primary-600 hover:shadow-sm transition-all group">
         <div class="flex items-center justify-between mb-4">
-            <div class="w-10 h-10 bg-blue-100 dark:bg-blue-900/30 rounded-xl flex items-center justify-center">
-                <svg class="w-6 h-6 text-blue-600 dark:text-blue-400" fill="none" stroke="currentColor" viewBox="0 0 24 24">
+            <div class="w-10 h-10 bg-primary-100 dark:bg-primary-900/30 rounded-xl flex items-center justify-center">
+                <svg class="w-6 h-6 text-primary-600 dark:text-primary-400" fill="none" stroke="currentColor" viewBox="0 0 24 24">
                     <path d="M9 17a2 2 0 11-4 0 2 2 0 014 0zM19 17a2 2 0 11-4 0 2 2 0 014 0z"/><path stroke-linecap="round" stroke-linejoin="round" stroke-width="2" d="M13 16V6a1 1 0 00-1-1H4a1 1 0 00-1 1v10a1 1 0 001 1h1m8-1a1 1 0 01-1 1H9m4-1V8a1 1 0 011-1h2.586a1 1 0 01.707.293l3.414 3.414a1 1 0 01.293.707V16a1 1 0 01-1 1h-1m-6-1a1 1 0 001 1h1"/>
                 </svg>
             </div>
             <span class="text-xs font-medium text-gray-500 dark:text-slate-400 bg-gray-100 dark:bg-slate-700 px-2 py-1 rounded-full">BD Couriers</span>
         </div>
-        <h3 class="text-sm font-semibold text-gray-900 dark:text-white group-hover:text-blue-600 dark:group-hover:text-blue-400 transition-colors">Courier Providers</h3>
+        <h3 class="text-sm font-semibold text-gray-900 dark:text-white group-hover:text-primary-600 dark:group-hover:text-primary-400 transition-colors">Courier Providers</h3>
         <p class="text-xs text-gray-500 dark:text-slate-400 mt-1">Connect Pathao, Steadfast, Redx and other BD courier services.</p>
-        <p class="text-xs text-blue-600 dark:text-blue-400 mt-3 font-medium group-hover:underline">Configure →</p>
+        <p class="text-xs text-primary-600 dark:text-primary-400 mt-3 font-medium group-hover:underline">Configure →</p>
     </a>
 
     {{-- Payment Gateways --}}

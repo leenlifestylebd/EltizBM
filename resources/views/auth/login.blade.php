@@ -1,4 +1,4 @@
-<!DOCTYPE html>
+﻿<!DOCTYPE html>
 <html lang="en">
 <head>
     <meta charset="UTF-8">
@@ -21,7 +21,7 @@
     {{-- ══ LEFT: Brand Panel ══ --}}
     <div class="hidden lg:flex w-[42%] bg-[#09090b] flex-col justify-between p-10 dot-bg relative overflow-hidden flex-shrink-0">
         {{-- Ambient glows --}}
-        <div class="absolute -top-20 -left-20 w-72 h-72 bg-blue-600/10 rounded-full blur-3xl pointer-events-none"></div>
+        <div class="absolute -top-20 -left-20 w-72 h-72 bg-primary-600/10 rounded-full blur-3xl pointer-events-none"></div>
         <div class="absolute bottom-0 right-0 w-56 h-56 bg-violet-600/10 rounded-full blur-3xl pointer-events-none"></div>
 
         {{-- Brand mark --}}
@@ -42,7 +42,7 @@
             </div>
             <h2 class="text-4xl font-black text-white leading-tight mb-3">
                 Run your<br>business<br>
-                <span class="text-transparent bg-clip-text bg-gradient-to-r from-blue-400 to-violet-400">smarter.</span>
+                <span class="text-transparent bg-clip-text bg-gradient-to-r from-primary-400 to-violet-400">smarter.</span>
             </h2>
             <p class="text-gray-500 text-sm leading-relaxed mb-10">
                 Orders, inventory, employees &amp; courier — everything in one clean dashboard.

@@ -1,4 +1,4 @@
-@extends('layouts.app')
+﻿@extends('layouts.app')
 @section('title', 'My Tasks')
 
 @section('content')
@@ -41,7 +41,7 @@
 
             <h3 class="text-sm font-bold text-gray-900 dark:text-white mb-3">জমা দিন</h3>
             <p class="text-sm font-medium text-gray-700 dark:text-slate-300" x-text="taskName"></p>
-            <p class="text-xs text-indigo-500 mb-4" x-show="taskColor || taskSize">
+            <p class="text-xs text-primary-500 mb-4" x-show="taskColor || taskSize">
                 <span x-text="[taskColor, taskSize].filter(Boolean).join(' · ')"></span>
             </p>
 
@@ -57,7 +57,7 @@
                     <input type="text" name="quality_note" placeholder="যেমন: ভালো মান"
                            class="w-full px-3 py-2 text-sm border border-gray-200 dark:border-slate-600 rounded-lg bg-white dark:bg-slate-700 text-gray-900 dark:text-white">
                 </div>
-                <button type="submit" class="w-full py-2.5 bg-indigo-600 hover:bg-indigo-700 text-white text-sm font-semibold rounded-xl transition-colors">
+                <button type="submit" class="w-full py-2.5 bg-primary-600 hover:bg-primary-700 text-white text-sm font-semibold rounded-xl transition-colors">
                     জমা দিন
                 </button>
             </form>
@@ -71,7 +71,7 @@
     $pct = $task->completion_percent;
     $isPending = $task->pending_quantity > 0;
     $statusColors = [
-        'assigned'    => 'bg-blue-100 text-blue-700 dark:bg-blue-900/30 dark:text-blue-400',
+        'assigned'    => 'bg-primary-100 text-primary-700 dark:bg-primary-900/30 dark:text-primary-400',
         'in_progress' => 'bg-yellow-100 text-yellow-700 dark:bg-yellow-900/30 dark:text-yellow-400',
         'partial'     => 'bg-orange-100 text-orange-700 dark:bg-orange-900/30 dark:text-orange-400',
         'completed'   => 'bg-green-100 text-green-700 dark:bg-green-900/30 dark:text-green-400',
@@ -84,7 +84,7 @@
         'completed'   => 'সম্পন্ন',
         'cancelled'   => 'বাতিল',
     ];
-    $barColor = $task->status === 'completed' ? 'bg-green-500' : ($pct > 50 ? 'bg-blue-500' : 'bg-indigo-400');
+    $barColor = $task->status === 'completed' ? 'bg-green-500' : ($pct > 50 ? 'bg-primary-500' : 'bg-primary-400');
 @endphp
 
 <div class="bg-white dark:bg-slate-800 rounded-xl border border-gray-100 dark:border-slate-700 p-4 mb-3">
@@ -139,7 +139,7 @@
             taskSize: '{{ addslashes($task->size ?? '') }}',
             max: {{ $task->pending_quantity }}
         })"
-        class="w-full py-2 bg-indigo-600 hover:bg-indigo-700 text-white text-xs font-semibold rounded-lg transition-colors">
+        class="w-full py-2 bg-primary-600 hover:bg-primary-700 text-white text-xs font-semibold rounded-lg transition-colors">
         কাজ জমা দিন (বাকি {{ $task->pending_quantity }} পিস)
     </button>
     @elseif($task->status === 'completed')

@@ -1,4 +1,4 @@
-@extends('layouts.app')
+﻿@extends('layouts.app')
 @section('title', 'Stock & Inventory Report')
 
 @section('content')
@@ -6,7 +6,7 @@
 <div class="flex items-center justify-between mb-5">
     <h2 class="text-base font-semibold text-gray-900 dark:text-white">Stock & Inventory</h2>
     <div class="flex items-center gap-2">
-        <a href="{{ route('inventory.overview') }}" class="text-xs text-blue-600 dark:text-blue-400 hover:underline">Manage →</a>
+        <a href="{{ route('inventory.overview') }}" class="text-xs text-primary-600 dark:text-primary-400 hover:underline">Manage →</a>
         <div x-data="{ open: false }" @click.outside="open = false" class="relative">
             <button @click="open = !open" class="flex items-center gap-1.5 px-3 py-2 text-xs font-semibold bg-white dark:bg-slate-800 border border-gray-200 dark:border-slate-600 rounded-lg hover:bg-gray-50 text-gray-700 dark:text-slate-300 shadow-sm">
                 <svg class="w-3.5 h-3.5" fill="none" stroke="currentColor" viewBox="0 0 24 24"><path stroke-linecap="round" stroke-linejoin="round" stroke-width="2" d="M4 16v1a3 3 0 003 3h10a3 3 0 003-3v-1m-4-4l-4 4m0 0l-4-4m4 4V4"/></svg>
@@ -30,9 +30,9 @@
 <div class="grid grid-cols-2 sm:grid-cols-3 lg:grid-cols-6 gap-3 mb-5">
     @foreach([
         ['label'=>'Total Products', 'value'=>$stats['total_products'],           'color'=>'gray'],
-        ['label'=>'Total Stock',    'value'=>number_format($stats['total_stock']),'color'=>'blue'],
+        ['label'=>'Total Stock',    'value'=>number_format($stats['total_stock']),'color'=>'primary'],
         ['label'=>'Stock Value',    'value'=>'৳'.number_format($stats['total_value']),'color'=>'green'],
-        ['label'=>'Retail Value',   'value'=>'৳'.number_format($stats['total_retail']),'color'=>'indigo'],
+        ['label'=>'Retail Value',   'value'=>'৳'.number_format($stats['total_retail']),'color'=>'violet'],
         ['label'=>'Low Stock',      'value'=>$stats['low_stock'],                'color'=>'yellow'],
         ['label'=>'Out of Stock',   'value'=>$stats['out_of_stock'],             'color'=>'red'],
     ] as $c)
@@ -56,7 +56,7 @@
             </div>
             <div class="flex items-center gap-2">
                 <div class="flex-1 bg-gray-100 dark:bg-slate-700 rounded-full h-2">
-                    <div class="h-2 rounded-full bg-blue-400 dark:bg-blue-500" style="width:{{ min(100,($cat->value/$maxCat)*100) }}%"></div>
+                    <div class="h-2 rounded-full bg-primary-400 dark:bg-primary-500" style="width:{{ min(100,($cat->value/$maxCat)*100) }}%"></div>
                 </div>
                 <span class="text-xs text-gray-400 dark:text-slate-500 w-16 text-right">{{ $cat->total_stock }} units</span>
             </div>

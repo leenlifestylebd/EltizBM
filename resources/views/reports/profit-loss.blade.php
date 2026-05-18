@@ -1,4 +1,4 @@
-@extends('layouts.app')
+﻿@extends('layouts.app')
 @section('title', 'Profit & Loss')
 
 @push('scripts')
@@ -58,7 +58,7 @@ $presets = [
         @php $active = $from === $p['from'] && $to === $p['to']; @endphp
         <a href="{{ route('reports.profit-loss', ['from'=>$p['from'],'to'=>$p['to'],'group_by'=>$p['gb']]) }}"
            class="px-3 py-1 text-xs font-medium rounded-lg border transition-colors
-                  {{ $active ? 'bg-blue-600 text-white border-blue-600' : 'bg-gray-50 dark:bg-slate-700 text-gray-600 dark:text-slate-300 border-gray-200 dark:border-slate-600 hover:bg-gray-100' }}">
+                  {{ $active ? 'bg-primary-600 text-white border-primary-600' : 'bg-gray-50 dark:bg-slate-700 text-gray-600 dark:text-slate-300 border-gray-200 dark:border-slate-600 hover:bg-gray-100' }}">
             {{ $p['label'] }}
         </a>
         @endforeach
@@ -69,21 +69,21 @@ $presets = [
         <div>
             <label class="block text-xs text-gray-400 mb-1">From</label>
             <input type="date" name="from" value="{{ $from }}"
-                   class="px-3 py-2 text-xs border border-gray-200 dark:border-slate-600 rounded-lg bg-white dark:bg-slate-700 text-gray-700 dark:text-slate-200 focus:outline-none focus:ring-2 focus:ring-blue-500">
+                   class="px-3 py-2 text-xs border border-gray-200 dark:border-slate-600 rounded-lg bg-white dark:bg-slate-700 text-gray-700 dark:text-slate-200 focus:outline-none focus:ring-2 focus:ring-primary-500">
         </div>
         <div>
             <label class="block text-xs text-gray-400 mb-1">To</label>
             <input type="date" name="to" value="{{ $to }}"
-                   class="px-3 py-2 text-xs border border-gray-200 dark:border-slate-600 rounded-lg bg-white dark:bg-slate-700 text-gray-700 dark:text-slate-200 focus:outline-none focus:ring-2 focus:ring-blue-500">
+                   class="px-3 py-2 text-xs border border-gray-200 dark:border-slate-600 rounded-lg bg-white dark:bg-slate-700 text-gray-700 dark:text-slate-200 focus:outline-none focus:ring-2 focus:ring-primary-500">
         </div>
         <div>
             <label class="block text-xs text-gray-400 mb-1">Group by</label>
-            <select name="group_by" class="px-3 py-2 text-xs border border-gray-200 dark:border-slate-600 rounded-lg bg-white dark:bg-slate-700 text-gray-700 dark:text-slate-200 focus:outline-none focus:ring-2 focus:ring-blue-500">
+            <select name="group_by" class="px-3 py-2 text-xs border border-gray-200 dark:border-slate-600 rounded-lg bg-white dark:bg-slate-700 text-gray-700 dark:text-slate-200 focus:outline-none focus:ring-2 focus:ring-primary-500">
                 <option value="day"   {{ $groupBy==='day'   ? 'selected':'' }}>Daily</option>
                 <option value="month" {{ $groupBy==='month' ? 'selected':'' }}>Monthly</option>
             </select>
         </div>
-        <button type="submit" class="px-4 py-2 bg-blue-600 text-white text-xs font-semibold rounded-lg hover:bg-blue-700 transition-colors">Apply</button>
+        <button type="submit" class="px-4 py-2 bg-primary-600 text-white text-xs font-semibold rounded-lg hover:bg-primary-700 transition-colors">Apply</button>
     </form>
 
     <p class="text-xs text-gray-400 dark:text-slate-500 mt-2">
@@ -96,7 +96,7 @@ $presets = [
 <div class="grid grid-cols-2 sm:grid-cols-3 lg:grid-cols-6 gap-3 mb-5">
     @php
     $cards = [
-        ['label'=>'Revenue',          'value'=>$revenue,          'color'=>'blue',                                      'prefix'=>'৳', 'sub'=>'from sales'],
+        ['label'=>'Revenue',          'value'=>$revenue,          'color'=>'primary',                                      'prefix'=>'৳', 'sub'=>'from sales'],
         ['label'=>'Cost (COGS)',       'value'=>$cogs,             'color'=>'orange',                                    'prefix'=>'৳', 'sub'=>'cost of goods'],
         ['label'=>'Gross Profit',      'value'=>$grossProfit,      'color'=>$grossProfit>=0?'green':'rose',               'prefix'=>'৳', 'sub'=>$grossMargin.'% margin'],
         ['label'=>'Operating Exp.',    'value'=>$expenses,         'color'=>'red',                                       'prefix'=>'৳', 'sub'=>'transactions'],
@@ -123,7 +123,7 @@ $presets = [
         <div class="flex items-center justify-between mb-4">
             <h3 class="text-sm font-semibold text-gray-900 dark:text-white">Revenue vs Expenses Trend</h3>
             <div class="flex items-center gap-3 text-xs text-gray-500 dark:text-slate-400">
-                <span class="flex items-center gap-1.5"><span class="w-3 h-3 bg-blue-500 rounded-sm inline-block"></span>Revenue</span>
+                <span class="flex items-center gap-1.5"><span class="w-3 h-3 bg-primary-500 rounded-sm inline-block"></span>Revenue</span>
                 <span class="flex items-center gap-1.5"><span class="w-3 h-3 bg-red-400 rounded-sm inline-block"></span>Expense</span>
                 <span class="flex items-center gap-1.5"><span class="w-3 h-3 bg-green-400 rounded-sm inline-block"></span>Profit</span>
             </div>
@@ -208,7 +208,7 @@ $presets = [
                 ['label'=>'Other Income',               'amount'=>$otherIncome,      'indent'=>1, 'color'=>'text-teal-600 dark:text-teal-400',       'bold'=>false, 'section'=>'DEDUCTIONS'],
                 ['label'=>'Operating Expenses',         'amount'=>-$expenses,        'indent'=>1, 'color'=>'text-red-600 dark:text-red-400',         'bold'=>false, 'section'=>null],
                 ['label'=>'Production Wages',           'amount'=>-$productionWages, 'indent'=>1, 'color'=>'text-purple-600 dark:text-purple-400',   'bold'=>false, 'section'=>null],
-                ['label'=>'Net Profit / Loss',          'amount'=>$netProfit,        'indent'=>0, 'color'=>$netProfit>=0?'text-blue-600 dark:text-blue-400':'text-red-600 dark:text-red-400', 'bold'=>true, 'border'=>true, 'section'=>null],
+                ['label'=>'Net Profit / Loss',          'amount'=>$netProfit,        'indent'=>0, 'color'=>$netProfit>=0?'text-primary-600 dark:text-primary-400':'text-red-600 dark:text-red-400', 'bold'=>true, 'border'=>true, 'section'=>null],
             ];
             @endphp
             @foreach($stmt as $row)

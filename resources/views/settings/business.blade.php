@@ -1,4 +1,4 @@
-@extends('layouts.app')
+﻿@extends('layouts.app')
 @section('title', 'Business Settings')
 
 @section('content')
@@ -46,7 +46,7 @@
                 <p class="text-xs text-gray-500 dark:text-slate-400 mt-0.5">PNG, JPG — max 2MB. Shown on invoices &amp; labels.</p>
                 <form method="POST" action="{{ route('settings.logo.upload') }}" enctype="multipart/form-data" class="mt-2">
                     @csrf
-                    <label class="inline-flex items-center gap-1.5 px-3 py-1.5 text-xs font-medium bg-blue-600 text-white rounded-lg cursor-pointer hover:bg-blue-700 transition-colors">
+                    <label class="inline-flex items-center gap-1.5 px-3 py-1.5 text-xs font-medium bg-primary-600 text-white rounded-lg cursor-pointer hover:bg-primary-700 transition-colors">
                         <svg class="w-3.5 h-3.5" fill="none" stroke="currentColor" viewBox="0 0 24 24">
                             <path stroke-linecap="round" stroke-linejoin="round" stroke-width="2" d="M4 16v1a3 3 0 003 3h10a3 3 0 003-3v-1m-4-8l-4-4m0 0L8 8m4-4v12"/>
                         </svg>
@@ -75,7 +75,7 @@
                 <div class="sm:col-span-2">
                     <label class="block text-xs font-medium text-gray-700 dark:text-slate-300 mb-1.5">Business Name <span class="text-red-500">*</span></label>
                     <input type="text" name="name" value="{{ old('name', $business->name) }}" required
-                           class="w-full px-3 py-2.5 text-sm border border-gray-200 dark:border-slate-600 rounded-lg bg-white dark:bg-slate-700 text-gray-900 dark:text-white focus:outline-none focus:ring-2 focus:ring-blue-500">
+                           class="w-full px-3 py-2.5 text-sm border border-gray-200 dark:border-slate-600 rounded-lg bg-white dark:bg-slate-700 text-gray-900 dark:text-white focus:outline-none focus:ring-2 focus:ring-primary-500">
                 </div>
                 <div>
                     <label class="block text-xs font-medium text-gray-700 dark:text-slate-300 mb-1.5">Business ID</label>
@@ -92,24 +92,24 @@
                 <div>
                     <label class="block text-xs font-medium text-gray-700 dark:text-slate-300 mb-1.5">Domain / Website</label>
                     <input type="text" name="domain" value="{{ old('domain', $business->domain) }}"
-                           class="w-full px-3 py-2.5 text-sm border border-gray-200 dark:border-slate-600 rounded-lg bg-white dark:bg-slate-700 text-gray-900 dark:text-white focus:outline-none focus:ring-2 focus:ring-blue-500"
+                           class="w-full px-3 py-2.5 text-sm border border-gray-200 dark:border-slate-600 rounded-lg bg-white dark:bg-slate-700 text-gray-900 dark:text-white focus:outline-none focus:ring-2 focus:ring-primary-500"
                            placeholder="www.example.com">
                 </div>
                 <div>
                     <label class="block text-xs font-medium text-gray-700 dark:text-slate-300 mb-1.5">Phone</label>
                     <input type="text" name="phone" value="{{ old('phone', $business->phone) }}"
-                           class="w-full px-3 py-2.5 text-sm border border-gray-200 dark:border-slate-600 rounded-lg bg-white dark:bg-slate-700 text-gray-900 dark:text-white focus:outline-none focus:ring-2 focus:ring-blue-500"
+                           class="w-full px-3 py-2.5 text-sm border border-gray-200 dark:border-slate-600 rounded-lg bg-white dark:bg-slate-700 text-gray-900 dark:text-white focus:outline-none focus:ring-2 focus:ring-primary-500"
                            placeholder="01XXXXXXXXX">
                 </div>
                 <div>
                     <label class="block text-xs font-medium text-gray-700 dark:text-slate-300 mb-1.5">Email</label>
                     <input type="email" name="email" value="{{ old('email', $business->email) }}"
-                           class="w-full px-3 py-2.5 text-sm border border-gray-200 dark:border-slate-600 rounded-lg bg-white dark:bg-slate-700 text-gray-900 dark:text-white focus:outline-none focus:ring-2 focus:ring-blue-500">
+                           class="w-full px-3 py-2.5 text-sm border border-gray-200 dark:border-slate-600 rounded-lg bg-white dark:bg-slate-700 text-gray-900 dark:text-white focus:outline-none focus:ring-2 focus:ring-primary-500">
                 </div>
                 <div class="sm:col-span-2">
                     <label class="block text-xs font-medium text-gray-700 dark:text-slate-300 mb-1.5">Business Address</label>
                     <textarea name="address" rows="2"
-                              class="w-full px-3 py-2.5 text-sm border border-gray-200 dark:border-slate-600 rounded-lg bg-white dark:bg-slate-700 text-gray-900 dark:text-white focus:outline-none focus:ring-2 focus:ring-blue-500 resize-none"
+                              class="w-full px-3 py-2.5 text-sm border border-gray-200 dark:border-slate-600 rounded-lg bg-white dark:bg-slate-700 text-gray-900 dark:text-white focus:outline-none focus:ring-2 focus:ring-primary-500 resize-none"
                               placeholder="Full address — appears on invoices">{{ old('address', $business->address) }}</textarea>
                 </div>
             </div>
@@ -121,7 +121,7 @@
             <div class="grid grid-cols-1 sm:grid-cols-3 gap-3">
                 <div>
                     <label class="block text-xs font-medium text-gray-700 dark:text-slate-300 mb-1.5">Currency</label>
-                    <select name="currency" class="w-full px-3 py-2.5 text-sm border border-gray-200 dark:border-slate-600 rounded-lg bg-white dark:bg-slate-700 text-gray-700 dark:text-slate-200 focus:outline-none focus:ring-2 focus:ring-blue-500">
+                    <select name="currency" class="w-full px-3 py-2.5 text-sm border border-gray-200 dark:border-slate-600 rounded-lg bg-white dark:bg-slate-700 text-gray-700 dark:text-slate-200 focus:outline-none focus:ring-2 focus:ring-primary-500">
                         <option value="BDT" {{ $business->currency === 'BDT' ? 'selected':'' }}>BDT — Bangladeshi Taka</option>
                         <option value="USD" {{ $business->currency === 'USD' ? 'selected':'' }}>USD — US Dollar</option>
                         <option value="INR" {{ $business->currency === 'INR' ? 'selected':'' }}>INR — Indian Rupee</option>
@@ -131,12 +131,12 @@
                 <div>
                     <label class="block text-xs font-medium text-gray-700 dark:text-slate-300 mb-1.5">Currency Symbol</label>
                     <input type="text" name="currency_symbol" value="{{ old('currency_symbol', $business->currency_symbol) }}"
-                           class="w-full px-3 py-2.5 text-sm border border-gray-200 dark:border-slate-600 rounded-lg bg-white dark:bg-slate-700 text-gray-900 dark:text-white focus:outline-none focus:ring-2 focus:ring-blue-500"
+                           class="w-full px-3 py-2.5 text-sm border border-gray-200 dark:border-slate-600 rounded-lg bg-white dark:bg-slate-700 text-gray-900 dark:text-white focus:outline-none focus:ring-2 focus:ring-primary-500"
                            placeholder="&#2547;">
                 </div>
                 <div>
                     <label class="block text-xs font-medium text-gray-700 dark:text-slate-300 mb-1.5">Timezone</label>
-                    <select name="timezone" class="w-full px-3 py-2.5 text-sm border border-gray-200 dark:border-slate-600 rounded-lg bg-white dark:bg-slate-700 text-gray-700 dark:text-slate-200 focus:outline-none focus:ring-2 focus:ring-blue-500">
+                    <select name="timezone" class="w-full px-3 py-2.5 text-sm border border-gray-200 dark:border-slate-600 rounded-lg bg-white dark:bg-slate-700 text-gray-700 dark:text-slate-200 focus:outline-none focus:ring-2 focus:ring-primary-500">
                         <option value="Asia/Dhaka"   {{ $business->timezone === 'Asia/Dhaka'   ? 'selected':'' }}>Asia/Dhaka (UTC+6)</option>
                         <option value="Asia/Kolkata" {{ $business->timezone === 'Asia/Kolkata' ? 'selected':'' }}>Asia/Kolkata (UTC+5:30)</option>
                         <option value="UTC"          {{ $business->timezone === 'UTC'          ? 'selected':'' }}>UTC</option>
@@ -160,7 +160,7 @@
                     <input type="hidden" name="vat_enabled" value="0">
                     <input type="checkbox" name="vat_enabled" value="1" x-model="vatEnabled"
                            {{ $business->vat_enabled ? 'checked':'' }} class="sr-only peer">
-                    <div class="w-11 h-6 bg-gray-200 dark:bg-slate-600 peer-focus:ring-2 peer-focus:ring-blue-300 rounded-full peer peer-checked:after:translate-x-full peer-checked:bg-blue-600 after:content-[''] after:absolute after:top-0.5 after:left-0.5 after:bg-white after:border after:rounded-full after:h-5 after:w-5 after:transition-all"></div>
+                    <div class="w-11 h-6 bg-gray-200 dark:bg-slate-600 peer-focus:ring-2 peer-focus:ring-primary-300 rounded-full peer peer-checked:after:translate-x-full peer-checked:bg-primary-600 after:content-[''] after:absolute after:top-0.5 after:left-0.5 after:bg-white after:border after:rounded-full after:h-5 after:w-5 after:transition-all"></div>
                 </label>
             </div>
 
@@ -168,18 +168,18 @@
                 <div>
                     <label class="block text-xs font-medium text-gray-700 dark:text-slate-300 mb-1.5">VAT Label</label>
                     <input type="text" name="vat_label" value="{{ old('vat_label', $business->vat_label) }}"
-                           class="w-full px-3 py-2.5 text-sm border border-gray-200 dark:border-slate-600 rounded-lg bg-white dark:bg-slate-700 text-gray-900 dark:text-white focus:outline-none focus:ring-2 focus:ring-blue-500"
+                           class="w-full px-3 py-2.5 text-sm border border-gray-200 dark:border-slate-600 rounded-lg bg-white dark:bg-slate-700 text-gray-900 dark:text-white focus:outline-none focus:ring-2 focus:ring-primary-500"
                            placeholder="VAT">
                 </div>
                 <div>
                     <label class="block text-xs font-medium text-gray-700 dark:text-slate-300 mb-1.5">VAT Rate (%)</label>
                     <input type="number" name="vat_rate" value="{{ old('vat_rate', $business->vat_rate) }}" min="0" max="100" step="0.01"
-                           class="w-full px-3 py-2.5 text-sm border border-gray-200 dark:border-slate-600 rounded-lg bg-white dark:bg-slate-700 text-gray-900 dark:text-white focus:outline-none focus:ring-2 focus:ring-blue-500"
+                           class="w-full px-3 py-2.5 text-sm border border-gray-200 dark:border-slate-600 rounded-lg bg-white dark:bg-slate-700 text-gray-900 dark:text-white focus:outline-none focus:ring-2 focus:ring-primary-500"
                            placeholder="0">
                 </div>
                 <div>
                     <label class="block text-xs font-medium text-gray-700 dark:text-slate-300 mb-1.5">Mode</label>
-                    <select name="vat_mode" class="w-full px-3 py-2.5 text-sm border border-gray-200 dark:border-slate-600 rounded-lg bg-white dark:bg-slate-700 text-gray-700 dark:text-slate-200 focus:outline-none focus:ring-2 focus:ring-blue-500">
+                    <select name="vat_mode" class="w-full px-3 py-2.5 text-sm border border-gray-200 dark:border-slate-600 rounded-lg bg-white dark:bg-slate-700 text-gray-700 dark:text-slate-200 focus:outline-none focus:ring-2 focus:ring-primary-500">
                         <option value="inclusive" {{ $business->vat_mode === 'inclusive' ? 'selected':'' }}>Inclusive (in total)</option>
                         <option value="exclusive" {{ $business->vat_mode === 'exclusive' ? 'selected':'' }}>Exclusive (added on top)</option>
                     </select>
@@ -197,7 +197,7 @@
                     <input type="hidden" name="tax_enabled" value="0">
                     <input type="checkbox" name="tax_enabled" value="1" x-model="taxEnabled"
                            {{ $business->tax_enabled ? 'checked':'' }} class="sr-only peer">
-                    <div class="w-11 h-6 bg-gray-200 dark:bg-slate-600 peer-focus:ring-2 peer-focus:ring-blue-300 rounded-full peer peer-checked:after:translate-x-full peer-checked:bg-blue-600 after:content-[''] after:absolute after:top-0.5 after:left-0.5 after:bg-white after:border after:rounded-full after:h-5 after:w-5 after:transition-all"></div>
+                    <div class="w-11 h-6 bg-gray-200 dark:bg-slate-600 peer-focus:ring-2 peer-focus:ring-primary-300 rounded-full peer peer-checked:after:translate-x-full peer-checked:bg-primary-600 after:content-[''] after:absolute after:top-0.5 after:left-0.5 after:bg-white after:border after:rounded-full after:h-5 after:w-5 after:transition-all"></div>
                 </label>
             </div>
 
@@ -205,17 +205,17 @@
                 <div>
                     <label class="block text-xs font-medium text-gray-700 dark:text-slate-300 mb-1.5">Tax Label</label>
                     <input type="text" name="tax_label" value="{{ old('tax_label', $business->tax_label) }}"
-                           class="w-full px-3 py-2.5 text-sm border border-gray-200 dark:border-slate-600 rounded-lg bg-white dark:bg-slate-700 text-gray-900 dark:text-white focus:outline-none focus:ring-2 focus:ring-blue-500"
+                           class="w-full px-3 py-2.5 text-sm border border-gray-200 dark:border-slate-600 rounded-lg bg-white dark:bg-slate-700 text-gray-900 dark:text-white focus:outline-none focus:ring-2 focus:ring-primary-500"
                            placeholder="Tax">
                 </div>
                 <div>
                     <label class="block text-xs font-medium text-gray-700 dark:text-slate-300 mb-1.5">Tax Rate (%)</label>
                     <input type="number" name="tax_rate" value="{{ old('tax_rate', $business->tax_rate) }}" min="0" max="100" step="0.01"
-                           class="w-full px-3 py-2.5 text-sm border border-gray-200 dark:border-slate-600 rounded-lg bg-white dark:bg-slate-700 text-gray-900 dark:text-white focus:outline-none focus:ring-2 focus:ring-blue-500">
+                           class="w-full px-3 py-2.5 text-sm border border-gray-200 dark:border-slate-600 rounded-lg bg-white dark:bg-slate-700 text-gray-900 dark:text-white focus:outline-none focus:ring-2 focus:ring-primary-500">
                 </div>
                 <div>
                     <label class="block text-xs font-medium text-gray-700 dark:text-slate-300 mb-1.5">Mode</label>
-                    <select name="tax_mode" class="w-full px-3 py-2.5 text-sm border border-gray-200 dark:border-slate-600 rounded-lg bg-white dark:bg-slate-700 text-gray-700 dark:text-slate-200 focus:outline-none focus:ring-2 focus:ring-blue-500">
+                    <select name="tax_mode" class="w-full px-3 py-2.5 text-sm border border-gray-200 dark:border-slate-600 rounded-lg bg-white dark:bg-slate-700 text-gray-700 dark:text-slate-200 focus:outline-none focus:ring-2 focus:ring-primary-500">
                         <option value="exclusive">Exclusive</option>
                         <option value="inclusive">Inclusive</option>
                     </select>
@@ -234,7 +234,7 @@
                 </label>
                 <input type="text" name="label_merchant_id"
                        value="{{ old('label_merchant_id', $business->print_settings['label_merchant_id'] ?? '') }}"
-                       class="w-full px-3 py-2.5 text-sm border border-gray-200 dark:border-slate-600 rounded-lg bg-white dark:bg-slate-700 text-gray-900 dark:text-white focus:outline-none focus:ring-2 focus:ring-blue-500 font-mono"
+                       class="w-full px-3 py-2.5 text-sm border border-gray-200 dark:border-slate-600 rounded-lg bg-white dark:bg-slate-700 text-gray-900 dark:text-white focus:outline-none focus:ring-2 focus:ring-primary-500 font-mono"
                        placeholder="e.g. MER-12345 (leave blank to auto-generate)">
                 <p class="text-xs text-gray-400 dark:text-slate-500 mt-1">
                     Your Steadfast or other courier Merchant/Account ID. Leave blank to auto-generate from Business ID.
@@ -243,7 +243,7 @@
         </div>
 
         <button type="submit"
-                class="w-full bg-blue-600 hover:bg-blue-700 text-white font-medium py-3 rounded-xl text-sm transition-colors">
+                class="w-full bg-primary-600 hover:bg-primary-700 text-white font-medium py-3 rounded-xl text-sm transition-colors">
             Save Business Settings
         </button>
 

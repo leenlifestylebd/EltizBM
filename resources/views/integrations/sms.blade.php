@@ -1,4 +1,4 @@
-{{-- ============================================================
+﻿{{-- ============================================================
      FILE: resources/views/integrations/sms.blade.php
      ============================================================ --}}
 @extends('layouts.app')
@@ -28,7 +28,7 @@
             <div>
                 <label class="block text-xs font-medium text-gray-700 dark:text-slate-300 mb-1.5">SMS Provider</label>
                 <select name="provider" x-model="provider"
-                        class="w-full px-3 py-2.5 text-sm border border-gray-200 dark:border-slate-600 rounded-lg bg-white dark:bg-slate-700 text-gray-700 dark:text-slate-200 focus:outline-none focus:ring-2 focus:ring-blue-500">
+                        class="w-full px-3 py-2.5 text-sm border border-gray-200 dark:border-slate-600 rounded-lg bg-white dark:bg-slate-700 text-gray-700 dark:text-slate-200 focus:outline-none focus:ring-2 focus:ring-primary-500">
                     <option value="">Select provider</option>
                     <option value="ssl_wireless" {{ $smsSettings?->provider === 'ssl_wireless' ? 'selected':'' }}>SSL Wireless (Bangladesh)</option>
                     <option value="alpha_net"    {{ $smsSettings?->provider === 'alpha_net'    ? 'selected':'' }}>Alpha Net (Bangladesh)</option>
@@ -42,7 +42,7 @@
                     <span class="text-red-500">*</span>
                 </label>
                 <input type="text" name="api_key" value="{{ $smsSettings?->api_key ? '••••••••' : '' }}"
-                       class="w-full px-3 py-2.5 text-sm border border-gray-200 dark:border-slate-600 rounded-lg bg-white dark:bg-slate-700 text-gray-900 dark:text-white focus:outline-none focus:ring-2 focus:ring-blue-500 font-mono"
+                       class="w-full px-3 py-2.5 text-sm border border-gray-200 dark:border-slate-600 rounded-lg bg-white dark:bg-slate-700 text-gray-900 dark:text-white focus:outline-none focus:ring-2 focus:ring-primary-500 font-mono"
                        :placeholder="provider === 'twilio' ? 'ACxxxxxxxx:your_auth_token' : 'Your API key'">
                 <p x-show="provider === 'twilio'" class="text-xs text-gray-400 mt-1">Format: AccountSID:AuthToken</p>
             </div>
@@ -50,7 +50,7 @@
             <div>
                 <label class="block text-xs font-medium text-gray-700 dark:text-slate-300 mb-1.5">Sender ID / From Number</label>
                 <input type="text" name="sender_id" value="{{ $smsSettings?->sender_id }}"
-                       class="w-full px-3 py-2.5 text-sm border border-gray-200 dark:border-slate-600 rounded-lg bg-white dark:bg-slate-700 text-gray-900 dark:text-white focus:outline-none focus:ring-2 focus:ring-blue-500"
+                       class="w-full px-3 py-2.5 text-sm border border-gray-200 dark:border-slate-600 rounded-lg bg-white dark:bg-slate-700 text-gray-900 dark:text-white focus:outline-none focus:ring-2 focus:ring-primary-500"
                        placeholder="e.g. YourBrand or +1234567890">
             </div>
 
@@ -73,7 +73,7 @@
                             <input type="checkbox" name="{{ $trigger['key'] }}" value="1"
                                    {{ $smsSettings?->{$trigger['key']} ? 'checked':'' }}
                                    class="sr-only peer">
-                            <div class="w-9 h-5 bg-gray-200 dark:bg-slate-600 rounded-full peer peer-checked:bg-blue-600 peer-checked:after:translate-x-full after:content-[''] after:absolute after:top-0.5 after:left-0.5 after:bg-white after:border after:rounded-full after:h-4 after:w-4 after:transition-all"></div>
+                            <div class="w-9 h-5 bg-gray-200 dark:bg-slate-600 rounded-full peer peer-checked:bg-primary-600 peer-checked:after:translate-x-full after:content-[''] after:absolute after:top-0.5 after:left-0.5 after:bg-white after:border after:rounded-full after:h-4 after:w-4 after:transition-all"></div>
                         </div>
                     </label>
                     @endforeach
@@ -87,7 +87,7 @@
                     <span x-text="testing ? 'Sending...' : 'Test SMS'"></span>
                 </button>
                 <button type="submit"
-                        class="flex-1 bg-blue-600 hover:bg-blue-700 text-white font-medium py-2.5 px-4 rounded-lg text-sm transition-colors">
+                        class="flex-1 bg-primary-600 hover:bg-primary-700 text-white font-medium py-2.5 px-4 rounded-lg text-sm transition-colors">
                     Save Settings
                 </button>
             </div>

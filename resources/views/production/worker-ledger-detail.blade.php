@@ -1,4 +1,4 @@
-@extends('layouts.app')
+﻿@extends('layouts.app')
 @section('title', $employee->name . ' Ledger')
 @section('content')
 
@@ -44,7 +44,7 @@
     <label class="text-xs text-gray-500 dark:text-slate-400 font-medium">Month:</label>
     <form method="GET" class="flex items-center gap-2">
         <select name="month" onchange="this.form.submit()"
-                class="px-3 py-2 text-xs border border-gray-200 dark:border-slate-600 rounded-lg bg-white dark:bg-slate-700 text-gray-700 dark:text-slate-200 focus:outline-none focus:ring-2 focus:ring-blue-500">
+                class="px-3 py-2 text-xs border border-gray-200 dark:border-slate-600 rounded-lg bg-white dark:bg-slate-700 text-gray-700 dark:text-slate-200 focus:outline-none focus:ring-2 focus:ring-primary-500">
             @foreach($months as $m)
             <option value="{{ $m['value'] }}" {{ $month === $m['value'] ? 'selected' : '' }}>{{ $m['label'] }}</option>
             @endforeach
@@ -70,10 +70,10 @@
     </div>
     @endif
 
-    <div class="bg-blue-50 dark:bg-blue-900/20 rounded-xl p-4 border border-blue-100 dark:border-blue-900/40">
-        <p class="text-xs text-blue-600 dark:text-blue-400 font-medium mb-1">P.Bill (This Month)</p>
-        <p class="text-2xl font-bold text-blue-700 dark:text-blue-300">৳{{ number_format($monthEarned) }}</p>
-        <p class="text-xs text-blue-500 mt-1">{{ $entries->sum('quantity') }} pieces</p>
+    <div class="bg-primary-50 dark:bg-primary-900/20 rounded-xl p-4 border border-primary-100 dark:border-primary-900/40">
+        <p class="text-xs text-primary-600 dark:text-primary-400 font-medium mb-1">P.Bill (This Month)</p>
+        <p class="text-2xl font-bold text-primary-700 dark:text-primary-300">৳{{ number_format($monthEarned) }}</p>
+        <p class="text-xs text-primary-500 mt-1">{{ $entries->sum('quantity') }} pieces</p>
     </div>
     <div class="bg-green-50 dark:bg-green-900/20 rounded-xl p-4 border border-green-100 dark:border-green-900/40">
         <p class="text-xs text-green-600 dark:text-green-400 font-medium mb-1">Paid (This Month)</p>
@@ -127,20 +127,20 @@
                         </td>
                         <td class="px-4 py-2.5 text-center">
                             @if($prod['size'] !== '—')
-                            <span class="px-2 py-0.5 text-xs rounded-full bg-blue-50 dark:bg-blue-900/30 text-blue-700 dark:text-blue-400">{{ $prod['size'] }}</span>
+                            <span class="px-2 py-0.5 text-xs rounded-full bg-primary-50 dark:bg-primary-900/30 text-primary-700 dark:text-primary-400">{{ $prod['size'] }}</span>
                             @else <span class="text-gray-400 text-xs">—</span> @endif
                         </td>
                         <td class="px-4 py-2.5 text-center text-xs text-gray-500 dark:text-slate-400">৳{{ number_format($prod['rate'], 0) }}</td>
                         <td class="px-4 py-2.5 text-center font-bold text-gray-900 dark:text-white">{{ $prod['qty'] }}</td>
-                        <td class="px-4 py-2.5 text-right font-bold text-blue-600 dark:text-blue-400">৳{{ number_format($prod['amount']) }}</td>
+                        <td class="px-4 py-2.5 text-right font-bold text-primary-600 dark:text-primary-400">৳{{ number_format($prod['amount']) }}</td>
                     </tr>
                     @endforeach
                 </tbody>
-                <tfoot class="bg-blue-50 dark:bg-blue-900/10 border-t-2 border-blue-100 dark:border-blue-900/30">
+                <tfoot class="bg-primary-50 dark:bg-primary-900/10 border-t-2 border-primary-100 dark:border-primary-900/30">
                     <tr>
                         <td colspan="4" class="px-4 py-2.5 font-bold text-gray-900 dark:text-white text-xs">Total</td>
                         <td class="px-4 py-2.5 text-center font-bold text-gray-900 dark:text-white">{{ $entries->sum('quantity') }}</td>
-                        <td class="px-4 py-2.5 text-right font-bold text-blue-700 dark:text-blue-400">৳{{ number_format($monthEarned) }}</td>
+                        <td class="px-4 py-2.5 text-right font-bold text-primary-700 dark:text-primary-400">৳{{ number_format($monthEarned) }}</td>
                     </tr>
                 </tfoot>
             </table>
@@ -187,7 +187,7 @@
                             <td class="px-4 py-2.5 text-center text-xs text-gray-400 dark:text-slate-500 hidden sm:table-cell">
                                 ৳{{ number_format($entry->productionRate?->rate ?? 0, 0) }}
                             </td>
-                            <td class="px-4 py-2.5 text-right font-bold text-blue-600 dark:text-blue-400">
+                            <td class="px-4 py-2.5 text-right font-bold text-primary-600 dark:text-primary-400">
                                 ৳{{ number_format($entry->amount) }}
                             </td>
                         </tr>
@@ -198,7 +198,7 @@
                             <td colspan="4" class="px-4 py-2.5 font-bold text-gray-900 dark:text-white text-xs">P.Bill</td>
                             <td class="px-4 py-2.5 text-center font-bold text-gray-900 dark:text-white">{{ $entries->sum('quantity') }}</td>
                             <td class="hidden sm:table-cell"></td>
-                            <td class="px-4 py-2.5 text-right font-bold text-blue-700 dark:text-blue-400 text-base">৳{{ number_format($monthEarned) }}</td>
+                            <td class="px-4 py-2.5 text-right font-bold text-primary-700 dark:text-primary-400 text-base">৳{{ number_format($monthEarned) }}</td>
                         </tr>
                     </tfoot>
                 </table>
@@ -248,7 +248,7 @@
             <h3 class="text-sm font-semibold text-gray-900 dark:text-white mb-2">Summary</h3>
             <div class="flex justify-between text-sm">
                 <span class="text-gray-600 dark:text-slate-400">P.Bill</span>
-                <span class="font-bold text-blue-600 dark:text-blue-400">৳{{ number_format($monthEarned) }}</span>
+                <span class="font-bold text-primary-600 dark:text-primary-400">৳{{ number_format($monthEarned) }}</span>
             </div>
             @if($carryOver != 0)
             <div class="flex justify-between text-sm">

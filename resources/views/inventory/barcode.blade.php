@@ -1,4 +1,4 @@
-@extends('layouts.app')
+﻿@extends('layouts.app')
 @section('title', 'Barcode Print')
 
 @section('content')
@@ -13,7 +13,7 @@
             </p>
         </div>
         <button onclick="generateAllBarcodes(this)"
-                class="flex items-center gap-2 px-4 py-2 bg-indigo-600 text-white text-xs font-semibold rounded-lg hover:bg-indigo-700 transition-colors">
+                class="flex items-center gap-2 px-4 py-2 bg-primary-600 text-white text-xs font-semibold rounded-lg hover:bg-primary-700 transition-colors">
             ⚡ Generate Missing Barcodes
         </button>
     </div>
@@ -29,7 +29,7 @@
                 <div class="space-y-3">
                     <div>
                         <label class="block text-xs font-medium text-gray-700 dark:text-slate-300 mb-1">Label Size</label>
-                        <select x-model="labelSize" class="w-full px-3 py-2 text-xs border border-gray-200 dark:border-slate-600 rounded-lg bg-white dark:bg-slate-700 text-gray-700 dark:text-slate-200 focus:ring-2 focus:ring-blue-500">
+                        <select x-model="labelSize" class="w-full px-3 py-2 text-xs border border-gray-200 dark:border-slate-600 rounded-lg bg-white dark:bg-slate-700 text-gray-700 dark:text-slate-200 focus:ring-2 focus:ring-primary-500">
                             <option value="small">Small (38×25mm)</option>
                             <option value="medium" selected>Medium (58×40mm)</option>
                             <option value="large">Large (100×50mm)</option>
@@ -37,7 +37,7 @@
                     </div>
                     <div>
                         <label class="block text-xs font-medium text-gray-700 dark:text-slate-300 mb-1">Barcode Type</label>
-                        <select x-model="barcodeType" class="w-full px-3 py-2 text-xs border border-gray-200 dark:border-slate-600 rounded-lg bg-white dark:bg-slate-700 text-gray-700 dark:text-slate-200 focus:ring-2 focus:ring-blue-500">
+                        <select x-model="barcodeType" class="w-full px-3 py-2 text-xs border border-gray-200 dark:border-slate-600 rounded-lg bg-white dark:bg-slate-700 text-gray-700 dark:text-slate-200 focus:ring-2 focus:ring-primary-500">
                             <option value="CODE128">CODE128 (universal)</option>
                             <option value="EAN13">EAN-13 (retail)</option>
                             <option value="QR">QR Code</option>
@@ -45,19 +45,19 @@
                     </div>
                     <div class="space-y-2">
                         <label class="flex items-center gap-2 cursor-pointer">
-                            <input type="checkbox" x-model="showName" class="w-3.5 h-3.5 text-blue-600 border-gray-300 rounded">
+                            <input type="checkbox" x-model="showName" class="w-3.5 h-3.5 text-primary-600 border-gray-300 rounded">
                             <span class="text-xs text-gray-600 dark:text-slate-300">Show product name</span>
                         </label>
                         <label class="flex items-center gap-2 cursor-pointer">
-                            <input type="checkbox" x-model="showSku" class="w-3.5 h-3.5 text-blue-600 border-gray-300 rounded">
+                            <input type="checkbox" x-model="showSku" class="w-3.5 h-3.5 text-primary-600 border-gray-300 rounded">
                             <span class="text-xs text-gray-600 dark:text-slate-300">Show SKU</span>
                         </label>
                         <label class="flex items-center gap-2 cursor-pointer">
-                            <input type="checkbox" x-model="showPrice" class="w-3.5 h-3.5 text-blue-600 border-gray-300 rounded">
+                            <input type="checkbox" x-model="showPrice" class="w-3.5 h-3.5 text-primary-600 border-gray-300 rounded">
                             <span class="text-xs text-gray-600 dark:text-slate-300">Show price</span>
                         </label>
                         <label class="flex items-center gap-2 cursor-pointer">
-                            <input type="checkbox" x-model="showBiz" class="w-3.5 h-3.5 text-blue-600 border-gray-300 rounded">
+                            <input type="checkbox" x-model="showBiz" class="w-3.5 h-3.5 text-primary-600 border-gray-300 rounded">
                             <span class="text-xs text-gray-600 dark:text-slate-300">Show business name</span>
                         </label>
                     </div>
@@ -88,7 +88,7 @@
                 </div>
                 <button @click="printBarcodes()"
                         :disabled="selected.length === 0"
-                        class="flex items-center justify-center gap-2 w-full px-4 py-2.5 bg-blue-600 text-white text-sm font-medium rounded-lg hover:bg-blue-700 transition-colors disabled:opacity-50 disabled:cursor-not-allowed">
+                        class="flex items-center justify-center gap-2 w-full px-4 py-2.5 bg-primary-600 text-white text-sm font-medium rounded-lg hover:bg-primary-700 transition-colors disabled:opacity-50 disabled:cursor-not-allowed">
                     <svg class="w-4 h-4" fill="none" stroke="currentColor" viewBox="0 0 24 24"><path stroke-linecap="round" stroke-linejoin="round" stroke-width="2" d="M17 17h2a2 2 0 002-2v-4a2 2 0 00-2-2H5a2 2 0 00-2 2v4a2 2 0 002 2h2m2 4h6a2 2 0 002-2v-4a2 2 0 00-2-2H9a2 2 0 00-2 2v4a2 2 0 002 2zm8-12V5a2 2 0 00-2-2H9a2 2 0 00-2 2v4h10z"/></svg>
                     Print Barcodes
                 </button>
@@ -106,9 +106,9 @@
                     <div class="relative flex-1">
                         <svg class="absolute left-2.5 top-1/2 -translate-y-1/2 w-3.5 h-3.5 text-gray-400" fill="none" stroke="currentColor" viewBox="0 0 24 24"><path stroke-linecap="round" stroke-linejoin="round" stroke-width="2" d="M21 21l-6-6m2-5a7 7 0 11-14 0 7 7 0 0114 0"/></svg>
                         <input type="text" x-model="search" placeholder="Search products..."
-                               class="w-full pl-8 pr-3 py-2 text-xs border border-gray-200 dark:border-slate-600 rounded-lg bg-transparent text-gray-900 dark:text-white focus:outline-none focus:ring-2 focus:ring-blue-500">
+                               class="w-full pl-8 pr-3 py-2 text-xs border border-gray-200 dark:border-slate-600 rounded-lg bg-transparent text-gray-900 dark:text-white focus:outline-none focus:ring-2 focus:ring-primary-500">
                     </div>
-                    <button @click="selectAll()" class="text-xs text-blue-600 hover:underline dark:text-blue-400">All</button>
+                    <button @click="selectAll()" class="text-xs text-primary-600 hover:underline dark:text-primary-400">All</button>
                     <button @click="clearAll()" class="text-xs text-gray-400 hover:underline">None</button>
                 </div>
 
@@ -121,7 +121,7 @@
                             <input type="checkbox"
                                    :checked="isSelected({{ $p->id }})"
                                    @change="toggleProduct({{ $p->id }}, {{ json_encode($p->name) }}, {{ json_encode($p->sku ?? $p->barcode ?? (string)$p->id) }}, {{ $p->price }}, {{ json_encode($p->barcode ?? '') }})"
-                                   class="w-3.5 h-3.5 text-blue-600 border-gray-300 rounded flex-shrink-0">
+                                   class="w-3.5 h-3.5 text-primary-600 border-gray-300 rounded flex-shrink-0">
                             <div class="flex-1 min-w-0">
                                 <p class="text-xs font-medium text-gray-900 dark:text-white truncate">{{ $p->name }}</p>
                                 <p class="text-xs text-gray-400 dark:text-slate-500 mt-0.5">
@@ -139,14 +139,14 @@
                         <div class="flex items-center gap-1.5 flex-shrink-0">
                             @if(!$p->barcode)
                             <button onclick="generateBarcode({{ $p->id }}, this)"
-                                    class="px-2 py-1 text-xs bg-indigo-100 dark:bg-indigo-900/30 text-indigo-600 dark:text-indigo-400 rounded-lg hover:bg-indigo-200 transition-colors font-medium whitespace-nowrap">
+                                    class="px-2 py-1 text-xs bg-primary-100 dark:bg-primary-900/30 text-primary-600 dark:text-primary-400 rounded-lg hover:bg-primary-200 transition-colors font-medium whitespace-nowrap">
                                 Generate
                             </button>
                             @endif
                             <input type="number" min="1" max="999"
                                    :value="getQty({{ $p->id }})"
                                    @change="setQty({{ $p->id }}, $event.target.value)"
-                                   class="w-14 px-2 py-1 text-xs text-center border border-gray-200 dark:border-slate-600 rounded-lg bg-white dark:bg-slate-700 text-gray-900 dark:text-white focus:outline-none focus:ring-1 focus:ring-blue-500"
+                                   class="w-14 px-2 py-1 text-xs text-center border border-gray-200 dark:border-slate-600 rounded-lg bg-white dark:bg-slate-700 text-gray-900 dark:text-white focus:outline-none focus:ring-1 focus:ring-primary-500"
                                    placeholder="Qty">
                         </div>
                     </div>

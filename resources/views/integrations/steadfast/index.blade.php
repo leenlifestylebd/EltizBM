@@ -1,4 +1,4 @@
-@extends('layouts.app')
+﻿@extends('layouts.app')
 @section('title', 'Shipments')
 
 @section('content')
@@ -151,7 +151,7 @@
     @php
     $statsData = [
         ['label'=>'Balance',  'value'=>'৳'.number_format($balance ?? 0), 'color'=>'green',  'refresh'=>true],
-        ['label'=>'Total',    'value'=>$shipmentCounts[''],               'color'=>'blue'],
+        ['label'=>'Total',    'value'=>$shipmentCounts[''],               'color'=>'primary'],
         ['label'=>'Pending',  'value'=>$shipmentCounts['pending'],        'color'=>'yellow'],
         ['label'=>'Delivered','value'=>$shipmentCounts['delivered'],      'color'=>'green'],
         ['label'=>'Partial',  'value'=>$shipmentCounts['partial_delivered'],'color'=>'orange'],
@@ -165,7 +165,7 @@
             {{ $s['value'] }}
         </p>
         @if($s['label']==='Balance')
-        <button onclick="refreshBalance()" class="mt-1 text-xs text-gray-400 hover:text-blue-500">↻</button>
+        <button onclick="refreshBalance()" class="mt-1 text-xs text-gray-400 hover:text-primary-500">↻</button>
         @endif
     </div>
     @endforeach
@@ -179,7 +179,7 @@
             :class="tab==='ready' ? 'bg-white dark:bg-slate-800 text-gray-900 dark:text-white shadow-sm' : 'text-gray-500 dark:text-slate-400 hover:text-gray-700'">
         📦 Ready
         <span class="ml-1 px-1.5 py-0.5 rounded-full text-xs"
-              :class="tab==='ready' ? 'bg-blue-100 text-blue-700 dark:bg-blue-900/30 dark:text-blue-400' : 'bg-gray-200 dark:bg-slate-600 text-gray-500'">
+              :class="tab==='ready' ? 'bg-primary-100 text-primary-700 dark:bg-primary-900/30 dark:text-primary-400' : 'bg-gray-200 dark:bg-slate-600 text-gray-500'">
             {{ $readyOrders->total() }}
         </span>
     </button>
@@ -188,7 +188,7 @@
             :class="tab==='sent' ? 'bg-white dark:bg-slate-800 text-gray-900 dark:text-white shadow-sm' : 'text-gray-500 dark:text-slate-400 hover:text-gray-700'">
         🚚 Sent
         <span class="ml-1 px-1.5 py-0.5 rounded-full text-xs"
-              :class="tab==='sent' ? 'bg-blue-100 text-blue-700 dark:bg-blue-900/30 dark:text-blue-400' : 'bg-gray-200 dark:bg-slate-600 text-gray-500'">
+              :class="tab==='sent' ? 'bg-primary-100 text-primary-700 dark:bg-primary-900/30 dark:text-primary-400' : 'bg-gray-200 dark:bg-slate-600 text-gray-500'">
             {{ $shipmentCounts[''] }}
         </span>
     </button>
@@ -205,7 +205,7 @@
 
     {{-- Bulk Send Bar --}}
     <div x-show="selectedOrders.length > 0" x-cloak
-         class="sticky top-16 z-20 bg-blue-600 text-white rounded-xl px-4 py-3 mb-3 flex items-center justify-between shadow-lg">
+         class="sticky top-16 z-20 bg-primary-600 text-white rounded-xl px-4 py-3 mb-3 flex items-center justify-between shadow-lg">
         <span class="text-sm font-semibold"><span x-text="selectedOrders.length"></span> orders selected</span>
         <div class="flex gap-2">
             <button @click="selectedOrders = []" class="px-3 py-1.5 text-xs bg-white/20 rounded-lg hover:bg-white/30">Clear</button>
@@ -213,7 +213,7 @@
                 @csrf
                 <div id="bulkSendIds"></div>
                 <button type="button" @click="submitBulkSend()"
-                        class="px-3 py-1.5 text-xs bg-white text-blue-700 font-semibold rounded-lg hover:bg-blue-50">
+                        class="px-3 py-1.5 text-xs bg-white text-primary-700 font-semibold rounded-lg hover:bg-primary-50">
                     🚀 Send All
                 </button>
             </form>
@@ -225,7 +225,7 @@
         <p class="text-5xl mb-3">📭</p>
         <p class="text-sm font-medium text-gray-600 dark:text-slate-300">No orders ready to send</p>
         <p class="text-xs text-gray-400 dark:text-slate-500 mt-1">Confirmed/Processing orders will appear here</p>
-        <a href="{{ route('orders.index') }}" class="mt-3 inline-block text-xs text-blue-600 hover:underline">View all orders →</a>
+        <a href="{{ route('orders.index') }}" class="mt-3 inline-block text-xs text-primary-600 hover:underline">View all orders →</a>
     </div>
     @else
 
@@ -237,7 +237,7 @@
             <input type="checkbox"
                    @change="toggleAllOrders($event.target.checked, {{ json_encode($allOrderIds) }})"
                    :checked="selectedOrders.length === {{ count($allOrderIds) }} && {{ count($allOrderIds) }} > 0"
-                   class="w-4 h-4 rounded text-blue-600">
+                   class="w-4 h-4 rounded text-primary-600">
             <span class="text-xs text-gray-500 dark:text-slate-400">Select all {{ $readyOrders->count() }}</span>
         </label>
         <span class="text-xs text-gray-400 dark:text-slate-500">{{ $readyOrders->total() }} total</span>
@@ -246,19 +246,19 @@
     <div class="space-y-2">
         @foreach($readyOrders as $order)
         <div class="bg-white dark:bg-slate-800 rounded-2xl border border-gray-100 dark:border-slate-700 p-4 transition-all"
-             :class="selectedOrders.includes({{ $order->id }}) ? 'ring-2 ring-blue-500 border-blue-300' : ''">
+             :class="selectedOrders.includes({{ $order->id }}) ? 'ring-2 ring-primary-500 border-primary-300' : ''">
 
             <div class="flex items-start gap-3">
                 <input type="checkbox"
                        @change="toggleOrder({{ $order->id }})"
                        :checked="selectedOrders.includes({{ $order->id }})"
-                       class="w-4 h-4 rounded text-blue-600 mt-1 flex-shrink-0">
+                       class="w-4 h-4 rounded text-primary-600 mt-1 flex-shrink-0">
 
                 <div class="flex-1 min-w-0">
                     {{-- Row 1: Order # + COD --}}
                     <div class="flex items-center justify-between mb-1">
                         <a href="{{ route('orders.show', $order) }}"
-                           class="text-sm font-bold text-blue-600 hover:underline">#{{ $order->order_number }}</a>
+                           class="text-sm font-bold text-primary-600 hover:underline">#{{ $order->order_number }}</a>
                         <span class="text-sm font-bold text-gray-900 dark:text-white">৳{{ number_format($order->due_amount) }}</span>
                     </div>
 
@@ -283,7 +283,7 @@
                         <form method="POST" action="{{ route('steadfast.send-order', $order) }}">
                             @csrf
                             <button type="submit"
-                                    class="flex items-center gap-1.5 px-4 py-2 bg-blue-600 hover:bg-blue-700 text-white text-xs font-semibold rounded-xl transition-colors active:scale-95">
+                                    class="flex items-center gap-1.5 px-4 py-2 bg-primary-600 hover:bg-primary-700 text-white text-xs font-semibold rounded-xl transition-colors active:scale-95">
                                 <svg class="w-3.5 h-3.5" fill="none" stroke="currentColor" viewBox="0 0 24 24">
                                     <path stroke-linecap="round" stroke-linejoin="round" stroke-width="2" d="M12 19l9 2-9-18-9 18 9-2zm0 0v-8"/>
                                 </svg>
@@ -390,7 +390,7 @@
             'partial_delivered' => ['color' => 'orange', 'icon' => '📬', 'label' => 'Partial'],
             'cancelled'         => ['color' => 'red',    'icon' => '❌', 'label' => 'Cancelled'],
             'approval_pending'  => ['color' => 'purple', 'icon' => '🔍', 'label' => 'Approval'],
-            'in_review'         => ['color' => 'indigo', 'icon' => '🔎', 'label' => 'In Review'],
+            'in_review'         => ['color'=>'violet', 'icon' => '🔎', 'label' => 'In Review'],
             default             => ['color' => 'yellow', 'icon' => '⏳', 'label' => 'Pending'],
         };
         @endphp
@@ -408,7 +408,7 @@
                     {{-- Row 1: Order # + Status badge --}}
                     <div class="flex items-center justify-between mb-1">
                         <a href="{{ $shipment->order ? route('orders.show', $shipment->order) : '#' }}"
-                           class="text-sm font-bold text-blue-600 hover:underline">
+                           class="text-sm font-bold text-primary-600 hover:underline">
                             #{{ $shipment->order->order_number ?? '—' }}
                         </a>
                         <span class="inline-flex items-center gap-1 px-2.5 py-1 rounded-full text-xs font-semibold
@@ -442,7 +442,7 @@
                             {{ $shipment->consignment_id }}
                         </span>
                         @endif
-                        <span class="px-2 py-1 bg-blue-50 dark:bg-blue-900/20 text-blue-600 dark:text-blue-400 rounded-lg text-xs font-medium">
+                        <span class="px-2 py-1 bg-primary-50 dark:bg-primary-900/20 text-primary-600 dark:text-primary-400 rounded-lg text-xs font-medium">
                             Steadfast
                         </span>
                     </div>
@@ -462,7 +462,7 @@
                                 🏷️ Label
                             </a>
                             <a href="{{ route('steadfast.invoice', $shipment) }}" target="_blank"
-                               class="flex items-center gap-1 px-2.5 py-1.5 text-xs font-medium bg-blue-50 dark:bg-blue-900/20 text-blue-700 dark:text-blue-400 rounded-lg hover:bg-blue-100 transition-colors active:scale-95">
+                               class="flex items-center gap-1 px-2.5 py-1.5 text-xs font-medium bg-primary-50 dark:bg-primary-900/20 text-primary-700 dark:text-primary-400 rounded-lg hover:bg-primary-100 transition-colors active:scale-95">
                                 📄 Invoice
                             </a>
                         </div>
@@ -498,7 +498,7 @@
         <div class="p-5 space-y-3">
             <div class="flex gap-2">
                 <select x-model="trackType"
-                        class="flex-1 px-3 py-2.5 text-xs border border-gray-200 dark:border-slate-600 rounded-xl bg-white dark:bg-slate-700 text-gray-700 dark:text-slate-200 focus:outline-none focus:ring-2 focus:ring-blue-500">
+                        class="flex-1 px-3 py-2.5 text-xs border border-gray-200 dark:border-slate-600 rounded-xl bg-white dark:bg-slate-700 text-gray-700 dark:text-slate-200 focus:outline-none focus:ring-2 focus:ring-primary-500">
                     <option value="tracking">Tracking Code</option>
                     <option value="consignment">Consignment ID</option>
                     <option value="invoice">Order Number</option>
@@ -508,10 +508,10 @@
             <div class="flex gap-2">
                 <input type="text" x-model="trackValue" placeholder="Enter value..."
                        @keydown.enter="doTrack()"
-                       class="flex-1 px-3 py-2.5 text-sm border border-gray-200 dark:border-slate-600 rounded-xl bg-white dark:bg-slate-700 text-gray-900 dark:text-white placeholder-gray-400 font-mono focus:outline-none focus:ring-2 focus:ring-blue-500">
+                       class="flex-1 px-3 py-2.5 text-sm border border-gray-200 dark:border-slate-600 rounded-xl bg-white dark:bg-slate-700 text-gray-900 dark:text-white placeholder-gray-400 font-mono focus:outline-none focus:ring-2 focus:ring-primary-500">
                 <button @click="doTrack()"
                         :disabled="trackLoading"
-                        class="px-4 py-2.5 bg-blue-600 hover:bg-blue-700 disabled:opacity-60 text-white text-sm font-semibold rounded-xl transition-colors">
+                        class="px-4 py-2.5 bg-primary-600 hover:bg-primary-700 disabled:opacity-60 text-white text-sm font-semibold rounded-xl transition-colors">
                     <span x-show="!trackLoading">Go</span>
                     <span x-show="trackLoading" class="inline-block w-4 h-4 border-2 border-white border-t-transparent rounded-full animate-spin"></span>
                 </button>

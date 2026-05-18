@@ -1,4 +1,4 @@
-@extends('reports.exports._layout')
+﻿@extends('reports.exports._layout')
 @section('content')
 @php
   $totRev = collect($months)->sum('revenue');
@@ -44,7 +44,7 @@
     @php $margin = $m['revenue'] > 0 ? round(($m['profit']/$m['revenue'])*100, 1) : 0; @endphp
     <tr>
       <td class="bold">{{ $m['month'] }}</td>
-      <td class="right" style="color:#1d4ed8;">{{ $m['revenue'] > 0 ? '&#2547;'.number_format($m['revenue']) : '—' }}</td>
+      <td class="right" style="color:{{ $p800 }};">{{ $m['revenue'] > 0 ? '&#2547;'.number_format($m['revenue']) : '—' }}</td>
       <td class="right" style="color:#dc2626;">{{ $m['expense'] > 0 ? '&#2547;'.number_format($m['expense']) : '—' }}</td>
       <td class="right bold" style="color:{{ $m['profit'] >= 0 ? '#16a34a' : '#dc2626' }}">
         {{ $m['profit'] != 0 ? ($m['profit'] < 0 ? '&minus;' : '').'&#2547;'.number_format(abs($m['profit'])) : '—' }}

@@ -1,4 +1,4 @@
-@extends('layouts.app')
+﻿@extends('layouts.app')
 @section('title', 'Material Purchases')
 @section('content')
 
@@ -63,13 +63,13 @@ $catColors = [
             <div>
                 <label class="block text-xs font-medium text-gray-700 dark:text-slate-300 mb-1.5">Item Name <span class="text-red-500">*</span></label>
                 <input type="text" name="item_name" required value="{{ old('item_name') }}"
-                       class="w-full px-3 py-2.5 text-sm border border-gray-200 dark:border-slate-600 rounded-lg bg-white dark:bg-slate-700 text-gray-900 dark:text-white focus:outline-none focus:ring-2 focus:ring-blue-500"
+                       class="w-full px-3 py-2.5 text-sm border border-gray-200 dark:border-slate-600 rounded-lg bg-white dark:bg-slate-700 text-gray-900 dark:text-white focus:outline-none focus:ring-2 focus:ring-primary-500"
                        placeholder="e.g. Fabric, Zipper, Meta Ads...">
             </div>
             <div>
                 <label class="block text-xs font-medium text-gray-700 dark:text-slate-300 mb-1.5">Category <span class="text-red-500">*</span></label>
                 <select name="category" required
-                        class="w-full px-3 py-2.5 text-sm border border-gray-200 dark:border-slate-600 rounded-lg bg-white dark:bg-slate-700 text-gray-700 dark:text-slate-200 focus:outline-none focus:ring-2 focus:ring-blue-500">
+                        class="w-full px-3 py-2.5 text-sm border border-gray-200 dark:border-slate-600 rounded-lg bg-white dark:bg-slate-700 text-gray-700 dark:text-slate-200 focus:outline-none focus:ring-2 focus:ring-primary-500">
                     @foreach($categories as $key => $label)
                     <option value="{{ $key }}" {{ old('category') === $key ? 'selected' : '' }}>{{ $label }}</option>
                     @endforeach
@@ -78,7 +78,7 @@ $catColors = [
             <div>
                 <label class="block text-xs font-medium text-gray-700 dark:text-slate-300 mb-1.5">Date <span class="text-red-500">*</span></label>
                 <input type="date" name="purchase_date" required value="{{ old('purchase_date', today()->format('Y-m-d')) }}"
-                       class="w-full px-3 py-2.5 text-sm border border-gray-200 dark:border-slate-600 rounded-lg bg-white dark:bg-slate-700 text-gray-900 dark:text-white focus:outline-none focus:ring-2 focus:ring-blue-500">
+                       class="w-full px-3 py-2.5 text-sm border border-gray-200 dark:border-slate-600 rounded-lg bg-white dark:bg-slate-700 text-gray-900 dark:text-white focus:outline-none focus:ring-2 focus:ring-primary-500">
             </div>
 
             {{-- Amount OR Qty × Rate --}}
@@ -86,7 +86,7 @@ $catColors = [
                 <div class="flex items-center justify-between mb-1.5">
                     <label class="block text-xs font-medium text-gray-700 dark:text-slate-300">Amount</label>
                     <button type="button" @click="hasQtyRate = !hasQtyRate"
-                            class="text-xs text-blue-600 dark:text-blue-400 hover:underline font-medium">
+                            class="text-xs text-primary-600 dark:text-primary-400 hover:underline font-medium">
                         <span x-text="hasQtyRate ? '− Simple Amount' : '+ Qty × Rate'"></span>
                     </button>
                 </div>
@@ -94,20 +94,20 @@ $catColors = [
                     <div class="relative">
                         <span class="absolute left-3 top-1/2 -translate-y-1/2 text-gray-400 text-sm">৳</span>
                         <input type="number" name="amount" min="0" step="0.01" value="{{ old('amount') }}"
-                               class="w-full pl-7 pr-3 py-2.5 text-sm border border-gray-200 dark:border-slate-600 rounded-lg bg-white dark:bg-slate-700 text-gray-900 dark:text-white focus:outline-none focus:ring-2 focus:ring-blue-500"
+                               class="w-full pl-7 pr-3 py-2.5 text-sm border border-gray-200 dark:border-slate-600 rounded-lg bg-white dark:bg-slate-700 text-gray-900 dark:text-white focus:outline-none focus:ring-2 focus:ring-primary-500"
                                placeholder="Total amount">
                     </div>
                 </div>
                 <div x-show="hasQtyRate" x-cloak class="grid grid-cols-2 gap-2">
                     <div>
                         <input type="number" name="quantity" min="0" step="0.01" value="{{ old('quantity') }}"
-                               class="w-full px-3 py-2.5 text-sm border border-gray-200 dark:border-slate-600 rounded-lg bg-white dark:bg-slate-700 text-gray-900 dark:text-white focus:outline-none focus:ring-2 focus:ring-blue-500"
+                               class="w-full px-3 py-2.5 text-sm border border-gray-200 dark:border-slate-600 rounded-lg bg-white dark:bg-slate-700 text-gray-900 dark:text-white focus:outline-none focus:ring-2 focus:ring-primary-500"
                                placeholder="Quantity">
                     </div>
                     <div class="relative">
                         <span class="absolute left-3 top-1/2 -translate-y-1/2 text-gray-400 text-sm">৳</span>
                         <input type="number" name="rate" min="0" step="0.01" value="{{ old('rate') }}"
-                               class="w-full pl-7 pr-3 py-2.5 text-sm border border-gray-200 dark:border-slate-600 rounded-lg bg-white dark:bg-slate-700 text-gray-900 dark:text-white focus:outline-none focus:ring-2 focus:ring-blue-500"
+                               class="w-full pl-7 pr-3 py-2.5 text-sm border border-gray-200 dark:border-slate-600 rounded-lg bg-white dark:bg-slate-700 text-gray-900 dark:text-white focus:outline-none focus:ring-2 focus:ring-primary-500"
                                placeholder="Rate/unit">
                     </div>
                 </div>
@@ -116,19 +116,19 @@ $catColors = [
             <div>
                 <label class="block text-xs font-medium text-gray-700 dark:text-slate-300 mb-1.5">Shop / Supplier</label>
                 <input type="text" name="shop_name" value="{{ old('shop_name') }}"
-                       class="w-full px-3 py-2.5 text-sm border border-gray-200 dark:border-slate-600 rounded-lg bg-white dark:bg-slate-700 text-gray-900 dark:text-white focus:outline-none focus:ring-2 focus:ring-blue-500"
+                       class="w-full px-3 py-2.5 text-sm border border-gray-200 dark:border-slate-600 rounded-lg bg-white dark:bg-slate-700 text-gray-900 dark:text-white focus:outline-none focus:ring-2 focus:ring-primary-500"
                        placeholder="Shop name (optional)">
             </div>
             <div>
                 <label class="block text-xs font-medium text-gray-700 dark:text-slate-300 mb-1.5">Color</label>
                 <input type="text" name="color" value="{{ old('color') }}"
-                       class="w-full px-3 py-2.5 text-sm border border-gray-200 dark:border-slate-600 rounded-lg bg-white dark:bg-slate-700 text-gray-900 dark:text-white focus:outline-none focus:ring-2 focus:ring-blue-500"
+                       class="w-full px-3 py-2.5 text-sm border border-gray-200 dark:border-slate-600 rounded-lg bg-white dark:bg-slate-700 text-gray-900 dark:text-white focus:outline-none focus:ring-2 focus:ring-primary-500"
                        placeholder="For fabric (optional)">
             </div>
             <div>
                 <label class="block text-xs font-medium text-gray-700 dark:text-slate-300 mb-1.5">Payment Method</label>
                 <select name="payment_method"
-                        class="w-full px-3 py-2.5 text-sm border border-gray-200 dark:border-slate-600 rounded-lg bg-white dark:bg-slate-700 text-gray-700 dark:text-slate-200 focus:outline-none focus:ring-2 focus:ring-blue-500">
+                        class="w-full px-3 py-2.5 text-sm border border-gray-200 dark:border-slate-600 rounded-lg bg-white dark:bg-slate-700 text-gray-700 dark:text-slate-200 focus:outline-none focus:ring-2 focus:ring-primary-500">
                     @foreach(['cash','bkash','nagad','rocket','bank','card','other'] as $m)
                     <option value="{{ $m }}">{{ ucfirst($m) }}</option>
                     @endforeach
@@ -137,14 +137,14 @@ $catColors = [
             <div>
                 <label class="block text-xs font-medium text-gray-700 dark:text-slate-300 mb-1.5">Notes</label>
                 <input type="text" name="notes" value="{{ old('notes') }}"
-                       class="w-full px-3 py-2.5 text-sm border border-gray-200 dark:border-slate-600 rounded-lg bg-white dark:bg-slate-700 text-gray-900 dark:text-white focus:outline-none focus:ring-2 focus:ring-blue-500"
+                       class="w-full px-3 py-2.5 text-sm border border-gray-200 dark:border-slate-600 rounded-lg bg-white dark:bg-slate-700 text-gray-900 dark:text-white focus:outline-none focus:ring-2 focus:ring-primary-500"
                        placeholder="Optional notes">
             </div>
             @if($errors->any())
             <p class="text-xs text-red-500">{{ $errors->first() }}</p>
             @endif
             <button type="submit"
-                    class="w-full bg-blue-600 hover:bg-blue-700 text-white font-medium py-2.5 text-sm rounded-lg transition-colors">
+                    class="w-full bg-primary-600 hover:bg-primary-700 text-white font-medium py-2.5 text-sm rounded-lg transition-colors">
                 Add Purchase
             </button>
         </form>
@@ -156,16 +156,16 @@ $catColors = [
         {{-- Filter bar --}}
         <form method="GET" class="flex flex-wrap gap-2">
             <input type="month" name="month" value="{{ $month }}"
-                   class="text-sm px-3 py-2 border border-gray-200 dark:border-slate-600 rounded-lg bg-white dark:bg-slate-700 text-gray-700 dark:text-slate-200 focus:outline-none focus:ring-2 focus:ring-blue-500">
+                   class="text-sm px-3 py-2 border border-gray-200 dark:border-slate-600 rounded-lg bg-white dark:bg-slate-700 text-gray-700 dark:text-slate-200 focus:outline-none focus:ring-2 focus:ring-primary-500">
             <select name="category"
-                    class="flex-1 text-sm px-3 py-2 border border-gray-200 dark:border-slate-600 rounded-lg bg-white dark:bg-slate-700 text-gray-700 dark:text-slate-200 focus:outline-none focus:ring-2 focus:ring-blue-500">
+                    class="flex-1 text-sm px-3 py-2 border border-gray-200 dark:border-slate-600 rounded-lg bg-white dark:bg-slate-700 text-gray-700 dark:text-slate-200 focus:outline-none focus:ring-2 focus:ring-primary-500">
                 <option value="">All Categories</option>
                 @foreach($categories as $key => $label)
                 <option value="{{ $key }}" {{ $cat === $key ? 'selected' : '' }}>{{ $label }}</option>
                 @endforeach
             </select>
             <button type="submit"
-                    class="px-3 py-2 bg-blue-600 text-white rounded-lg hover:bg-blue-700 text-sm transition-colors">Filter</button>
+                    class="px-3 py-2 bg-primary-600 text-white rounded-lg hover:bg-primary-700 text-sm transition-colors">Filter</button>
         </form>
 
         {{-- Category Breakdown --}}

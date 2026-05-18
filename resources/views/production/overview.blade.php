@@ -1,4 +1,4 @@
-@extends('layouts.app')
+﻿@extends('layouts.app')
 @section('title', 'Production Overview')
 
 @section('content')
@@ -11,8 +11,8 @@
     {{-- Date filter --}}
     <form method="GET" class="flex items-center gap-2">
         <input type="date" name="date" value="{{ request('date', today()->format('Y-m-d')) }}"
-               class="text-sm px-3 py-2 border border-gray-200 dark:border-slate-600 rounded-lg bg-white dark:bg-slate-700 text-gray-700 dark:text-slate-200 focus:outline-none focus:ring-2 focus:ring-blue-500">
-        <button type="submit" class="px-3 py-2 bg-blue-600 text-white rounded-lg text-sm hover:bg-blue-700 transition-colors">View</button>
+               class="text-sm px-3 py-2 border border-gray-200 dark:border-slate-600 rounded-lg bg-white dark:bg-slate-700 text-gray-700 dark:text-slate-200 focus:outline-none focus:ring-2 focus:ring-primary-500">
+        <button type="submit" class="px-3 py-2 bg-primary-600 text-white rounded-lg text-sm hover:bg-primary-700 transition-colors">View</button>
     </form>
 </div>
 
@@ -22,8 +22,8 @@
         <p class="text-2xl font-bold text-gray-900 dark:text-white">{{ $summary['total_qty'] }}</p>
         <p class="text-xs text-gray-500 dark:text-slate-400 mt-0.5">Total Produced</p>
     </div>
-    <div class="bg-white dark:bg-slate-800 rounded-xl p-4 border border-blue-100 dark:border-blue-900/30 text-center">
-        <p class="text-2xl font-bold text-blue-600 dark:text-blue-400">{{ $summary['workers_logged'] }}</p>
+    <div class="bg-white dark:bg-slate-800 rounded-xl p-4 border border-primary-100 dark:border-primary-900/30 text-center">
+        <p class="text-2xl font-bold text-primary-600 dark:text-primary-400">{{ $summary['workers_logged'] }}</p>
         <p class="text-xs text-gray-500 dark:text-slate-400 mt-0.5">Workers Logged</p>
     </div>
     <div class="bg-white dark:bg-slate-800 rounded-xl p-4 border border-green-100 dark:border-green-900/30 text-center">
@@ -60,9 +60,9 @@
                 @foreach($employeeStats as $stat)
                 <tr class="hover:bg-gray-50 dark:hover:bg-slate-700/30 transition-colors">
                     <td class="px-4 py-3">
-                        <a href="{{ route('employees.show', $stat['employee']) }}" class="flex items-center gap-2 hover:text-blue-600 transition-colors">
+                        <a href="{{ route('employees.show', $stat['employee']) }}" class="flex items-center gap-2 hover:text-primary-600 transition-colors">
                             <div class="w-8 h-8 rounded-full flex items-center justify-center text-white text-xs font-bold
-                                {{ ['bg-blue-500','bg-purple-500','bg-green-500','bg-orange-500','bg-pink-500'][crc32($stat['employee']->name) % 5] }}">
+                                {{ ['bg-primary-500','bg-purple-500','bg-green-500','bg-orange-500','bg-pink-500'][crc32($stat['employee']->name) % 5] }}">
                                 {{ strtoupper(substr($stat['employee']->name, 0, 2)) }}
                             </div>
                             <div>
@@ -131,7 +131,7 @@
         <div class="p-4">
             <div class="flex items-center gap-3 mb-3">
                 <div class="w-10 h-10 rounded-full flex items-center justify-center text-white font-bold
-                    {{ ['bg-blue-500','bg-purple-500','bg-green-500','bg-orange-500','bg-pink-500'][crc32($stat['employee']->name) % 5] }}">
+                    {{ ['bg-primary-500','bg-purple-500','bg-green-500','bg-orange-500','bg-pink-500'][crc32($stat['employee']->name) % 5] }}">
                     {{ strtoupper(substr($stat['employee']->name, 0, 2)) }}
                 </div>
                 <div class="flex-1">

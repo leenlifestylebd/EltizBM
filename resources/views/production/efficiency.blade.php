@@ -1,4 +1,4 @@
-@extends('layouts.app')
+﻿@extends('layouts.app')
 @section('title', 'Worker Efficiency Report')
 
 @section('content')
@@ -16,24 +16,24 @@
         <div class="flex items-center gap-1.5">
             <label class="text-xs text-gray-500 dark:text-slate-400">From</label>
             <input type="date" name="from" value="{{ $from }}"
-                   class="px-2.5 py-1.5 text-xs border border-gray-200 dark:border-slate-600 rounded-lg bg-white dark:bg-slate-700 text-gray-900 dark:text-white focus:ring-2 focus:ring-blue-500">
+                   class="px-2.5 py-1.5 text-xs border border-gray-200 dark:border-slate-600 rounded-lg bg-white dark:bg-slate-700 text-gray-900 dark:text-white focus:ring-2 focus:ring-primary-500">
         </div>
         <div class="flex items-center gap-1.5">
             <label class="text-xs text-gray-500 dark:text-slate-400">To</label>
             <input type="date" name="to" value="{{ $to }}"
-                   class="px-2.5 py-1.5 text-xs border border-gray-200 dark:border-slate-600 rounded-lg bg-white dark:bg-slate-700 text-gray-900 dark:text-white focus:ring-2 focus:ring-blue-500">
+                   class="px-2.5 py-1.5 text-xs border border-gray-200 dark:border-slate-600 rounded-lg bg-white dark:bg-slate-700 text-gray-900 dark:text-white focus:ring-2 focus:ring-primary-500">
         </div>
         <div class="flex items-center gap-1.5">
             <label class="text-xs text-gray-500 dark:text-slate-400">Worker</label>
             <select name="employee"
-                    class="px-2.5 py-1.5 text-xs border border-gray-200 dark:border-slate-600 rounded-lg bg-white dark:bg-slate-700 text-gray-700 dark:text-slate-200 focus:ring-2 focus:ring-blue-500">
+                    class="px-2.5 py-1.5 text-xs border border-gray-200 dark:border-slate-600 rounded-lg bg-white dark:bg-slate-700 text-gray-700 dark:text-slate-200 focus:ring-2 focus:ring-primary-500">
                 <option value="">All Workers</option>
                 @foreach($employees as $emp)
                 <option value="{{ $emp->id }}" {{ $empId == $emp->id ? 'selected' : '' }}>{{ $emp->name }}</option>
                 @endforeach
             </select>
         </div>
-        <button type="submit" class="px-3 py-1.5 bg-blue-600 text-white text-xs rounded-lg hover:bg-blue-700 transition-colors">Apply</button>
+        <button type="submit" class="px-3 py-1.5 bg-primary-600 text-white text-xs rounded-lg hover:bg-primary-700 transition-colors">Apply</button>
     </form>
 </div>
 
@@ -49,11 +49,11 @@
     </div>
     <div class="bg-white dark:bg-slate-800 rounded-xl border border-gray-100 dark:border-slate-700 p-4">
         <p class="text-xs text-gray-500 dark:text-slate-400">Active Workers</p>
-        <p class="text-2xl font-bold text-blue-600 dark:text-blue-400 mt-1">{{ $workerStats->count() }}</p>
+        <p class="text-2xl font-bold text-primary-600 dark:text-primary-400 mt-1">{{ $workerStats->count() }}</p>
     </div>
     <div class="bg-white dark:bg-slate-800 rounded-xl border border-gray-100 dark:border-slate-700 p-4">
         <p class="text-xs text-gray-500 dark:text-slate-400">Avg per Worker/Day</p>
-        <p class="text-2xl font-bold text-indigo-600 dark:text-indigo-400 mt-1">
+        <p class="text-2xl font-bold text-primary-600 dark:text-primary-400 mt-1">
             {{ $workerStats->count() > 0 ? number_format($workerStats->avg('avg_per_day'), 1) : '0' }}
         </p>
     </div>
@@ -76,8 +76,8 @@
         <div class="flex items-center gap-4 px-4 py-3 cursor-pointer hover:bg-gray-50 dark:hover:bg-slate-700/30 transition-colors"
              @click="open = !open">
             {{-- Avatar --}}
-            <div class="w-10 h-10 rounded-full bg-blue-100 dark:bg-blue-900/30 flex items-center justify-center flex-shrink-0">
-                <span class="text-sm font-bold text-blue-600 dark:text-blue-400">{{ mb_substr($stat['employee']->name, 0, 1) }}</span>
+            <div class="w-10 h-10 rounded-full bg-primary-100 dark:bg-primary-900/30 flex items-center justify-center flex-shrink-0">
+                <span class="text-sm font-bold text-primary-600 dark:text-primary-400">{{ mb_substr($stat['employee']->name, 0, 1) }}</span>
             </div>
 
             {{-- Name + stats --}}
@@ -89,7 +89,7 @@
                 {{-- Progress bar (relative to best worker) --}}
                 @php $maxQty = $workerStats->max('total_qty') ?: 1; $pct = round($stat['total_qty'] / $maxQty * 100); @endphp
                 <div class="mt-1 w-full bg-gray-100 dark:bg-slate-700 rounded-full h-1.5">
-                    <div class="bg-blue-500 h-1.5 rounded-full" style="width:{{ $pct }}%"></div>
+                    <div class="bg-primary-500 h-1.5 rounded-full" style="width:{{ $pct }}%"></div>
                 </div>
             </div>
 
@@ -101,7 +101,7 @@
                 </div>
                 <div>
                     <p class="text-xs text-gray-400 dark:text-slate-500">Avg/Day</p>
-                    <p class="text-sm font-bold text-indigo-600 dark:text-indigo-400">{{ $stat['avg_per_day'] }}</p>
+                    <p class="text-sm font-bold text-primary-600 dark:text-primary-400">{{ $stat['avg_per_day'] }}</p>
                 </div>
                 <div>
                     <p class="text-xs text-gray-400 dark:text-slate-500">Best Day</p>
@@ -128,9 +128,9 @@
                         <p class="text-xs text-gray-400">Pieces</p>
                         <p class="font-bold text-gray-900 dark:text-white">{{ number_format($stat['total_qty']) }}</p>
                     </div>
-                    <div class="text-center p-2 bg-indigo-50 dark:bg-indigo-900/20 rounded-lg">
-                        <p class="text-xs text-indigo-400">Avg/Day</p>
-                        <p class="font-bold text-indigo-600 dark:text-indigo-400">{{ $stat['avg_per_day'] }}</p>
+                    <div class="text-center p-2 bg-primary-50 dark:bg-primary-900/20 rounded-lg">
+                        <p class="text-xs text-primary-400">Avg/Day</p>
+                        <p class="font-bold text-primary-600 dark:text-primary-400">{{ $stat['avg_per_day'] }}</p>
                     </div>
                     <div class="text-center p-2 bg-green-50 dark:bg-green-900/20 rounded-lg">
                         <p class="text-xs text-green-400">Best Day</p>
@@ -154,7 +154,7 @@
                                 <span class="text-gray-500 dark:text-slate-400 flex-shrink-0 ml-2">{{ number_format($prod['qty']) }} pcs ({{ $prodPct }}%)</span>
                             </div>
                             <div class="w-full bg-gray-100 dark:bg-slate-700 rounded-full h-1">
-                                <div class="bg-blue-400 h-1 rounded-full" style="width:{{ $prodPct }}%"></div>
+                                <div class="bg-primary-400 h-1 rounded-full" style="width:{{ $prodPct }}%"></div>
                             </div>
                         </div>
                         @endforeach
@@ -169,7 +169,7 @@
                         @foreach($stat['daily_pieces'] as $date => $qty)
                         @php
                             $intensity = $maxDayQty > 0 ? ($qty / $maxDayQty) : 0;
-                            $bg = $intensity > 0.75 ? 'bg-blue-600' : ($intensity > 0.5 ? 'bg-blue-400' : ($intensity > 0.25 ? 'bg-blue-200 dark:bg-blue-800' : 'bg-blue-100 dark:bg-blue-900/30'));
+                            $bg = $intensity > 0.75 ? 'bg-primary-600' : ($intensity > 0.5 ? 'bg-primary-400' : ($intensity > 0.25 ? 'bg-primary-200 dark:bg-primary-800' : 'bg-primary-100 dark:bg-primary-900/30'));
                         @endphp
                         <div title="{{ \Carbon\Carbon::parse($date)->format('d M') }}: {{ $qty }} pcs"
                              class="w-5 h-5 rounded {{ $bg }} cursor-help flex items-center justify-center">
@@ -178,10 +178,10 @@
                     </div>
                     <div class="mt-1 text-xs text-gray-400 dark:text-slate-500 flex items-center gap-1">
                         <span>Less</span>
-                        <div class="w-3 h-3 rounded bg-blue-100 dark:bg-blue-900/30"></div>
-                        <div class="w-3 h-3 rounded bg-blue-200 dark:bg-blue-800"></div>
-                        <div class="w-3 h-3 rounded bg-blue-400"></div>
-                        <div class="w-3 h-3 rounded bg-blue-600"></div>
+                        <div class="w-3 h-3 rounded bg-primary-100 dark:bg-primary-900/30"></div>
+                        <div class="w-3 h-3 rounded bg-primary-200 dark:bg-primary-800"></div>
+                        <div class="w-3 h-3 rounded bg-primary-400"></div>
+                        <div class="w-3 h-3 rounded bg-primary-600"></div>
                         <span>More</span>
                     </div>
                 </div>

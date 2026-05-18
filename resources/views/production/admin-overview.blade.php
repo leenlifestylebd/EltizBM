@@ -1,4 +1,4 @@
-@extends('layouts.app')
+﻿@extends('layouts.app')
 @section('title', 'Production Team Overview')
 
 @section('content')
@@ -10,7 +10,7 @@
         <p class="text-xs text-gray-500 dark:text-slate-400 mt-0.5">{{ $label }}</p>
     </div>
     <a href="{{ route('production.tasks.create') }}"
-       class="self-start sm:self-auto flex items-center gap-1.5 px-3 py-2 text-xs font-semibold text-white bg-blue-600 rounded-lg hover:bg-blue-700">
+       class="self-start sm:self-auto flex items-center gap-1.5 px-3 py-2 text-xs font-semibold text-white bg-primary-600 rounded-lg hover:bg-primary-700">
         + Assign Task
     </a>
 </div>
@@ -37,21 +37,21 @@
         <div>
             <label class="block text-xs text-gray-400 mb-1">তারিখ</label>
             <input type="date" name="date" value="{{ request('date', today()->toDateString()) }}"
-                   class="px-3 py-2 text-xs border border-gray-200 dark:border-slate-600 rounded-lg bg-white dark:bg-slate-700 text-gray-900 dark:text-white focus:outline-none focus:ring-2 focus:ring-blue-500">
+                   class="px-3 py-2 text-xs border border-gray-200 dark:border-slate-600 rounded-lg bg-white dark:bg-slate-700 text-gray-900 dark:text-white focus:outline-none focus:ring-2 focus:ring-primary-500">
         </div>
 
         @elseif($period === 'weekly')
         <div>
             <label class="block text-xs text-gray-400 mb-1">সপ্তাহ</label>
             <input type="week" name="week" value="{{ request('week', now()->format('Y-\WW')) }}"
-                   class="px-3 py-2 text-xs border border-gray-200 dark:border-slate-600 rounded-lg bg-white dark:bg-slate-700 text-gray-900 dark:text-white focus:outline-none focus:ring-2 focus:ring-blue-500">
+                   class="px-3 py-2 text-xs border border-gray-200 dark:border-slate-600 rounded-lg bg-white dark:bg-slate-700 text-gray-900 dark:text-white focus:outline-none focus:ring-2 focus:ring-primary-500">
         </div>
 
         @else
         <div>
             <label class="block text-xs text-gray-400 mb-1">মাস</label>
             <select name="month"
-                    class="px-3 py-2 text-xs border border-gray-200 dark:border-slate-600 rounded-lg bg-white dark:bg-slate-700 text-gray-700 dark:text-slate-200 focus:outline-none focus:ring-2 focus:ring-blue-500">
+                    class="px-3 py-2 text-xs border border-gray-200 dark:border-slate-600 rounded-lg bg-white dark:bg-slate-700 text-gray-700 dark:text-slate-200 focus:outline-none focus:ring-2 focus:ring-primary-500">
                 @foreach($months as $m)
                 <option value="{{ $m['value'] }}" {{ ($month ?? now()->format('Y-m')) === $m['value'] ? 'selected' : '' }}>{{ $m['label'] }}</option>
                 @endforeach
@@ -59,7 +59,7 @@
         </div>
         @endif
 
-        <button type="submit" class="px-4 py-2 bg-blue-600 text-white text-xs font-medium rounded-lg hover:bg-blue-700">দেখুন</button>
+        <button type="submit" class="px-4 py-2 bg-primary-600 text-white text-xs font-medium rounded-lg hover:bg-primary-700">দেখুন</button>
     </form>
 
     {{-- Quick Presets --}}
@@ -78,7 +78,7 @@
         @endphp
         <a href="{{ route('production.admin-overview', $params) }}"
            class="px-2.5 py-1 text-xs rounded-lg border transition-colors
-                  {{ $isActive ? 'bg-blue-600 text-white border-blue-600' : 'bg-white dark:bg-slate-700 text-gray-600 dark:text-slate-300 border-gray-200 dark:border-slate-600 hover:bg-gray-50' }}">
+                  {{ $isActive ? 'bg-primary-600 text-white border-primary-600' : 'bg-white dark:bg-slate-700 text-gray-600 dark:text-slate-300 border-gray-200 dark:border-slate-600 hover:bg-gray-50' }}">
             {{ $preset['label'] }}
         </a>
         @endforeach
@@ -87,10 +87,10 @@
 
 {{-- Summary Cards --}}
 <div class="grid grid-cols-2 md:grid-cols-4 gap-3 mb-5">
-    <div class="bg-gradient-to-br from-blue-50 to-blue-100 dark:from-blue-900/30 dark:to-blue-900/10 rounded-xl p-4 border border-blue-100 dark:border-blue-900/40">
-        <p class="text-xs text-blue-600 dark:text-blue-400 font-medium mb-1">মোট কাজ</p>
-        <p class="text-2xl font-bold text-blue-700 dark:text-blue-300">{{ $summary['total_tasks'] }}</p>
-        <p class="text-xs text-blue-500 mt-1">{{ $summary['total_employees'] }} জন worker</p>
+    <div class="bg-gradient-to-br from-primary-50 to-primary-100 dark:from-primary-900/30 dark:to-primary-900/10 rounded-xl p-4 border border-primary-100 dark:border-primary-900/40">
+        <p class="text-xs text-primary-600 dark:text-primary-400 font-medium mb-1">মোট কাজ</p>
+        <p class="text-2xl font-bold text-primary-700 dark:text-primary-300">{{ $summary['total_tasks'] }}</p>
+        <p class="text-xs text-primary-500 mt-1">{{ $summary['total_employees'] }} জন worker</p>
     </div>
     <div class="bg-gradient-to-br from-orange-50 to-orange-100 dark:from-orange-900/30 dark:to-orange-900/10 rounded-xl p-4 border border-orange-100 dark:border-orange-900/40">
         <p class="text-xs text-orange-600 dark:text-orange-400 font-medium mb-1">অপেক্ষায় / চলছে</p>
@@ -118,7 +118,7 @@
         {{-- Employee Header --}}
         <div class="flex items-center justify-between px-4 py-3 border-b border-gray-50 dark:border-slate-700">
             <div class="flex items-center gap-3">
-                <div class="w-9 h-9 rounded-full bg-gradient-to-br from-blue-500 to-indigo-600 flex items-center justify-center text-white text-xs font-bold flex-shrink-0">
+                <div class="w-9 h-9 rounded-full bg-gradient-to-br from-primary-500 to-primary-600 flex items-center justify-center text-white text-xs font-bold flex-shrink-0">
                     {{ strtoupper(substr($emp->name, 0, 2)) }}
                 </div>
                 <div>
@@ -130,7 +130,7 @@
                 @if($stat['total_tasks'] > 0)
                 <div class="hidden sm:flex items-center gap-2">
                     <div class="w-20 bg-gray-100 dark:bg-slate-700 rounded-full h-1.5">
-                        <div class="h-1.5 rounded-full transition-all {{ $stat['completion_pct'] >= 100 ? 'bg-green-500' : ($stat['completion_pct'] >= 50 ? 'bg-blue-500' : 'bg-orange-400') }}"
+                        <div class="h-1.5 rounded-full transition-all {{ $stat['completion_pct'] >= 100 ? 'bg-green-500' : ($stat['completion_pct'] >= 50 ? 'bg-primary-500' : 'bg-orange-400') }}"
                              style="width: {{ $stat['completion_pct'] }}%"></div>
                     </div>
                     <span class="text-xs font-bold {{ $stat['completion_pct'] >= 100 ? 'text-green-600' : 'text-gray-500' }}">{{ $stat['completion_pct'] }}%</span>
@@ -140,11 +140,11 @@
                     $dashParams = ['employee_id' => $emp->id, 'from' => $fromDate, 'to' => $toDate];
                 @endphp
                 <a href="{{ route('production.worker.dashboard', $dashParams) }}"
-                   class="px-2.5 py-1 text-xs text-blue-600 border border-blue-200 dark:border-blue-800 rounded-lg hover:bg-blue-50 dark:hover:bg-blue-900/20">
+                   class="px-2.5 py-1 text-xs text-primary-600 border border-primary-200 dark:border-primary-800 rounded-lg hover:bg-primary-50 dark:hover:bg-primary-900/20">
                     Dashboard
                 </a>
                 <a href="{{ route('production.tasks.create') }}?employee_id={{ $emp->id }}"
-                   class="px-2.5 py-1 text-xs text-white bg-blue-600 rounded-lg hover:bg-blue-700">
+                   class="px-2.5 py-1 text-xs text-white bg-primary-600 rounded-lg hover:bg-primary-700">
                     + Task
                 </a>
             </div>
@@ -155,8 +155,8 @@
 
             <div class="px-3 py-3 text-center">
                 <p class="text-xs text-gray-400 mb-1">নতুন</p>
-                <p class="text-xl font-bold {{ $stat['assigned'] > 0 ? 'text-blue-600' : 'text-gray-300 dark:text-slate-600' }}">{{ $stat['assigned'] }}</p>
-                <span class="text-xs text-blue-500">Assigned</span>
+                <p class="text-xl font-bold {{ $stat['assigned'] > 0 ? 'text-primary-600' : 'text-gray-300 dark:text-slate-600' }}">{{ $stat['assigned'] }}</p>
+                <span class="text-xs text-primary-500">Assigned</span>
             </div>
 
             <div class="px-3 py-3 text-center">
@@ -212,7 +212,7 @@
                 @endif
             @else
                 <span class="text-xs text-gray-400">এই সময়ে কোনো task নেই —</span>
-                <a href="{{ route('production.tasks.create') }}?employee_id={{ $emp->id }}" class="text-xs text-blue-600 hover:underline">assign করুন</a>
+                <a href="{{ route('production.tasks.create') }}?employee_id={{ $emp->id }}" class="text-xs text-primary-600 hover:underline">assign করুন</a>
             @endif
         </div>
 

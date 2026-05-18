@@ -1,4 +1,4 @@
-{{-- ============================================================
+﻿{{-- ============================================================
      FILE: resources/views/inventory/purchase-orders.blade.php
      ============================================================ --}}
 @extends('layouts.app')
@@ -12,7 +12,7 @@
         <p class="text-xs text-gray-500 dark:text-slate-400 mt-0.5">{{ $purchaseOrders->total() }} orders</p>
     </div>
     <button @click="$dispatch('open-po-modal')"
-            class="flex items-center gap-1.5 px-3 py-2 text-xs font-medium text-white bg-blue-600 rounded-lg hover:bg-blue-700 transition-colors"
+            class="flex items-center gap-1.5 px-3 py-2 text-xs font-medium text-white bg-primary-600 rounded-lg hover:bg-primary-700 transition-colors"
             x-data>
         <svg class="w-3.5 h-3.5" fill="none" stroke="currentColor" viewBox="0 0 24 24"><path stroke-linecap="round" stroke-linejoin="round" stroke-width="2" d="M12 4v16m8-8H4"/></svg>
         New PO
@@ -37,7 +37,7 @@
             <tbody class="divide-y divide-gray-50 dark:divide-slate-700">
                 @forelse($purchaseOrders as $po)
                 <tr class="hover:bg-gray-50 dark:hover:bg-slate-700/30 transition-colors">
-                    <td class="px-4 py-3 font-semibold text-blue-600 dark:text-blue-400 text-xs">{{ $po->po_number }}</td>
+                    <td class="px-4 py-3 font-semibold text-primary-600 dark:text-primary-400 text-xs">{{ $po->po_number }}</td>
                     <td class="px-4 py-3 text-sm text-gray-700 dark:text-slate-300">{{ $po->vendor?->name ?? 'N/A' }}</td>
                     <td class="px-4 py-3 text-right font-medium text-gray-900 dark:text-white">৳{{ number_format($po->total) }}</td>
                     <td class="px-4 py-3 text-right text-sm text-gray-600 dark:text-slate-300">৳{{ number_format($po->paid_amount) }}</td>
@@ -51,7 +51,7 @@
                     <td class="px-4 py-3 text-center">
                         <div class="flex items-center justify-center gap-1">
                             <a href="{{ route('inventory.purchase-orders') }}?view={{ $po->id }}"
-                               class="p-1.5 text-gray-400 hover:text-blue-600 hover:bg-blue-50 dark:hover:bg-blue-900/20 rounded-lg">
+                               class="p-1.5 text-gray-400 hover:text-primary-600 hover:bg-primary-50 dark:hover:bg-primary-900/20 rounded-lg">
                                 <svg class="w-4 h-4" fill="none" stroke="currentColor" viewBox="0 0 24 24"><path stroke-linecap="round" stroke-linejoin="round" stroke-width="2" d="M15 12a3 3 0 11-6 0 3 3 0 016 0z"/><path stroke-linecap="round" stroke-linejoin="round" stroke-width="2" d="M2.458 12C3.732 7.943 7.523 5 12 5c4.478 0 8.268 2.943 9.542 7-1.274 4.057-5.064 7-9.542 7-4.477 0-8.268-2.943-9.542-7z"/></svg>
                             </a>
                             @if($po->status !== 'received')
@@ -80,7 +80,7 @@
         <div class="p-4">
             <div class="flex items-start justify-between mb-1">
                 <div>
-                    <p class="text-sm font-semibold text-blue-600 dark:text-blue-400">{{ $po->po_number }}</p>
+                    <p class="text-sm font-semibold text-primary-600 dark:text-primary-400">{{ $po->po_number }}</p>
                     <p class="text-xs text-gray-500 dark:text-slate-400 mt-0.5">{{ $po->vendor?->name ?? 'No vendor' }}</p>
                 </div>
                 <div class="text-right">
@@ -113,7 +113,7 @@
                 <div class="grid grid-cols-2 gap-3">
                     <div>
                         <label class="block text-xs font-medium text-gray-700 dark:text-slate-300 mb-1.5">Vendor</label>
-                        <select name="vendor_id" class="w-full px-3 py-2.5 text-sm border border-gray-200 dark:border-slate-600 rounded-lg bg-white dark:bg-slate-700 text-gray-700 dark:text-slate-200 focus:outline-none focus:ring-2 focus:ring-blue-500">
+                        <select name="vendor_id" class="w-full px-3 py-2.5 text-sm border border-gray-200 dark:border-slate-600 rounded-lg bg-white dark:bg-slate-700 text-gray-700 dark:text-slate-200 focus:outline-none focus:ring-2 focus:ring-primary-500">
                             <option value="">Select vendor</option>
                             @foreach($vendors as $vendor)
                                 <option value="{{ $vendor->id }}">{{ $vendor->name }}</option>
@@ -123,7 +123,7 @@
                     <div>
                         <label class="block text-xs font-medium text-gray-700 dark:text-slate-300 mb-1.5">Expected Date</label>
                         <input type="date" name="expected_date"
-                               class="w-full px-3 py-2.5 text-sm border border-gray-200 dark:border-slate-600 rounded-lg bg-white dark:bg-slate-700 text-gray-900 dark:text-white focus:outline-none focus:ring-2 focus:ring-blue-500">
+                               class="w-full px-3 py-2.5 text-sm border border-gray-200 dark:border-slate-600 rounded-lg bg-white dark:bg-slate-700 text-gray-900 dark:text-white focus:outline-none focus:ring-2 focus:ring-primary-500">
                     </div>
                 </div>
 
@@ -131,13 +131,13 @@
                 <div x-data="poForm()">
                     <div class="flex items-center justify-between mb-2">
                         <label class="text-xs font-medium text-gray-700 dark:text-slate-300">Items</label>
-                        <button type="button" @click="addItem()" class="text-xs text-blue-600 hover:underline">+ Add Item</button>
+                        <button type="button" @click="addItem()" class="text-xs text-primary-600 hover:underline">+ Add Item</button>
                     </div>
                     <template x-for="(item, idx) in items" :key="idx">
                         <div class="grid grid-cols-12 gap-1.5 mb-2">
                             <div class="col-span-5">
                                 <select :name="'items['+idx+'][product_id]'"
-                                        class="w-full px-2 py-2 text-xs border border-gray-200 dark:border-slate-600 rounded-lg bg-white dark:bg-slate-700 text-gray-700 dark:text-slate-200 focus:outline-none focus:ring-1 focus:ring-blue-500">
+                                        class="w-full px-2 py-2 text-xs border border-gray-200 dark:border-slate-600 rounded-lg bg-white dark:bg-slate-700 text-gray-700 dark:text-slate-200 focus:outline-none focus:ring-1 focus:ring-primary-500">
                                     <option value="">Product</option>
                                     @foreach($allProducts as $p)
                                     <option value="{{ $p->id }}" :selected="item.product_id == {{ $p->id }}">{{ $p->name }}</option>
@@ -146,13 +146,13 @@
                             </div>
                             <div class="col-span-2">
                                 <input type="number" :name="'items['+idx+'][quantity]'" x-model.number="item.qty" @input="calcTotal()" min="1"
-                                       placeholder="Qty" class="w-full px-2 py-2 text-xs border border-gray-200 dark:border-slate-600 rounded-lg bg-white dark:bg-slate-700 text-gray-900 dark:text-white focus:outline-none focus:ring-1 focus:ring-blue-500 text-center">
+                                       placeholder="Qty" class="w-full px-2 py-2 text-xs border border-gray-200 dark:border-slate-600 rounded-lg bg-white dark:bg-slate-700 text-gray-900 dark:text-white focus:outline-none focus:ring-1 focus:ring-primary-500 text-center">
                             </div>
                             <div class="col-span-3">
                                 <div class="relative">
                                     <span class="absolute left-2 top-1/2 -translate-y-1/2 text-gray-400 text-xs">৳</span>
                                     <input type="number" :name="'items['+idx+'][cost_price]'" x-model.number="item.price" @input="calcTotal()" min="0" step="0.01"
-                                           placeholder="Price" class="w-full pl-5 pr-2 py-2 text-xs border border-gray-200 dark:border-slate-600 rounded-lg bg-white dark:bg-slate-700 text-gray-900 dark:text-white focus:outline-none focus:ring-1 focus:ring-blue-500">
+                                           placeholder="Price" class="w-full pl-5 pr-2 py-2 text-xs border border-gray-200 dark:border-slate-600 rounded-lg bg-white dark:bg-slate-700 text-gray-900 dark:text-white focus:outline-none focus:ring-1 focus:ring-primary-500">
                                 </div>
                             </div>
                             <div class="col-span-1 flex items-center">
@@ -170,7 +170,7 @@
 
                 <div>
                     <label class="block text-xs font-medium text-gray-700 dark:text-slate-300 mb-1.5">Notes</label>
-                    <textarea name="notes" rows="2" class="w-full px-3 py-2 text-sm border border-gray-200 dark:border-slate-600 rounded-lg bg-white dark:bg-slate-700 text-gray-900 dark:text-white focus:outline-none focus:ring-2 focus:ring-blue-500 resize-none" placeholder="Optional..."></textarea>
+                    <textarea name="notes" rows="2" class="w-full px-3 py-2 text-sm border border-gray-200 dark:border-slate-600 rounded-lg bg-white dark:bg-slate-700 text-gray-900 dark:text-white focus:outline-none focus:ring-2 focus:ring-primary-500 resize-none" placeholder="Optional..."></textarea>
                 </div>
 
                 <div class="flex gap-2">
@@ -179,7 +179,7 @@
                         Save as Draft
                     </button>
                     <button type="submit" name="status" value="ordered"
-                            class="flex-1 py-2.5 bg-blue-600 hover:bg-blue-700 text-white text-sm font-medium rounded-lg transition-colors">
+                            class="flex-1 py-2.5 bg-primary-600 hover:bg-primary-700 text-white text-sm font-medium rounded-lg transition-colors">
                         Place Order
                     </button>
                 </div>

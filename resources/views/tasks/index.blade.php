@@ -1,4 +1,4 @@
-@extends('layouts.app')
+﻿@extends('layouts.app')
 @section('title', 'Tasks')
 
 @section('content')
@@ -9,7 +9,7 @@
         <p class="text-xs text-gray-500 dark:text-slate-400 mt-0.5">{{ $tasks->total() }} total tasks</p>
     </div>
     <button @click="$dispatch('open-task-modal')"
-            class="flex items-center gap-1.5 px-3 py-2 text-xs font-medium text-white bg-blue-600 rounded-lg hover:bg-blue-700 transition-colors">
+            class="flex items-center gap-1.5 px-3 py-2 text-xs font-medium text-white bg-primary-600 rounded-lg hover:bg-primary-700 transition-colors">
         <svg class="w-3.5 h-3.5" fill="none" stroke="currentColor" viewBox="0 0 24 24"><path stroke-linecap="round" stroke-linejoin="round" stroke-width="2" d="M12 4v16m8-8H4"/></svg>
         New Task
     </button>
@@ -28,8 +28,8 @@
         <p class="text-xs text-gray-500 dark:text-slate-400 mt-0.5">Pending</p>
     </a>
     <a href="{{ route('tasks.index', ['status'=>'in_progress']) }}"
-       class="bg-white dark:bg-slate-800 rounded-xl p-3 border border-blue-100 dark:border-blue-900/30 text-center hover:shadow-sm transition-all">
-        <p class="text-xl font-bold text-blue-600 dark:text-blue-400">{{ $stats['in_progress'] }}</p>
+       class="bg-white dark:bg-slate-800 rounded-xl p-3 border border-primary-100 dark:border-primary-900/30 text-center hover:shadow-sm transition-all">
+        <p class="text-xl font-bold text-primary-600 dark:text-primary-400">{{ $stats['in_progress'] }}</p>
         <p class="text-xs text-gray-500 dark:text-slate-400 mt-0.5">In Progress</p>
     </a>
     <a href="{{ route('tasks.index', ['status'=>'done']) }}"
@@ -44,7 +44,7 @@
     @foreach([''=>'All','todo'=>'Pending','in_progress'=>'In Progress','done'=>'Done','cancelled'=>'Cancelled'] as $val => $label)
     <a href="{{ route('tasks.index', ['status'=>$val, 'priority'=>request('priority')]) }}"
        class="flex-shrink-0 px-3 py-1.5 rounded-lg text-xs font-medium transition-colors whitespace-nowrap
-              {{ request('status','') === $val ? 'bg-blue-600 text-white' : 'bg-white dark:bg-slate-800 text-gray-600 dark:text-slate-300 border border-gray-200 dark:border-slate-700 hover:bg-gray-50 dark:hover:bg-slate-700' }}">
+              {{ request('status','') === $val ? 'bg-primary-600 text-white' : 'bg-white dark:bg-slate-800 text-gray-600 dark:text-slate-300 border border-gray-200 dark:border-slate-700 hover:bg-gray-50 dark:hover:bg-slate-700' }}">
         {{ $label }}
     </a>
     @endforeach
@@ -74,7 +74,7 @@
         };
         $statusColor = match($task->status) {
             'todo'        => 'bg-gray-100 text-gray-600 dark:bg-slate-700 dark:text-slate-300',
-            'in_progress' => 'bg-blue-100 text-blue-700 dark:bg-blue-900/30 dark:text-blue-400',
+            'in_progress' => 'bg-primary-100 text-primary-700 dark:bg-primary-900/30 dark:text-primary-400',
             'done'        => 'bg-green-100 text-green-700 dark:bg-green-900/30 dark:text-green-400',
             'cancelled'   => 'bg-red-100 text-red-600 dark:bg-red-900/30 dark:text-red-400',
             default       => 'bg-gray-100 text-gray-600',
@@ -148,7 +148,7 @@
             {{-- Action Buttons --}}
             <div class="flex items-center gap-1 flex-shrink-0 opacity-0 group-hover:opacity-100 transition-opacity">
                 <button @click="editing = true"
-                        class="p-1.5 text-gray-400 hover:text-blue-600 hover:bg-blue-50 dark:hover:bg-blue-900/20 rounded-lg transition-colors">
+                        class="p-1.5 text-gray-400 hover:text-primary-600 hover:bg-primary-50 dark:hover:bg-primary-900/20 rounded-lg transition-colors">
                     <svg class="w-4 h-4" fill="none" stroke="currentColor" viewBox="0 0 24 24"><path stroke-linecap="round" stroke-linejoin="round" stroke-width="2" d="M11 5H6a2 2 0 00-2 2v11a2 2 0 002 2h11a2 2 0 002-2v-5m-1.414-9.414a2 2 0 112.828 2.828L11.828 15H9v-2.828l8.586-8.586z"/></svg>
                 </button>
                 <form method="POST" action="{{ route('tasks.destroy', $task) }}" onsubmit="return confirm('Delete this task?')">
@@ -165,9 +165,9 @@
             <form method="POST" action="{{ route('tasks.update', $task) }}" class="space-y-3">
                 @csrf @method('PUT')
                 <input type="text" name="title" value="{{ $task->title }}" required
-                       class="w-full px-3 py-2 text-sm border border-blue-300 dark:border-blue-600 rounded-lg bg-white dark:bg-slate-700 text-gray-900 dark:text-white focus:outline-none focus:ring-2 focus:ring-blue-500">
+                       class="w-full px-3 py-2 text-sm border border-primary-300 dark:border-primary-600 rounded-lg bg-white dark:bg-slate-700 text-gray-900 dark:text-white focus:outline-none focus:ring-2 focus:ring-primary-500">
                 <textarea name="description" rows="2"
-                          class="w-full px-3 py-2 text-sm border border-gray-200 dark:border-slate-600 rounded-lg bg-white dark:bg-slate-700 text-gray-900 dark:text-white focus:outline-none focus:ring-2 focus:ring-blue-500 resize-none"
+                          class="w-full px-3 py-2 text-sm border border-gray-200 dark:border-slate-600 rounded-lg bg-white dark:bg-slate-700 text-gray-900 dark:text-white focus:outline-none focus:ring-2 focus:ring-primary-500 resize-none"
                           placeholder="Description...">{{ $task->description }}</textarea>
                 <div class="grid grid-cols-3 gap-2">
                     <select name="priority" class="px-3 py-2 text-sm border border-gray-200 dark:border-slate-600 rounded-lg bg-white dark:bg-slate-700 text-gray-700 dark:text-slate-200 focus:outline-none">
@@ -184,7 +184,7 @@
                            class="px-3 py-2 text-sm border border-gray-200 dark:border-slate-600 rounded-lg bg-white dark:bg-slate-700 text-gray-900 dark:text-white focus:outline-none">
                 </div>
                 <div class="flex gap-2">
-                    <button type="submit" class="px-4 py-2 bg-blue-600 text-white text-sm rounded-lg hover:bg-blue-700 transition-colors">Save</button>
+                    <button type="submit" class="px-4 py-2 bg-primary-600 text-white text-sm rounded-lg hover:bg-primary-700 transition-colors">Save</button>
                     <button type="button" @click="editing = false" class="px-4 py-2 bg-gray-200 dark:bg-slate-600 text-gray-700 dark:text-slate-200 text-sm rounded-lg hover:bg-gray-300 transition-colors">Cancel</button>
                 </div>
             </form>
@@ -221,19 +221,19 @@
                 <div>
                     <label class="block text-xs font-medium text-gray-700 dark:text-slate-300 mb-1.5">Title <span class="text-red-500">*</span></label>
                     <input type="text" name="title" required
-                           class="w-full px-3 py-2.5 text-sm border border-gray-200 dark:border-slate-600 rounded-lg bg-white dark:bg-slate-700 text-gray-900 dark:text-white focus:outline-none focus:ring-2 focus:ring-blue-500"
+                           class="w-full px-3 py-2.5 text-sm border border-gray-200 dark:border-slate-600 rounded-lg bg-white dark:bg-slate-700 text-gray-900 dark:text-white focus:outline-none focus:ring-2 focus:ring-primary-500"
                            placeholder="What needs to be done?">
                 </div>
                 <div>
                     <label class="block text-xs font-medium text-gray-700 dark:text-slate-300 mb-1.5">Description</label>
                     <textarea name="description" rows="2"
-                              class="w-full px-3 py-2.5 text-sm border border-gray-200 dark:border-slate-600 rounded-lg bg-white dark:bg-slate-700 text-gray-900 dark:text-white focus:outline-none focus:ring-2 focus:ring-blue-500 resize-none"
+                              class="w-full px-3 py-2.5 text-sm border border-gray-200 dark:border-slate-600 rounded-lg bg-white dark:bg-slate-700 text-gray-900 dark:text-white focus:outline-none focus:ring-2 focus:ring-primary-500 resize-none"
                               placeholder="Optional details..."></textarea>
                 </div>
                 <div class="grid grid-cols-2 gap-3">
                     <div>
                         <label class="block text-xs font-medium text-gray-700 dark:text-slate-300 mb-1.5">Priority</label>
-                        <select name="priority" class="w-full px-3 py-2.5 text-sm border border-gray-200 dark:border-slate-600 rounded-lg bg-white dark:bg-slate-700 text-gray-700 dark:text-slate-200 focus:outline-none focus:ring-2 focus:ring-blue-500">
+                        <select name="priority" class="w-full px-3 py-2.5 text-sm border border-gray-200 dark:border-slate-600 rounded-lg bg-white dark:bg-slate-700 text-gray-700 dark:text-slate-200 focus:outline-none focus:ring-2 focus:ring-primary-500">
                             <option value="medium" selected>🟡 Medium</option>
                             <option value="urgent">🔴 Urgent</option>
                             <option value="high">🟠 High</option>
@@ -243,12 +243,12 @@
                     <div>
                         <label class="block text-xs font-medium text-gray-700 dark:text-slate-300 mb-1.5">Due Date</label>
                         <input type="date" name="due_date"
-                               class="w-full px-3 py-2.5 text-sm border border-gray-200 dark:border-slate-600 rounded-lg bg-white dark:bg-slate-700 text-gray-900 dark:text-white focus:outline-none focus:ring-2 focus:ring-blue-500">
+                               class="w-full px-3 py-2.5 text-sm border border-gray-200 dark:border-slate-600 rounded-lg bg-white dark:bg-slate-700 text-gray-900 dark:text-white focus:outline-none focus:ring-2 focus:ring-primary-500">
                     </div>
                 </div>
                 <div>
                     <label class="block text-xs font-medium text-gray-700 dark:text-slate-300 mb-1.5">Assign To</label>
-                    <select name="assigned_to" class="w-full px-3 py-2.5 text-sm border border-gray-200 dark:border-slate-600 rounded-lg bg-white dark:bg-slate-700 text-gray-700 dark:text-slate-200 focus:outline-none focus:ring-2 focus:ring-blue-500">
+                    <select name="assigned_to" class="w-full px-3 py-2.5 text-sm border border-gray-200 dark:border-slate-600 rounded-lg bg-white dark:bg-slate-700 text-gray-700 dark:text-slate-200 focus:outline-none focus:ring-2 focus:ring-primary-500">
                         <option value="">Unassigned</option>
                         @foreach($users as $user)
                             <option value="{{ $user->id }}">{{ $user->name }}</option>
@@ -256,7 +256,7 @@
                     </select>
                 </div>
                 <button type="submit"
-                        class="w-full bg-blue-600 hover:bg-blue-700 text-white font-medium py-2.5 text-sm rounded-lg transition-colors">
+                        class="w-full bg-primary-600 hover:bg-primary-700 text-white font-medium py-2.5 text-sm rounded-lg transition-colors">
                     Create Task
                 </button>
             </form>

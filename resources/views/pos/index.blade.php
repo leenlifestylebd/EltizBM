@@ -1,4 +1,4 @@
-@extends('layouts.app')
+﻿@extends('layouts.app')
 @section('title', 'POS')
 
 @push('styles')
@@ -32,11 +32,11 @@
                    @keydown.enter="barcodeSearch()"
                    placeholder="Search or scan barcode..."
                    autocomplete="off"
-                   class="w-full pl-9 pr-3 py-2.5 text-sm border border-gray-200 dark:border-slate-600 rounded-xl bg-gray-50 dark:bg-slate-700 text-gray-900 dark:text-white placeholder-gray-400 focus:outline-none focus:ring-2 focus:ring-blue-500 focus:bg-white dark:focus:bg-slate-600">
+                   class="w-full pl-9 pr-3 py-2.5 text-sm border border-gray-200 dark:border-slate-600 rounded-xl bg-gray-50 dark:bg-slate-700 text-gray-900 dark:text-white placeholder-gray-400 focus:outline-none focus:ring-2 focus:ring-primary-500 focus:bg-white dark:focus:bg-slate-600">
         </div>
         {{-- Camera Scan Button --}}
         <button @click="startScan()"
-                class="p-2.5 bg-indigo-600 text-white rounded-xl hover:bg-indigo-700 transition-colors flex-shrink-0"
+                class="p-2.5 bg-primary-600 text-white rounded-xl hover:bg-primary-700 transition-colors flex-shrink-0"
                 title="Scan Barcode">
             <svg class="w-5 h-5" fill="none" stroke="currentColor" viewBox="0 0 24 24">
                 <path stroke-linecap="round" stroke-linejoin="round" stroke-width="2" d="M3 9V6a1 1 0 011-1h3M3 15v3a1 1 0 001 1h3m11-4v3a1 1 0 01-1 1h-3m4-11V6a1 1 0 00-1-1h-3M8 7h.01M12 7h.01M16 7h.01M8 12h.01M12 12h.01M16 12h.01M8 17h.01M12 17h.01M16 17h.01"/>
@@ -63,13 +63,13 @@
             <div class="flex gap-1.5 px-2 py-2 overflow-x-auto scrollbar-hide flex-shrink-0 bg-gray-50 dark:bg-slate-800/50">
                 <button @click="activeCategory = null; filterProducts()"
                         class="flex-shrink-0 px-3 py-1.5 rounded-lg text-xs font-medium transition-colors"
-                        :class="activeCategory === null ? 'bg-blue-600 text-white' : 'bg-white dark:bg-slate-700 text-gray-600 dark:text-slate-300 border border-gray-200 dark:border-slate-600'">
+                        :class="activeCategory === null ? 'bg-primary-600 text-white' : 'bg-white dark:bg-slate-700 text-gray-600 dark:text-slate-300 border border-gray-200 dark:border-slate-600'">
                     All
                 </button>
                 @foreach($categories as $cat)
                 <button @click="activeCategory = {{ $cat->id }}; filterProducts()"
                         class="flex-shrink-0 px-3 py-1.5 rounded-lg text-xs font-medium transition-colors whitespace-nowrap"
-                        :class="activeCategory === {{ $cat->id }} ? 'bg-blue-600 text-white' : 'bg-white dark:bg-slate-700 text-gray-600 dark:text-slate-300 border border-gray-200 dark:border-slate-600'">
+                        :class="activeCategory === {{ $cat->id }} ? 'bg-primary-600 text-white' : 'bg-white dark:bg-slate-700 text-gray-600 dark:text-slate-300 border border-gray-200 dark:border-slate-600'">
                     {{ $cat->name }}
                 </button>
                 @endforeach
@@ -82,13 +82,13 @@
                     <p class="text-xs text-gray-400 px-1 mb-2" x-text="searchResults.length + ' results'"></p>
                     <div class="grid grid-cols-2 sm:grid-cols-3 xl:grid-cols-4 gap-2">
                         <template x-for="p in searchResults" :key="p.id">
-                            <div @click="addToCart(p)" class="product-card bg-white dark:bg-slate-800 rounded-xl border border-gray-100 dark:border-slate-700 p-3 hover:border-blue-300 hover:shadow-sm">
+                            <div @click="addToCart(p)" class="product-card bg-white dark:bg-slate-800 rounded-xl border border-gray-100 dark:border-slate-700 p-3 hover:border-primary-300 hover:shadow-sm">
                                 <div class="w-full aspect-square rounded-lg bg-gray-100 dark:bg-slate-700 mb-2 overflow-hidden flex items-center justify-center">
                                     <img x-show="p.image" :src="p.image" class="w-full h-full object-cover">
                                     <svg x-show="!p.image" class="w-8 h-8 text-gray-300" fill="none" stroke="currentColor" viewBox="0 0 24 24"><path stroke-linecap="round" stroke-linejoin="round" stroke-width="1.5" d="M20 7l-8-4-8 4m16 0l-8 4m8-4v10l-8 4m0-10L4 7m8 4v10M4 7v10l8 4"/></svg>
                                 </div>
                                 <p class="text-xs font-medium text-gray-900 dark:text-white truncate" x-text="p.name"></p>
-                                <p class="text-sm font-bold text-blue-600 dark:text-blue-400 mt-0.5" x-text="'৳' + p.price"></p>
+                                <p class="text-sm font-bold text-primary-600 dark:text-primary-400 mt-0.5" x-text="'৳' + p.price"></p>
                                 <p class="text-xs mt-0.5" :class="p.stock<=0?'text-red-500':p.stock<=5?'text-yellow-500':'text-gray-400'"
                                    x-text="p.stock<=0?'Out of stock':'Stock: '+p.stock"></p>
                             </div>
@@ -101,19 +101,19 @@
                 <div x-show="searchTerm.length === 0" class="grid grid-cols-2 sm:grid-cols-3 xl:grid-cols-4 gap-2">
                     <template x-for="p in filteredProducts" :key="p.id">
                         <div @click="p.stock > 0 && addToCart(p)"
-                             class="product-card bg-white dark:bg-slate-800 rounded-xl border border-gray-100 dark:border-slate-700 p-3 hover:border-blue-300 hover:shadow-sm"
+                             class="product-card bg-white dark:bg-slate-800 rounded-xl border border-gray-100 dark:border-slate-700 p-3 hover:border-primary-300 hover:shadow-sm"
                              :class="p.stock <= 0 ? 'opacity-50 cursor-not-allowed' : ''">
                             <div class="relative w-full aspect-square rounded-lg bg-gray-100 dark:bg-slate-700 mb-2 overflow-hidden flex items-center justify-center">
                                 <img x-show="p.image" :src="p.image" class="w-full h-full object-cover">
                                 <svg x-show="!p.image" class="w-8 h-8 text-gray-300 dark:text-slate-600" fill="none" stroke="currentColor" viewBox="0 0 24 24"><path stroke-linecap="round" stroke-linejoin="round" stroke-width="1.5" d="M20 7l-8-4-8 4m16 0l-8 4m8-4v10l-8 4m0-10L4 7m8 4v10M4 7v10l8 4"/></svg>
-                                <div x-show="getCartQty(p.id) > 0" x-cloak class="absolute top-1 right-1 w-5 h-5 bg-blue-600 text-white text-xs rounded-full flex items-center justify-center font-bold" x-text="getCartQty(p.id)"></div>
+                                <div x-show="getCartQty(p.id) > 0" x-cloak class="absolute top-1 right-1 w-5 h-5 bg-primary-600 text-white text-xs rounded-full flex items-center justify-center font-bold" x-text="getCartQty(p.id)"></div>
                                 <div x-show="p.stock <= 0" class="absolute inset-0 bg-black/40 flex items-center justify-center rounded-lg">
                                     <span class="text-white text-xs font-semibold bg-red-500 px-2 py-0.5 rounded">Out</span>
                                 </div>
                             </div>
                             <p class="text-xs font-medium text-gray-900 dark:text-white truncate" x-text="p.name"></p>
                             <div class="flex items-center justify-between mt-0.5">
-                                <p class="text-sm font-bold text-blue-600 dark:text-blue-400" x-text="'৳' + p.price"></p>
+                                <p class="text-sm font-bold text-primary-600 dark:text-primary-400" x-text="'৳' + p.price"></p>
                                 <p class="text-xs" :class="p.stock<=5?'text-yellow-500':'text-gray-400 dark:text-slate-500'" x-text="p.stock"></p>
                             </div>
                         </div>
@@ -131,7 +131,7 @@
             <div class="flex items-center justify-between px-4 py-3 border-b border-gray-100 dark:border-slate-700 flex-shrink-0">
                 <div class="flex items-center gap-2">
                     <span class="text-sm font-semibold text-gray-900 dark:text-white">Cart</span>
-                    <span x-show="cart.length > 0" class="w-5 h-5 bg-blue-600 text-white text-xs rounded-full flex items-center justify-center font-bold" x-text="cart.reduce((s,i)=>s+i.qty,0)"></span>
+                    <span x-show="cart.length > 0" class="w-5 h-5 bg-primary-600 text-white text-xs rounded-full flex items-center justify-center font-bold" x-text="cart.reduce((s,i)=>s+i.qty,0)"></span>
                 </div>
                 <div class="flex items-center gap-1.5">
                     <button @click="clearCart()" x-show="cart.length > 0" x-cloak class="p-1.5 text-red-400 hover:text-red-600 hover:bg-red-50 dark:hover:bg-red-900/20 rounded-lg transition-colors">
@@ -149,7 +149,7 @@
                     <div class="cart-item flex items-center gap-2 p-2.5 bg-gray-50 dark:bg-slate-700/50 rounded-xl">
                         <div class="flex-1 min-w-0">
                             <p class="text-xs font-medium text-gray-900 dark:text-white truncate" x-text="item.name"></p>
-                            <p class="text-xs text-blue-600 dark:text-blue-400 font-semibold mt-0.5" x-text="'৳' + item.price + ' × ' + item.qty"></p>
+                            <p class="text-xs text-primary-600 dark:text-primary-400 font-semibold mt-0.5" x-text="'৳' + item.price + ' × ' + item.qty"></p>
                         </div>
                         <div class="flex items-center gap-1 flex-shrink-0">
                             <button @click="decreaseQty(idx)" class="w-6 h-6 bg-white dark:bg-slate-600 border border-gray-200 dark:border-slate-500 rounded-lg flex items-center justify-center text-gray-600 dark:text-slate-200 hover:bg-red-50 hover:text-red-500 transition-colors font-bold text-sm">−</button>
@@ -172,13 +172,13 @@
                     <div class="flex-1">
                         <label class="block text-xs text-gray-500 dark:text-slate-400 mb-1">Customer Name</label>
                         <input type="text" x-model="customerName"
-                               class="w-full px-2 py-1.5 text-sm border border-gray-200 dark:border-slate-600 rounded-lg bg-white dark:bg-slate-700 text-gray-900 dark:text-white focus:outline-none focus:ring-1 focus:ring-blue-500"
+                               class="w-full px-2 py-1.5 text-sm border border-gray-200 dark:border-slate-600 rounded-lg bg-white dark:bg-slate-700 text-gray-900 dark:text-white focus:outline-none focus:ring-1 focus:ring-primary-500"
                                placeholder="Walk-in Customer">
                     </div>
                     <div class="flex-1">
                         <label class="block text-xs text-gray-500 dark:text-slate-400 mb-1">Phone</label>
                         <input type="text" x-model="customerPhone"
-                               class="w-full px-2 py-1.5 text-sm border border-gray-200 dark:border-slate-600 rounded-lg bg-white dark:bg-slate-700 text-gray-900 dark:text-white focus:outline-none focus:ring-1 focus:ring-blue-500"
+                               class="w-full px-2 py-1.5 text-sm border border-gray-200 dark:border-slate-600 rounded-lg bg-white dark:bg-slate-700 text-gray-900 dark:text-white focus:outline-none focus:ring-1 focus:ring-primary-500"
                                placeholder="01XXXXXXXXX">
                     </div>
                 </div>
@@ -188,18 +188,18 @@
                     <div class="flex-1">
                         <label class="block text-xs text-gray-500 dark:text-slate-400 mb-1">Discount ৳</label>
                         <input type="number" x-model.number="orderDiscount" @input="calcTotals()" min="0"
-                               class="w-full px-2 py-1.5 text-sm border border-gray-200 dark:border-slate-600 rounded-lg bg-white dark:bg-slate-700 text-gray-900 dark:text-white focus:outline-none focus:ring-1 focus:ring-blue-500 text-right">
+                               class="w-full px-2 py-1.5 text-sm border border-gray-200 dark:border-slate-600 rounded-lg bg-white dark:bg-slate-700 text-gray-900 dark:text-white focus:outline-none focus:ring-1 focus:ring-primary-500 text-right">
                     </div>
                     <div class="flex-1">
                         <label class="block text-xs text-gray-500 dark:text-slate-400 mb-1">Shipping ৳</label>
                         <input type="number" x-model.number="shippingCharge" @input="calcTotals()" min="0"
-                               class="w-full px-2 py-1.5 text-sm border border-gray-200 dark:border-slate-600 rounded-lg bg-white dark:bg-slate-700 text-gray-900 dark:text-white focus:outline-none focus:ring-1 focus:ring-blue-500 text-right">
+                               class="w-full px-2 py-1.5 text-sm border border-gray-200 dark:border-slate-600 rounded-lg bg-white dark:bg-slate-700 text-gray-900 dark:text-white focus:outline-none focus:ring-1 focus:ring-primary-500 text-right">
                     </div>
                 </div>
 
                 {{-- Total --}}
-                <div class="bg-blue-600 rounded-xl p-3 flex justify-between items-center">
-                    <span class="text-blue-100 text-sm">Total</span>
+                <div class="bg-primary-600 rounded-xl p-3 flex justify-between items-center">
+                    <span class="text-primary-100 text-sm">Total</span>
                     <span class="text-white text-xl font-bold" x-text="'৳' + total.toLocaleString()"></span>
                 </div>
 
@@ -208,7 +208,7 @@
                     @foreach(['cash'=>'💵','bkash'=>'📱','nagad'=>'🟠','card'=>'💳'] as $method => $icon)
                     <button @click="paymentMethod = '{{ $method }}'"
                             class="py-2 rounded-xl text-xs font-medium transition-all border"
-                            :class="paymentMethod === '{{ $method }}' ? 'bg-blue-600 text-white border-blue-600 scale-105' : 'bg-white dark:bg-slate-700 text-gray-600 dark:text-slate-300 border-gray-200 dark:border-slate-600 hover:border-blue-300'">
+                            :class="paymentMethod === '{{ $method }}' ? 'bg-primary-600 text-white border-primary-600 scale-105' : 'bg-white dark:bg-slate-700 text-gray-600 dark:text-slate-300 border-gray-200 dark:border-slate-600 hover:border-primary-300'">
                         {{ $icon }}<br>{{ ucfirst($method) }}
                     </button>
                     @endforeach
@@ -219,7 +219,7 @@
                     <div>
                         <label class="block text-xs text-gray-500 dark:text-slate-400 mb-1">Paid ৳</label>
                         <input type="number" x-model.number="paidAmount" @input="calcChange()" min="0"
-                               class="w-full px-2 py-2 text-sm font-bold border border-gray-200 dark:border-slate-600 rounded-lg bg-white dark:bg-slate-700 text-gray-900 dark:text-white focus:outline-none focus:ring-1 focus:ring-blue-500 text-right">
+                               class="w-full px-2 py-2 text-sm font-bold border border-gray-200 dark:border-slate-600 rounded-lg bg-white dark:bg-slate-700 text-gray-900 dark:text-white focus:outline-none focus:ring-1 focus:ring-primary-500 text-right">
                     </div>
                     <div>
                         <label class="block text-xs text-gray-500 dark:text-slate-400 mb-1">Change ৳</label>
@@ -247,7 +247,7 @@
                 <button @click="checkout()"
                         :disabled="cart.length === 0 || processing"
                         class="w-full py-3.5 rounded-xl text-white font-bold text-base transition-all"
-                        :class="cart.length === 0 ? 'bg-gray-200 dark:bg-slate-700 text-gray-400 cursor-not-allowed' : processing ? 'bg-blue-400 cursor-wait' : 'bg-blue-600 hover:bg-blue-700 shadow-sm hover:shadow-md'">
+                        :class="cart.length === 0 ? 'bg-gray-200 dark:bg-slate-700 text-gray-400 cursor-not-allowed' : processing ? 'bg-primary-400 cursor-wait' : 'bg-primary-600 hover:bg-primary-700 shadow-sm hover:shadow-md'">
                     <span x-show="!processing">💳 Checkout — ৳<span x-text="total.toLocaleString()"></span></span>
                     <span x-show="processing" x-cloak class="flex items-center justify-center gap-2">
                         <svg class="w-4 h-4 animate-spin" fill="none" stroke="currentColor" viewBox="0 0 24 24"><path stroke-linecap="round" stroke-linejoin="round" stroke-width="2" d="M4 4v5h.582m15.356 2A8.001 8.001 0 004.582 9m0 0H9m11 11v-5h-.581m0 0a8.003 8.003 0 01-15.357-2m15.357 2H15"/></svg>
@@ -260,7 +260,7 @@
 
     {{-- Mobile Cart FAB --}}
     <button @click="showCart = true" x-show="!showCart && cart.length > 0"
-            class="lg:hidden fixed bottom-6 right-4 z-40 w-14 h-14 bg-blue-600 text-white rounded-full shadow-xl flex items-center justify-center">
+            class="lg:hidden fixed bottom-6 right-4 z-40 w-14 h-14 bg-primary-600 text-white rounded-full shadow-xl flex items-center justify-center">
         <svg class="w-6 h-6" fill="none" stroke="currentColor" viewBox="0 0 24 24"><path stroke-linecap="round" stroke-linejoin="round" stroke-width="2" d="M3 3h2l.4 2M7 13h10l4-8H5.4M7 13L5.4 5M7 13l-2.293 2.293c-.63.63-.184 1.707.707 1.707H17m0 0a2 2 0 100 4 2 2 0 000-4zm-8 2a2 2 0 11-4 0 2 2 0 014 0z"/></svg>
         <span class="absolute -top-1 -right-1 w-5 h-5 bg-red-500 text-white text-xs rounded-full flex items-center justify-center font-bold" x-text="cart.reduce((s,i)=>s+i.qty,0)"></span>
     </button>
@@ -279,7 +279,7 @@
                             <p class="text-xs font-medium text-gray-900 dark:text-white" x-text="'Order ' + (idx+1) + ' · ' + held.cart.length + ' items'"></p>
                             <p class="text-xs text-gray-400" x-text="'৳' + held.total + ' · ' + held.time"></p>
                         </div>
-                        <button @click="recallOrder(idx)" class="px-3 py-1.5 text-xs bg-blue-600 text-white rounded-lg hover:bg-blue-700">Recall</button>
+                        <button @click="recallOrder(idx)" class="px-3 py-1.5 text-xs bg-primary-600 text-white rounded-lg hover:bg-primary-700">Recall</button>
                         <button @click="removeHeld(idx)" class="px-2 py-1.5 text-xs bg-red-100 text-red-600 rounded-lg hover:bg-red-200">✕</button>
                     </div>
                 </template>
@@ -303,7 +303,7 @@
                     🖨️ Print
                 </a>
                 <button @click="newSale()"
-                        class="flex-1 py-2.5 bg-blue-600 text-white text-sm font-bold rounded-xl hover:bg-blue-700 transition-colors">
+                        class="flex-1 py-2.5 bg-primary-600 text-white text-sm font-bold rounded-xl hover:bg-primary-700 transition-colors">
                     New Sale
                 </button>
             </div>
@@ -335,12 +335,12 @@
             <div class="absolute inset-0 flex items-center justify-center pointer-events-none" style="z-index:10">
                 <div class="relative w-72 h-44">
                     {{-- Corner guides --}}
-                    <div class="absolute top-0 left-0 w-8 h-8 border-t-4 border-l-4 border-indigo-400 rounded-tl-lg"></div>
-                    <div class="absolute top-0 right-0 w-8 h-8 border-t-4 border-r-4 border-indigo-400 rounded-tr-lg"></div>
-                    <div class="absolute bottom-0 left-0 w-8 h-8 border-b-4 border-l-4 border-indigo-400 rounded-bl-lg"></div>
-                    <div class="absolute bottom-0 right-0 w-8 h-8 border-b-4 border-r-4 border-indigo-400 rounded-br-lg"></div>
+                    <div class="absolute top-0 left-0 w-8 h-8 border-t-4 border-l-4 border-primary-400 rounded-tl-lg"></div>
+                    <div class="absolute top-0 right-0 w-8 h-8 border-t-4 border-r-4 border-primary-400 rounded-tr-lg"></div>
+                    <div class="absolute bottom-0 left-0 w-8 h-8 border-b-4 border-l-4 border-primary-400 rounded-bl-lg"></div>
+                    <div class="absolute bottom-0 right-0 w-8 h-8 border-b-4 border-r-4 border-primary-400 rounded-br-lg"></div>
                     {{-- Scan line animation --}}
-                    <div class="absolute left-2 right-2 h-0.5 bg-indigo-400/70 scan-line"></div>
+                    <div class="absolute left-2 right-2 h-0.5 bg-primary-400/70 scan-line"></div>
                 </div>
                 <p class="absolute bottom-20 text-white/70 text-sm">Point camera at barcode</p>
             </div>
@@ -373,7 +373,7 @@
                 Switch Camera
             </button>
             <p class="text-white/50 text-xs" x-text="'Cart: ' + cart.reduce((s,i)=>s+i.qty,0) + ' items'"></p>
-            <button @click="stopScan()" class="px-4 py-2 bg-indigo-600 text-white text-sm font-semibold rounded-xl hover:bg-indigo-700 transition-colors">
+            <button @click="stopScan()" class="px-4 py-2 bg-primary-600 text-white text-sm font-semibold rounded-xl hover:bg-primary-700 transition-colors">
                 Done
             </button>
         </div>

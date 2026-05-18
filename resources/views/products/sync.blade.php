@@ -1,4 +1,4 @@
-@extends('layouts.app')
+﻿@extends('layouts.app')
 @section('title', 'Product Sync')
 
 @section('content')
@@ -41,21 +41,21 @@
         <form method="POST" action="{{ route('products.do-sync') }}" class="space-y-3">
             @csrf
             <label class="flex items-center gap-3 p-3 border border-gray-200 dark:border-slate-600 rounded-lg cursor-pointer hover:bg-gray-50 dark:hover:bg-slate-700 transition-colors">
-                <input type="radio" name="sync_type" value="pull_all" checked class="text-blue-600">
+                <input type="radio" name="sync_type" value="pull_all" checked class="text-primary-600">
                 <div>
                     <p class="text-sm font-medium text-gray-900 dark:text-white">Pull all products from WooCommerce</p>
                     <p class="text-xs text-gray-500 dark:text-slate-400">Import products that don't exist here yet</p>
                 </div>
             </label>
             <label class="flex items-center gap-3 p-3 border border-gray-200 dark:border-slate-600 rounded-lg cursor-pointer hover:bg-gray-50 dark:hover:bg-slate-700 transition-colors">
-                <input type="radio" name="sync_type" value="push_all" class="text-blue-600">
+                <input type="radio" name="sync_type" value="push_all" class="text-primary-600">
                 <div>
                     <p class="text-sm font-medium text-gray-900 dark:text-white">Push stock updates to WooCommerce</p>
                     <p class="text-xs text-gray-500 dark:text-slate-400">Update stock quantities in WooCommerce</p>
                 </div>
             </label>
             <label class="flex items-center gap-3 p-3 border border-gray-200 dark:border-slate-600 rounded-lg cursor-pointer hover:bg-gray-50 dark:hover:bg-slate-700 transition-colors">
-                <input type="radio" name="sync_type" value="full" class="text-blue-600">
+                <input type="radio" name="sync_type" value="full" class="text-primary-600">
                 <div>
                     <p class="text-sm font-medium text-gray-900 dark:text-white">Full two-way sync</p>
                     <p class="text-xs text-gray-500 dark:text-slate-400">Sync products and stock both ways</p>
@@ -63,7 +63,7 @@
             </label>
 
             <button type="submit"
-                    class="w-full flex items-center justify-center gap-2 bg-blue-600 hover:bg-blue-700 text-white font-medium py-3 rounded-lg text-sm transition-colors">
+                    class="w-full flex items-center justify-center gap-2 bg-primary-600 hover:bg-primary-700 text-white font-medium py-3 rounded-lg text-sm transition-colors">
                 <svg class="w-4 h-4" fill="none" stroke="currentColor" viewBox="0 0 24 24">
                     <path stroke-linecap="round" stroke-linejoin="round" stroke-width="2" d="M4 4v5h.582m15.356 2A8.001 8.001 0 004.582 9m0 0H9m11 11v-5h-.581m0 0a8.003 8.003 0 01-15.357-2m15.357 2H15"/>
                 </svg>

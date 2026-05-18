@@ -1,4 +1,4 @@
-@extends('layouts.app')
+﻿@extends('layouts.app')
 @section('title', 'Returns & RMA')
 
 @section('content')
@@ -25,13 +25,13 @@
         <p class="text-2xl font-bold text-gray-900 dark:text-white mt-1">{{ $counts['requested'] }}</p>
     </a>
     <a href="{{ route('returns.index', ['status' => 'return_approved']) }}"
-       class="bg-white dark:bg-slate-800 rounded-xl border {{ $status === 'return_approved' ? 'border-blue-400' : 'border-gray-100 dark:border-slate-700' }} p-4 hover:shadow-sm transition-shadow">
-        <p class="text-xs text-blue-600 dark:text-blue-400 font-medium">Approved</p>
+       class="bg-white dark:bg-slate-800 rounded-xl border {{ $status === 'return_approved' ? 'border-primary-400' : 'border-gray-100 dark:border-slate-700' }} p-4 hover:shadow-sm transition-shadow">
+        <p class="text-xs text-primary-600 dark:text-primary-400 font-medium">Approved</p>
         <p class="text-2xl font-bold text-gray-900 dark:text-white mt-1">{{ $counts['approved'] }}</p>
     </a>
     <a href="{{ route('returns.index', ['status' => 'return_received']) }}"
-       class="bg-white dark:bg-slate-800 rounded-xl border {{ $status === 'return_received' ? 'border-indigo-400' : 'border-gray-100 dark:border-slate-700' }} p-4 hover:shadow-sm transition-shadow">
-        <p class="text-xs text-indigo-600 dark:text-indigo-400 font-medium">Received</p>
+       class="bg-white dark:bg-slate-800 rounded-xl border {{ $status === 'return_received' ? 'border-primary-400' : 'border-gray-100 dark:border-slate-700' }} p-4 hover:shadow-sm transition-shadow">
+        <p class="text-xs text-primary-600 dark:text-primary-400 font-medium">Received</p>
         <p class="text-2xl font-bold text-gray-900 dark:text-white mt-1">{{ $counts['received'] }}</p>
     </a>
     <a href="{{ route('returns.index', ['status' => 'refunded']) }}"
@@ -86,8 +86,8 @@
                         @php
                             $statusConfig = [
                                 'return_requested' => ['label'=>'Requested', 'class'=>'bg-yellow-100 text-yellow-700 dark:bg-yellow-900/30 dark:text-yellow-400'],
-                                'return_approved'  => ['label'=>'Approved',  'class'=>'bg-blue-100 text-blue-700 dark:bg-blue-900/30 dark:text-blue-400'],
-                                'return_received'  => ['label'=>'Received',  'class'=>'bg-indigo-100 text-indigo-700 dark:bg-indigo-900/30 dark:text-indigo-400'],
+                                'return_approved'  => ['label'=>'Approved',  'class'=>'bg-primary-100 text-primary-700 dark:bg-primary-900/30 dark:text-primary-400'],
+                                'return_received'  => ['label'=>'Received',  'class'=>'bg-primary-100 text-primary-700 dark:bg-primary-900/30 dark:text-primary-400'],
                                 'refunded'         => ['label'=>'Refunded',  'class'=>'bg-green-100 text-green-700 dark:bg-green-900/30 dark:text-green-400'],
                                 'returned'         => ['label'=>'Returned',  'class'=>'bg-gray-100 text-gray-600 dark:bg-slate-700 dark:text-slate-300'],
                             ];
@@ -101,7 +101,7 @@
                             {{-- APPROVE button (only for requested) --}}
                             @if($order->status === 'return_requested')
                             <button @click="open = 'approve_{{ $order->id }}'"
-                                    class="px-2 py-1 bg-blue-600 text-white text-xs rounded hover:bg-blue-700 transition-colors">
+                                    class="px-2 py-1 bg-primary-600 text-white text-xs rounded hover:bg-primary-700 transition-colors">
                                 Approve
                             </button>
                             <button @click="open = 'reject_{{ $order->id }}'"
@@ -113,7 +113,7 @@
                             {{-- RECEIVED button (only for approved) --}}
                             @if($order->status === 'return_approved')
                             <button @click="open = 'receive_{{ $order->id }}'"
-                                    class="px-2 py-1 bg-indigo-600 text-white text-xs rounded hover:bg-indigo-700 transition-colors">
+                                    class="px-2 py-1 bg-primary-600 text-white text-xs rounded hover:bg-primary-700 transition-colors">
                                 Mark Received
                             </button>
                             @endif
@@ -141,9 +141,9 @@
                                 <form method="POST" action="{{ route('returns.approve', $order) }}">
                                     @csrf
                                     <textarea name="notes" rows="2" placeholder="Internal notes (optional)"
-                                              class="w-full px-3 py-2 text-xs border border-gray-200 dark:border-slate-600 rounded-lg bg-white dark:bg-slate-700 text-gray-900 dark:text-white mb-3 focus:ring-2 focus:ring-blue-500 resize-none"></textarea>
+                                              class="w-full px-3 py-2 text-xs border border-gray-200 dark:border-slate-600 rounded-lg bg-white dark:bg-slate-700 text-gray-900 dark:text-white mb-3 focus:ring-2 focus:ring-primary-500 resize-none"></textarea>
                                     <div class="flex gap-2">
-                                        <button type="submit" class="flex-1 py-2 bg-blue-600 text-white text-xs rounded-lg hover:bg-blue-700">Approve</button>
+                                        <button type="submit" class="flex-1 py-2 bg-primary-600 text-white text-xs rounded-lg hover:bg-primary-700">Approve</button>
                                         <button type="button" @click="open = false" class="flex-1 py-2 bg-gray-100 dark:bg-slate-700 text-gray-600 dark:text-slate-300 text-xs rounded-lg hover:bg-gray-200">Cancel</button>
                                     </div>
                                 </form>
@@ -176,16 +176,16 @@
                                     @csrf
                                     <div class="mb-3">
                                         <label class="block text-xs font-medium text-gray-700 dark:text-slate-300 mb-1.5">Condition of Goods <span class="text-red-500">*</span></label>
-                                        <select name="condition" required class="w-full px-3 py-2 text-xs border border-gray-200 dark:border-slate-600 rounded-lg bg-white dark:bg-slate-700 text-gray-700 dark:text-slate-200 focus:ring-2 focus:ring-indigo-500">
+                                        <select name="condition" required class="w-full px-3 py-2 text-xs border border-gray-200 dark:border-slate-600 rounded-lg bg-white dark:bg-slate-700 text-gray-700 dark:text-slate-200 focus:ring-2 focus:ring-primary-500">
                                             <option value="good">Good — fully restockable</option>
                                             <option value="partial">Partial — some items ok</option>
                                             <option value="damaged">Damaged — cannot restock</option>
                                         </select>
                                     </div>
                                     <textarea name="notes" rows="2" placeholder="Inspection notes (optional)"
-                                              class="w-full px-3 py-2 text-xs border border-gray-200 dark:border-slate-600 rounded-lg bg-white dark:bg-slate-700 text-gray-900 dark:text-white mb-3 focus:ring-2 focus:ring-indigo-500 resize-none"></textarea>
+                                              class="w-full px-3 py-2 text-xs border border-gray-200 dark:border-slate-600 rounded-lg bg-white dark:bg-slate-700 text-gray-900 dark:text-white mb-3 focus:ring-2 focus:ring-primary-500 resize-none"></textarea>
                                     <div class="flex gap-2">
-                                        <button type="submit" class="flex-1 py-2 bg-indigo-600 text-white text-xs rounded-lg hover:bg-indigo-700">Confirm Receipt</button>
+                                        <button type="submit" class="flex-1 py-2 bg-primary-600 text-white text-xs rounded-lg hover:bg-primary-700">Confirm Receipt</button>
                                         <button type="button" @click="open = false" class="flex-1 py-2 bg-gray-100 dark:bg-slate-700 text-gray-600 dark:text-slate-300 text-xs rounded-lg hover:bg-gray-200">Cancel</button>
                                     </div>
                                 </form>
@@ -239,7 +239,7 @@
         <svg class="w-12 h-12 text-gray-200 dark:text-slate-600 mb-3" fill="none" stroke="currentColor" viewBox="0 0 24 24"><path stroke-linecap="round" stroke-linejoin="round" stroke-width="1.5" d="M16 15v-1a4 4 0 00-4-4H8m0 0l3 3m-3-3l3-3m9 14V5a2 2 0 00-2-2H6a2 2 0 00-2 2v16l4-2 4 2 4-2 4 2z"/></svg>
         <p class="text-sm text-gray-400 dark:text-slate-500">No return requests</p>
         @if($status)
-        <a href="{{ route('returns.index') }}" class="mt-2 text-xs text-blue-600 hover:underline dark:text-blue-400">View all statuses</a>
+        <a href="{{ route('returns.index') }}" class="mt-2 text-xs text-primary-600 hover:underline dark:text-primary-400">View all statuses</a>
         @endif
     </div>
     @endif
@@ -254,14 +254,14 @@
             <span class="text-yellow-700 dark:text-yellow-400">1. Customer Requests Return</span>
         </div>
         <svg class="w-4 h-4 text-gray-300" fill="none" stroke="currentColor" viewBox="0 0 24 24"><path stroke-linecap="round" stroke-linejoin="round" stroke-width="2" d="M9 5l7 7-7 7"/></svg>
-        <div class="flex items-center gap-1.5 px-2.5 py-1.5 bg-blue-50 dark:bg-blue-900/20 rounded-lg">
-            <span class="w-2 h-2 rounded-full bg-blue-400"></span>
-            <span class="text-blue-700 dark:text-blue-400">2. Admin Approves</span>
+        <div class="flex items-center gap-1.5 px-2.5 py-1.5 bg-primary-50 dark:bg-primary-900/20 rounded-lg">
+            <span class="w-2 h-2 rounded-full bg-primary-400"></span>
+            <span class="text-primary-700 dark:text-primary-400">2. Admin Approves</span>
         </div>
         <svg class="w-4 h-4 text-gray-300" fill="none" stroke="currentColor" viewBox="0 0 24 24"><path stroke-linecap="round" stroke-linejoin="round" stroke-width="2" d="M9 5l7 7-7 7"/></svg>
-        <div class="flex items-center gap-1.5 px-2.5 py-1.5 bg-indigo-50 dark:bg-indigo-900/20 rounded-lg">
-            <span class="w-2 h-2 rounded-full bg-indigo-400"></span>
-            <span class="text-indigo-700 dark:text-indigo-400">3. Goods Inspected & Received</span>
+        <div class="flex items-center gap-1.5 px-2.5 py-1.5 bg-primary-50 dark:bg-primary-900/20 rounded-lg">
+            <span class="w-2 h-2 rounded-full bg-primary-400"></span>
+            <span class="text-primary-700 dark:text-primary-400">3. Goods Inspected & Received</span>
         </div>
         <svg class="w-4 h-4 text-gray-300" fill="none" stroke="currentColor" viewBox="0 0 24 24"><path stroke-linecap="round" stroke-linejoin="round" stroke-width="2" d="M9 5l7 7-7 7"/></svg>
         <div class="flex items-center gap-1.5 px-2.5 py-1.5 bg-green-50 dark:bg-green-900/20 rounded-lg">
