@@ -49,6 +49,28 @@
         <p class="text-xs text-blue-600 dark:text-blue-400 mt-3 font-medium group-hover:underline">Configure →</p>
     </a>
 
+    {{-- Payment Gateways --}}
+    <a href="{{ route('integrations.payment-gateways') }}"
+       class="bg-white dark:bg-slate-800 rounded-xl border border-gray-100 dark:border-slate-700 p-5 hover:border-pink-300 dark:hover:border-pink-600 hover:shadow-sm transition-all group">
+        <div class="flex items-center justify-between mb-4">
+            <div class="w-10 h-10 bg-pink-100 dark:bg-pink-900/30 rounded-xl flex items-center justify-center">
+                <svg class="w-6 h-6 text-pink-600 dark:text-pink-400" fill="none" stroke="currentColor" viewBox="0 0 24 24">
+                    <path stroke-linecap="round" stroke-linejoin="round" stroke-width="2" d="M3 10h18M7 15h1m4 0h1m-7 4h12a3 3 0 003-3V8a3 3 0 00-3-3H6a3 3 0 00-3 3v8a3 3 0 003 3z"/>
+                </svg>
+            </div>
+            @if($bkashActive || $nagadActive)
+                <span class="text-xs font-medium text-green-600 dark:text-green-400 bg-green-100 dark:bg-green-900/30 px-2 py-1 rounded-full">
+                    {{ collect(['bKash'=>$bkashActive,'Nagad'=>$nagadActive])->filter()->keys()->implode(', ') }} Active
+                </span>
+            @else
+                <span class="text-xs font-medium text-gray-500 dark:text-slate-400 bg-gray-100 dark:bg-slate-700 px-2 py-1 rounded-full">Not configured</span>
+            @endif
+        </div>
+        <h3 class="text-sm font-semibold text-gray-900 dark:text-white group-hover:text-pink-600 dark:group-hover:text-pink-400 transition-colors">Payment Gateways</h3>
+        <p class="text-xs text-gray-500 dark:text-slate-400 mt-1">Accept bKash & Nagad payments directly on orders.</p>
+        <p class="text-xs text-pink-600 dark:text-pink-400 mt-3 font-medium group-hover:underline">Configure →</p>
+    </a>
+
     {{-- SMS --}}
     <a href="{{ route('integrations.sms') }}"
        class="bg-white dark:bg-slate-800 rounded-xl border border-gray-100 dark:border-slate-700 p-5 hover:border-green-300 dark:hover:border-green-600 hover:shadow-sm transition-all group">
