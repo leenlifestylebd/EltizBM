@@ -118,11 +118,13 @@
        :class="sidebarOpen ? 'translate-x-0' : '-translate-x-full lg:translate-x-0'">
 
     {{-- Logo --}}
-    <div class="flex items-center justify-between px-5 py-4 border-b border-gray-100 dark:border-slate-700">
-        <div class="flex items-center gap-2">
-            <img src="/images/logo.png" alt="Eltiz ERP" class="h-16 w-auto">
-        </div>
-        <button @click="sidebarOpen = false" class="lg:hidden p-1 rounded text-gray-400 hover:text-gray-600">
+    <div class="flex items-center justify-between px-4 py-3 border-b border-gray-100 dark:border-slate-700 flex-shrink-0">
+        <a href="{{ route('dashboard') }}" class="flex items-center gap-2 min-w-0">
+            <img src="/images/logo.png" alt="Eltiz ERP"
+                 class="h-10 w-auto object-contain object-left flex-shrink-0"
+                 style="max-width: 140px;">
+        </a>
+        <button @click="sidebarOpen = false" class="lg:hidden p-1.5 rounded-lg text-gray-400 hover:text-gray-600 hover:bg-gray-100 dark:hover:bg-slate-700 flex-shrink-0">
             <svg class="w-5 h-5" fill="none" stroke="currentColor" viewBox="0 0 24 24">
                 <path stroke-linecap="round" stroke-linejoin="round" stroke-width="2" d="M6 18L18 6M6 6l12 12"/>
             </svg>
@@ -320,8 +322,10 @@
                 <button @click="sidebarOpen = true" class="lg:hidden p-2 rounded-lg text-gray-500 hover:bg-gray-100 dark:hover:bg-slate-700 -ml-1">
                     <svg class="w-5 h-5" fill="none" stroke="currentColor" viewBox="0 0 24 24"><path stroke-linecap="round" stroke-linejoin="round" stroke-width="2" d="M4 6h16M4 12h16M4 18h16"/></svg>
                 </button>
-                <div class="flex items-center gap-2 lg:hidden">
-                    <img src="/images/logo.png" alt="Eltiz ERP" class="h-12 w-auto">
+                <div class="flex items-center lg:hidden">
+                    <img src="/images/logo.png" alt="Eltiz ERP"
+                         class="h-9 w-auto object-contain object-left"
+                         style="max-width: 120px;">
                 </div>
                 <div class="hidden lg:block">
                     <h1 class="text-base font-semibold text-gray-900 dark:text-white">@yield('title', 'Dashboard')</h1>
