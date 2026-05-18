@@ -421,8 +421,17 @@ class SteadfastController extends Controller
             return response()->json(['found' => false, 'error' => 'Steadfast not connected'], 503);
         }
 
-        $result = $service->fraudCheck($phone);
-        return response()->json($result);
+        // DEBUG: return raw API response to see field names
+        try {
+            $raw = \Illuminate\Support\Facades\Http::withHeaders([
+                'Api-Key'    => \App\Models\CourierSetting::where('business_id', auth()->user()->business_id)->where('provider','steadfast')->first()?->api_key,
+                'Secret-Key' => \App\Models\CourierSetting::where('business_id', auth()->user()->business_id)->where('provider','steadfast')->first()?->api_secret,
+                'Content-Type' => 'application/json',
+            ])->get("https://portal.packzy.com/api/v1/verify/check/{$phone}");
+            return response()->json(['_raw' => $raw->json(), '_status' => $raw->status()]);
+        } catch (\Exception $e) {
+            return response()->json(['_error' => $e->getMessage()]);
+        }
     }
 
     public function getBalance()
