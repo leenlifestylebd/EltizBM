@@ -7,6 +7,7 @@ use App\Models\User;
 use Illuminate\Http\Request;
 use Illuminate\Support\Str;
 use Illuminate\Support\Facades\Hash;
+use Illuminate\Support\Facades\DB;
 
 class SuperAdminController extends Controller
 {
@@ -150,6 +151,81 @@ class SuperAdminController extends Controller
         ]);
 
         return back()->with('success', "Business '{$business->name}' created with owner account.");
+    }
+
+    // ── Reset Business Data ────────────────────────────────────
+    public function resetData(Request $request, Business $business)
+    {
+        $request->validate([
+            'confirm_name' => 'required|string',
+            'modules'      => 'required|array|min:1',
+        ]);
+
+        if (trim($request->confirm_name) !== trim($business->name)) {
+            return back()->with('error', 'Business name does not match. Reset cancelled.');
+        }
+
+        $bizId   = $business->id;
+        $modules = $request->modules;
+        $deleted = [];
+
+        DB::transaction(function () use ($bizId, $modules, &$deleted) {
+
+            if (in_array('orders', $modules)) {
+                DB::table('order_items')->whereIn('order_id',
+                    DB::table('orders')->where('business_id', $bizId)->pluck('id')
+                )->delete();
+                DB::table('orders')->where('business_id', $bizId)->delete();
+                $deleted[] = 'Orders';
+            }
+
+            if (in_array('products', $modules)) {
+                DB::table('product_variants')->whereIn('product_id',
+                    DB::table('products')->where('business_id', $bizId)->pluck('id')
+                )->delete();
+                DB::table('products')->where('business_id', $bizId)->delete();
+                $deleted[] = 'Products';
+            }
+
+            if (in_array('customers', $modules)) {
+                DB::table('customers')->where('business_id', $bizId)->delete();
+                $deleted[] = 'Customers';
+            }
+
+            if (in_array('transactions', $modules)) {
+                DB::table('transactions')->where('business_id', $bizId)->delete();
+                $deleted[] = 'Transactions';
+            }
+
+            if (in_array('employees', $modules)) {
+                DB::table('employee_payments')->whereIn('employee_id',
+                    DB::table('employees')->where('business_id', $bizId)->pluck('id')
+                )->delete();
+                DB::table('employees')->where('business_id', $bizId)->delete();
+                $deleted[] = 'Employees';
+            }
+
+            if (in_array('production', $modules)) {
+                DB::table('production_entries')->where('business_id', $bizId)->delete();
+                DB::table('production_tasks')->where('business_id', $bizId)->delete();
+                $deleted[] = 'Production';
+            }
+
+            if (in_array('inventory', $modules)) {
+                DB::table('stock_adjustments')->where('business_id', $bizId)->delete();
+                DB::table('purchase_orders')->where('business_id', $bizId)->delete();
+                $deleted[] = 'Inventory';
+            }
+
+            if (in_array('categories', $modules)) {
+                DB::table('categories')->where('business_id', $bizId)->delete();
+                DB::table('brands')->where('business_id', $bizId)->delete();
+                $deleted[] = 'Categories & Brands';
+            }
+        });
+
+        $summary = implode(', ', $deleted);
+        return back()->with('success', "Reset complete for '{$business->name}'. Cleared: {$summary}.");
     }
 
     // ── Delete Business (hard) ─────────────────────────────────

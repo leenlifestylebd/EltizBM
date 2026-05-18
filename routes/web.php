@@ -60,6 +60,7 @@ Route::middleware(['auth', 'superadmin'])->prefix('super-admin')->name('super-ad
     Route::post('/businesses/{business}/toggle',         [\App\Http\Controllers\SuperAdminController::class, 'toggleBusiness'])->name('businesses.toggle');
     Route::post('/businesses/{business}/extend-trial',   [\App\Http\Controllers\SuperAdminController::class, 'extendTrial'])->name('businesses.extend-trial');
     Route::delete('/businesses/{business}',              [\App\Http\Controllers\SuperAdminController::class, 'destroyBusiness'])->name('businesses.destroy');
+    Route::post('/businesses/{business}/reset-data',     [\App\Http\Controllers\SuperAdminController::class, 'resetData'])->name('businesses.reset-data');
     Route::get('/users',                                 [\App\Http\Controllers\SuperAdminController::class, 'users'])->name('users');
     Route::post('/users/{user}/approve',                 [\App\Http\Controllers\SuperAdminController::class, 'approveUser'])->name('users.approve');
     Route::delete('/users/{user}/reject',                [\App\Http\Controllers\SuperAdminController::class, 'rejectUser'])->name('users.reject');
