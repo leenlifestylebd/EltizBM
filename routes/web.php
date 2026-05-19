@@ -26,6 +26,7 @@ use App\Http\Controllers\WebOrderController;
 use App\Http\Controllers\SteadfastController;
 use App\Http\Controllers\ProductionTaskController;
 use App\Http\Controllers\BomController;
+use App\Http\Controllers\TailoringController;
 
 // =============================================
 // AUTH ROUTES
