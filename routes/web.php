@@ -346,6 +346,20 @@ Route::middleware(['auth', 'business'])->group(function () {
         Route::post('/sms/test',          [IntegrationController::class, 'testSms'])->name('sms.test');
     });
 
+    // ---- TAILORING ----
+    Route::prefix('tailoring')->name('tailoring.')->group(function () {
+        Route::get('/',                                    [TailoringController::class, 'index'])->name('index');
+        Route::get('/create',                              [TailoringController::class, 'create'])->name('create');
+        Route::post('/',                                   [TailoringController::class, 'store'])->name('store');
+        Route::get('/{tailoring}',                         [TailoringController::class, 'show'])->name('show');
+        Route::get('/{tailoring}/edit',                    [TailoringController::class, 'edit'])->name('edit');
+        Route::put('/{tailoring}',                         [TailoringController::class, 'update'])->name('update');
+        Route::delete('/{tailoring}',                      [TailoringController::class, 'destroy'])->name('destroy');
+        Route::post('/{tailoring}/advance-stage',          [TailoringController::class, 'advanceStage'])->name('advance-stage');
+        Route::post('/{tailoring}/set-stage',              [TailoringController::class, 'setStage'])->name('set-stage');
+        Route::post('/{tailoring}/assign-worker',          [TailoringController::class, 'assignWorker'])->name('assign-worker');
+    });
+
     // ---- STEADFAST ----
     Route::prefix('steadfast')->name('steadfast.')->group(function () {
         Route::get('/',                        [SteadfastController::class, 'index'])->name('index');

@@ -11,6 +11,7 @@ class ProductionTask extends Model
 
     protected $fillable = [
         'business_id', 'employee_id', 'assigned_by', 'production_rate_id',
+        'tailoring_order_id',
         'product_name', 'color', 'size',
         'assigned_quantity', 'completed_quantity',
         'status', 'deadline', 'notes', 'assigned_at',
@@ -25,7 +26,8 @@ class ProductionTask extends Model
     public function assignedBy()     { return $this->belongsTo(User::class, 'assigned_by'); }
     public function productionRate() { return $this->belongsTo(ProductionRate::class); }
     public function submissions()    { return $this->hasMany(TaskSubmission::class); }
-    public function business()       { return $this->belongsTo(Business::class); }
+    public function business()        { return $this->belongsTo(Business::class); }
+    public function tailoringOrder()  { return $this->belongsTo(TailoringOrder::class); }
 
     public function getPendingQuantityAttribute(): int
     {
