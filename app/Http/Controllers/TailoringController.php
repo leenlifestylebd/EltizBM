@@ -5,6 +5,7 @@ use App\Models\TailoringOrder;
 use App\Models\Customer;
 use App\Models\ProductionTask;
 use App\Models\Employee;
+use App\Models\Transaction;
 use Illuminate\Http\Request;
 use Illuminate\Support\Facades\DB;
 
@@ -58,7 +59,9 @@ class TailoringController extends Controller
             'price'         => 'required|numeric|min:0',
         ]);
 
-        TailoringOrder::create([
+        $advance = $request->advance_paid ?? 0;
+
+        $order = TailoringOrder::create([
             'business_id'      => $this->bizId(),
             'customer_id'      => $request->customer_id ?: null,
             'customer_name'    => $request->customer_name,
@@ -76,13 +79,28 @@ class TailoringController extends Controller
             'color'            => $request->color,
             'design_note'      => $request->design_note,
             'price'            => $request->price,
-            'advance_paid'     => $request->advance_paid ?? 0,
+            'advance_paid'     => $advance,
             'stage'            => 'pending',
             'delivery_date'    => $request->delivery_date,
             'created_by'       => auth()->id(),
         ]);
 
-        return redirect()->route('tailoring.index')->with('success', 'Tailoring order created!');
+        // Record advance payment as income transaction
+        if ($advance > 0) {
+            Transaction::create([
+                'business_id'      => $this->bizId(),
+                'created_by'       => auth()->id(),
+                'type'             => 'income',
+                'title'            => 'Tailoring Advance – ' . $order->customer_name . ' (' . $order->order_number . ')',
+                'amount'           => $advance,
+                'payment_method'   => $request->payment_method ?? 'cash',
+                'reference'        => 'TAILORING-' . $order->id,
+                'notes'            => $request->notes,
+                'transaction_date' => now()->toDateString(),
+            ]);
+        }
+
+        return redirect()->route('tailoring.show', $order)->with('success', 'Tailoring order created!');
     }
 
     // ── SHOW ──────────────────────────────────────────────────────────────────
@@ -182,6 +200,42 @@ class TailoringController extends Controller
         ]);
 
         return back()->with('success', 'Worker assigned for ' . ucfirst($request->task_stage));
+    }
+
+    // ── RECEIVE PAYMENT ───────────────────────────────────────────────────────
+    public function receivePayment(Request $request, TailoringOrder $tailoring)
+    {
+        abort_unless($tailoring->business_id === $this->bizId(), 403);
+
+        $request->validate([
+            'amount'         => 'required|numeric|min:0.01|max:' . $tailoring->due_amount,
+            'payment_method' => 'required|in:cash,bkash,nagad,rocket,bank,card,other',
+        ]);
+
+        $amount = (float) $request->amount;
+
+        // Update advance_paid on the order
+        $tailoring->increment('advance_paid', $amount);
+
+        // Record as income transaction
+        Transaction::create([
+            'business_id'      => $this->bizId(),
+            'created_by'       => auth()->id(),
+            'type'             => 'income',
+            'title'            => 'Tailoring Payment – ' . $tailoring->customer_name . ' (' . $tailoring->order_number . ')',
+            'amount'           => $amount,
+            'payment_method'   => $request->payment_method,
+            'reference'        => 'TAILORING-' . $tailoring->id,
+            'notes'            => $request->notes,
+            'transaction_date' => $request->transaction_date ?? now()->toDateString(),
+        ]);
+
+        // Auto-mark as delivered if fully paid and stage is ready
+        if ($tailoring->fresh()->due_amount <= 0 && $tailoring->stage === 'ready') {
+            $tailoring->update(['stage' => 'delivered']);
+        }
+
+        return back()->with('success', '৳' . number_format($amount, 0) . ' payment received successfully!');
     }
 
     // ── DELETE ────────────────────────────────────────────────────────────────

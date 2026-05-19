@@ -295,15 +295,15 @@
     <div class="space-y-4">
 
         {{-- Payment Summary --}}
-        <div class="bg-white dark:bg-slate-800 rounded-xl border border-gray-100 dark:border-slate-700 p-4">
+        <div class="bg-white dark:bg-slate-800 rounded-xl border border-gray-100 dark:border-slate-700 p-4" x-data="{ payOpen: false }">
             <h3 class="text-sm font-semibold text-gray-800 dark:text-slate-200 mb-3">💰 Payment</h3>
-            <div class="space-y-2">
+            <div class="space-y-2 mb-3">
                 <div class="flex justify-between text-sm">
                     <span class="text-gray-500 dark:text-slate-400">Total Price</span>
                     <span class="font-semibold text-gray-900 dark:text-white">৳{{ number_format($tailoring->price, 0) }}</span>
                 </div>
                 <div class="flex justify-between text-sm">
-                    <span class="text-gray-500 dark:text-slate-400">Advance Paid</span>
+                    <span class="text-gray-500 dark:text-slate-400">Total Received</span>
                     <span class="font-semibold text-green-600">৳{{ number_format($tailoring->advance_paid, 0) }}</span>
                 </div>
                 <div class="h-px bg-gray-100 dark:bg-slate-700"></div>
@@ -315,6 +315,98 @@
                     </span>
                 </div>
             </div>
+
+            {{-- Receive Payment Button --}}
+            @if($tailoring->due_amount > 0 && $tailoring->stage !== 'cancelled')
+            <button @click="payOpen = !payOpen"
+                    class="w-full px-3 py-2 text-xs font-medium text-white bg-green-600 rounded-lg hover:bg-green-700 transition-colors">
+                💵 Receive Payment (৳{{ number_format($tailoring->due_amount, 0) }} due)
+            </button>
+
+            {{-- Payment Form --}}
+            <div x-show="payOpen" x-cloak x-transition class="mt-3 p-3 bg-green-50 dark:bg-green-900/20 border border-green-200 dark:border-green-800 rounded-lg">
+                <form method="POST" action="{{ route('tailoring.receive-payment', $tailoring) }}">
+                    @csrf
+                    <div class="space-y-2">
+                        <div>
+                            <label class="block text-xs font-medium text-gray-600 dark:text-slate-400 mb-1">
+                                Amount <span class="text-gray-400">(max ৳{{ number_format($tailoring->due_amount, 0) }})</span>
+                            </label>
+                            <div class="relative">
+                                <span class="absolute left-3 top-1/2 -translate-y-1/2 text-xs text-gray-400">৳</span>
+                                <input type="number" name="amount" step="0.01" min="1"
+                                       max="{{ $tailoring->due_amount }}"
+                                       value="{{ $tailoring->due_amount }}"
+                                       class="w-full pl-6 pr-3 py-2 text-xs border border-gray-200 dark:border-slate-600 rounded-lg bg-white dark:bg-slate-700 text-gray-900 dark:text-white focus:outline-none focus:ring-1 focus:ring-green-400"
+                                       required>
+                            </div>
+                        </div>
+                        <div>
+                            <label class="block text-xs font-medium text-gray-600 dark:text-slate-400 mb-1">Payment Method</label>
+                            <select name="payment_method"
+                                    class="w-full px-3 py-2 text-xs border border-gray-200 dark:border-slate-600 rounded-lg bg-white dark:bg-slate-700 text-gray-900 dark:text-white focus:outline-none">
+                                <option value="cash">💵 Cash</option>
+                                <option value="bkash">bKash</option>
+                                <option value="nagad">Nagad</option>
+                                <option value="rocket">Rocket</option>
+                                <option value="bank">Bank</option>
+                                <option value="card">Card</option>
+                                <option value="other">Other</option>
+                            </select>
+                        </div>
+                        <div>
+                            <label class="block text-xs font-medium text-gray-600 dark:text-slate-400 mb-1">Date</label>
+                            <input type="date" name="transaction_date" value="{{ now()->toDateString() }}"
+                                   class="w-full px-3 py-2 text-xs border border-gray-200 dark:border-slate-600 rounded-lg bg-white dark:bg-slate-700 text-gray-900 dark:text-white focus:outline-none">
+                        </div>
+                        <div>
+                            <label class="block text-xs font-medium text-gray-600 dark:text-slate-400 mb-1">Note (optional)</label>
+                            <input type="text" name="notes" placeholder="e.g. Final payment on delivery"
+                                   class="w-full px-3 py-2 text-xs border border-gray-200 dark:border-slate-600 rounded-lg bg-white dark:bg-slate-700 text-gray-900 dark:text-white focus:outline-none">
+                        </div>
+                        <div class="flex gap-2 pt-1">
+                            <button type="submit"
+                                    class="flex-1 px-3 py-2 text-xs font-medium text-white bg-green-600 rounded-lg hover:bg-green-700">
+                                Confirm Payment
+                            </button>
+                            <button type="button" @click="payOpen = false"
+                                    class="px-3 py-2 text-xs bg-white dark:bg-slate-700 border border-gray-200 dark:border-slate-600 text-gray-500 rounded-lg">
+                                Cancel
+                            </button>
+                        </div>
+                    </div>
+                </form>
+            </div>
+            @else
+            <div class="flex items-center gap-2 px-3 py-2 bg-green-50 dark:bg-green-900/20 rounded-lg">
+                <span class="text-green-500 text-sm">✅</span>
+                <span class="text-xs text-green-700 dark:text-green-400 font-medium">Fully Paid</span>
+            </div>
+            @endif
+
+            {{-- Payment History --}}
+            @php
+                $payments = \App\Models\Transaction::where('business_id', $tailoring->business_id)
+                    ->where('reference', 'TAILORING-' . $tailoring->id)
+                    ->orderBy('transaction_date')
+                    ->get();
+            @endphp
+            @if($payments->isNotEmpty())
+            <div class="mt-3 pt-3 border-t border-gray-100 dark:border-slate-700">
+                <p class="text-xs font-medium text-gray-500 dark:text-slate-400 mb-2">Payment History</p>
+                <div class="space-y-1.5">
+                    @foreach($payments as $pay)
+                    <div class="flex items-center justify-between text-xs">
+                        <div class="text-gray-600 dark:text-slate-300">
+                            {{ $pay->transaction_date->format('d M') }}
+                            <span class="text-gray-400 ml-1">{{ ucfirst($pay->payment_method) }}</span>
+                        </div>
+                        <span class="font-semibold text-green-600">+৳{{ number_format($pay->amount, 0) }}</span>
+                    </div>
+                    @endforeach
+                </div>
+            </div>
+            @endif
         </div>
 
         {{-- Delivery Info --}}
