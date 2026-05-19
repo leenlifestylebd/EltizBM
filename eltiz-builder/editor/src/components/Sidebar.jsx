@@ -95,24 +95,6 @@ function WidgetItem( { widget, onDragStart } ) {
 	);
 }
 
-function SettingsPanel( { element, widgets, onUpdate } ) {
-	const widget = widgets?.find( w => w.name === element?.widgetType );
-	const controls = widget?.controls || [];
-
-	if ( ! element ) {
-		return (
-			<div className="eltiz-settings-panel eltiz-settings-panel--empty">
-				<p>{ __( 'Select an element to edit its settings.', 'eltiz-builder' ) }</p>
-			</div>
-		);
-	}
-
-	const contentControls  = controls.filter( c => c.section === 'content'  || ! c.section );
-	const styleControls    = controls.filter( c => c.section === 'style' );
-	const advancedControls = controls.filter( c => c.section === 'advanced' );
-
-	return { contentControls, styleControls, advancedControls };
-}
 
 export default function Sidebar( {
 	widgets,
@@ -167,9 +149,12 @@ export default function Sidebar( {
 						key={ ctrl.name }
 						control={ ctrl }
 						value={ selectedElement?.settings?.[ ctrl.name ] }
-						onChange={ val => onUpdateElement( selectedElement.id, {
-							settings: { ...selectedElement.settings, [ ctrl.name ]: val },
-						} ) }
+						onChange={ val => {
+							if ( ! selectedElement ) return;
+							onUpdateElement( selectedElement.id, {
+								settings: { ...( selectedElement.settings || {} ), [ ctrl.name ]: val },
+							} );
+						} }
 					/>
 				) ) }
 			</div>

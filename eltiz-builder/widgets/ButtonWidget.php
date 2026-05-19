@@ -123,7 +123,7 @@ final class ButtonWidget extends WidgetBase {
 		echo '<div class="eltiz-button-wrapper">';
 		echo '<a href="' . esc_url( $link['url'] ?? '#' ) . '"' . $target . $nofollow . ' class="eltiz-button eltiz-button-link">';
 		echo '<span class="eltiz-button-content-wrapper">';
-		if ( 'left' === ( $settings['icon_align'] ?? 'left' ) ) echo $icon_html;
+		if ( 'right' !== ( $settings['icon_align'] ?? 'left' ) ) echo $icon_html;
 		echo '<span class="eltiz-button-text">' . esc_html( $text ) . '</span>';
 		if ( 'right' === ( $settings['icon_align'] ?? 'left' ) ) echo $icon_html;
 		echo '</span>';

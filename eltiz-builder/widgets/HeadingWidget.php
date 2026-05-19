@@ -88,9 +88,9 @@ final class HeadingWidget extends WidgetBase {
 		$link  = $settings['link'] ?? [];
 
 		if ( ! empty( $link['url'] ) ) {
-			$target   = ! empty( $link['is_external'] ) ? ' target="_blank"' : '';
+			$target   = ! empty( $link['is_external'] ) ? ' target="_blank" rel="noopener noreferrer"' : '';
 			$nofollow = ! empty( $link['nofollow'] ) ? ' rel="nofollow"' : '';
-			$title    = '<a href="' . esc_url( $link['url'] ) . '"' . $target . $nofollow . '>' . $title . '</a>';
+			$title    = '<a href="' . esc_url( $link['url'] ) . '"' . $target . $nofollow . '>' . esc_html( $title ) . '</a>';
 		}
 
 		echo '<' . esc_html( $tag ) . ' class="eltiz-heading-title">';

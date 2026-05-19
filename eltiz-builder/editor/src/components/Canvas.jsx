@@ -1,4 +1,4 @@
-import { useState, useCallback } from '@wordpress/element';
+import { useState, useCallback, Fragment } from '@wordpress/element';
 import { __ } from '@wordpress/i18n';
 
 function DropZone( { containerId, index, onDragOver, onDrop, isOver } ) {
@@ -192,9 +192,8 @@ function ContainerElement( {
 			/>
 
 			{ children.map( ( child, i ) => (
-				<>
+				<Fragment key={ child.id }>
 					<ContainerElement
-						key={ child.id }
 						element={ child }
 						elements={ elements }
 						selectedId={ selectedId }
@@ -211,14 +210,13 @@ function ContainerElement( {
 						onContextMenu={ onContextMenu }
 					/>
 					<DropZone
-						key={ `drop-${ child.id }` }
 						containerId={ element.id }
 						index={ i + 1 }
 						onDragOver={ onDragOver }
 						onDrop={ onDrop }
 						isOver={ dragOver === `${ element.id }-${ i + 1 }` }
 					/>
-				</>
+				</Fragment>
 			) ) }
 		</div>
 	);
@@ -259,16 +257,16 @@ export default function Canvas( {
 				style={ { maxWidth: deviceWidths[ deviceView ] || '100%' } }
 				onClick={ handleCanvasClick }
 				onDragOver={ e => { e.preventDefault(); onDragOver( e, null ); } }
-				onDrop={ e => onDrop( e, null, elements.length ) }
+				onDrop={ e => onDrop( e, null, ( elements || [] ).length ) }
 			>
-				{ elements.length === 0 && (
+				{ ( elements || [] ).length === 0 && (
 					<div className="eltiz-canvas__empty">
 						<div className="eltiz-canvas__empty-icon">⊞</div>
 						<p>{ __( 'Drag widgets here to start building', 'eltiz-builder' ) }</p>
 					</div>
 				) }
 
-				{ elements.length > 0 && (
+				{ ( elements || [] ).length > 0 && (
 					<DropZone
 						containerId={ null }
 						index={ 0 }
@@ -278,10 +276,9 @@ export default function Canvas( {
 					/>
 				) }
 
-				{ elements.map( ( element, i ) => (
-					<>
+				{ ( elements || [] ).map( ( element, i ) => (
+					<Fragment key={ element.id }>
 						<ContainerElement
-							key={ element.id }
 							element={ element }
 							elements={ elements }
 							selectedId={ selectedId }
@@ -298,14 +295,13 @@ export default function Canvas( {
 							onContextMenu={ onContextMenu }
 						/>
 						<DropZone
-							key={ `root-drop-${ element.id }` }
 							containerId={ null }
 							index={ i + 1 }
 							onDragOver={ onDragOver }
 							onDrop={ onDrop }
 							isOver={ dragOver === `root-${ i + 1 }` }
 						/>
-					</>
+					</Fragment>
 				) ) }
 			</div>
 		</div>

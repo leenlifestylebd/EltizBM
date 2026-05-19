@@ -1,4 +1,4 @@
-import { useState, useCallback, useRef } from '@wordpress/element';
+import { useState, useCallback, useEffect } from '@wordpress/element';
 
 const MAX_HISTORY = 50;
 
@@ -31,10 +31,10 @@ function getState() { return _state; }
 export function useEditorStore() {
 	const [ , rerender ] = useState( 0 );
 
-	useCallback( () => {
+	useEffect( () => {
 		const unsub = subscribe( () => rerender( n => n + 1 ) );
 		return unsub;
-	}, [] )();
+	}, [] );
 
 	const pushHistory = useCallback( ( newElements ) => {
 		const { history, historyIndex } = getState();

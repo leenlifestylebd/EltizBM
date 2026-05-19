@@ -209,6 +209,7 @@ final class RestAPI {
 
 		$id    = (int) $request->get_param( 'id' );
 		$table = $wpdb->prefix . 'eltiz_templates';
+		// phpcs:ignore WordPress.DB.PreparedSQL.InterpolatedNotPrepared -- table name is a hardcoded prefixed constant, not user input.
 		$row   = $wpdb->get_row( $wpdb->prepare( "SELECT * FROM {$table} WHERE id = %d", $id ), ARRAY_A );
 
 		if ( ! $row ) {
@@ -323,6 +324,7 @@ final class RestAPI {
 
 		$post_id = (int) $request->get_param( 'post_id' );
 		$table   = $wpdb->prefix . 'eltiz_revisions';
+		// phpcs:ignore WordPress.DB.PreparedSQL.InterpolatedNotPrepared -- table name is a hardcoded prefixed constant.
 		$rows    = $wpdb->get_results( $wpdb->prepare( "SELECT id, post_id, created_at, author_id FROM {$table} WHERE post_id = %d ORDER BY created_at DESC LIMIT 50", $post_id ), ARRAY_A );
 
 		return new \WP_REST_Response( $rows ?? [], 200 );
@@ -341,6 +343,7 @@ final class RestAPI {
 		$revision_id = (int) $request->get_param( 'revision_id' );
 		$table       = $wpdb->prefix . 'eltiz_revisions';
 
+		// phpcs:ignore WordPress.DB.PreparedSQL.InterpolatedNotPrepared -- table name is a hardcoded prefixed constant.
 		$revision = $wpdb->get_row( $wpdb->prepare( "SELECT * FROM {$table} WHERE id = %d AND post_id = %d", $revision_id, $post_id ) );
 
 		if ( ! $revision ) {
@@ -370,6 +373,7 @@ final class RestAPI {
 
 		// Keep only the last 50 revisions per post.
 		$table = $wpdb->prefix . 'eltiz_revisions';
+		// phpcs:ignore WordPress.DB.PreparedSQL.InterpolatedNotPrepared -- table name is a hardcoded prefixed constant.
 		$wpdb->query( $wpdb->prepare(
 			"DELETE FROM {$table} WHERE post_id = %d AND id NOT IN (SELECT id FROM (SELECT id FROM {$table} WHERE post_id = %d ORDER BY created_at DESC LIMIT 50) tmp)",
 			$post_id, $post_id

@@ -1,4 +1,4 @@
-import { useState, useEffect, useCallback } from '@wordpress/element';
+import { useState, useEffect, useCallback, useMemo } from '@wordpress/element';
 import { __ } from '@wordpress/i18n';
 import apiFetch from '@wordpress/api-fetch';
 import Sidebar from './components/Sidebar';
@@ -7,6 +7,7 @@ import Toolbar from './components/Toolbar';
 import Navigator from './components/Navigator';
 import ContextMenu from './components/ContextMenu';
 import { useEditorStore } from './store';
+import { duplicateElement, removeElement } from './store';
 import { useKeyboardShortcuts } from './hooks/useKeyboardShortcuts';
 import { useAutoSave } from './hooks/useAutoSave';
 
@@ -24,14 +25,12 @@ export default function App() {
 		historyIndex,
 	} = useEditorStore();
 
-	const [ widgets, setWidgets ]           = useState( {} );
-	const [ categories, setCategories ]     = useState( {} );
-	const [ globalStyles, setGlobalStyles ] = useState( {} );
+	const [ widgets, setWidgets ]             = useState( [] );
+	const [ globalStyles, setGlobalStyles ]   = useState( {} );
 	const [ showNavigator, setShowNavigator ] = useState( false );
-	const [ contextMenu, setContextMenu ]   = useState( null );
-	const [ activeTab, setActiveTab ]       = useState( 'widgets' );
-	const [ panelView, setPanelView ]       = useState( 'widgets' ); // 'widgets' | 'settings'
-	const [ notification, setNotification ] = useState( null );
+	const [ contextMenu, setContextMenu ]     = useState( null );
+	const [ sidebarTab, setSidebarTab ]       = useState( 'widgets' );
+	const [ notification, setNotification ]   = useState( null );
 
 	// ── Load initial data ──────────────────────────────────────────────────────
 	useEffect( () => {
@@ -42,8 +41,11 @@ export default function App() {
 			apiFetch( { path: `/eltiz/v1/page/${ config.postId }` } ),
 			apiFetch( { path: '/eltiz/v1/global-styles' } ),
 		] ).then( ( [ widgetsData, pageData, stylesData ] ) => {
-			setWidgets( widgetsData.widgets || {} );
-			setCategories( widgetsData.categories || {} );
+			// widgets endpoint returns an object keyed by name — flatten to array
+			const widgetList = widgetsData.widgets
+				? Object.values( widgetsData.widgets )
+				: [];
+			setWidgets( widgetList );
 			if ( pageData.data && pageData.data.length ) {
 				setElements( pageData.data );
 			}
@@ -51,6 +53,12 @@ export default function App() {
 		} ).catch( console.error ).finally( () => {
 			setIsLoading( false );
 		} );
+	}, [] ); // eslint-disable-line react-hooks/exhaustive-deps
+
+	// ── Notify helper ─────────────────────────────────────────────────────────
+	const notify = useCallback( ( message, type = 'info' ) => {
+		setNotification( { message, type } );
+		setTimeout( () => setNotification( null ), 3000 );
 	}, [] );
 
 	// ── Save ──────────────────────────────────────────────────────────────────
@@ -69,30 +77,42 @@ export default function App() {
 		} finally {
 			setIsSaving( false );
 		}
-	}, [ elements ] );
+	}, [ elements, notify, setIsDirty, setIsSaving ] );
 
-	const notify = ( message, type = 'info' ) => {
-		setNotification( { message, type } );
-		setTimeout( () => setNotification( null ), 3000 );
-	};
-
-	// ── Keyboard shortcuts ─────────────────────────────────────────────────────
-	useKeyboardShortcuts( {
-		'ctrl+s': ( e ) => { e.preventDefault(); save( 'publish' ); },
-		'ctrl+z': ( e ) => { e.preventDefault(); undo(); },
-		'ctrl+y': ( e ) => { e.preventDefault(); redo(); },
+	// ── Keyboard shortcuts — memoized so the object ref is stable ─────────────
+	const shortcuts = useMemo( () => ( {
+		'ctrl+s':       ( e ) => { e.preventDefault(); save( 'publish' ); },
+		'ctrl+z':       ( e ) => { e.preventDefault(); undo(); },
+		'ctrl+y':       ( e ) => { e.preventDefault(); redo(); },
 		'ctrl+shift+z': ( e ) => { e.preventDefault(); redo(); },
 		'ctrl+shift+n': () => setShowNavigator( v => ! v ),
-		'Escape': () => { setSelectedId( null ); setContextMenu( null ); },
-	} );
+		'Escape':       () => { setSelectedId( null ); setContextMenu( null ); },
+	} ), [ save, undo, redo ] ); // eslint-disable-line react-hooks/exhaustive-deps
+
+	useKeyboardShortcuts( shortcuts );
 
 	// ── Auto-save ─────────────────────────────────────────────────────────────
 	useAutoSave( isDirty, () => save( 'draft' ), 60000 );
 
-	const handleContextMenu = ( e, elementId ) => {
+	// ── Context menu ──────────────────────────────────────────────────────────
+	const handleContextMenu = useCallback( ( e, elementId ) => {
 		e.preventDefault();
 		setContextMenu( { x: e.clientX, y: e.clientY, elementId } );
-	};
+	}, [] );
+
+	const handleDuplicate = useCallback( ( id ) => {
+		setElements( prev => duplicateElement( prev, id ) );
+	}, [ setElements ] );
+
+	const handleDelete = useCallback( ( id ) => {
+		setElements( prev => removeElement( prev, id ) );
+		if ( selectedId === id ) setSelectedId( null );
+	}, [ setElements, selectedId, setSelectedId ] );
+
+	// ── Update a single element's properties ──────────────────────────────────
+	const handleUpdateElement = useCallback( ( id, patch ) => {
+		setElements( prev => updateElementInTree( prev, id, patch ) );
+	}, [ setElements ] );
 
 	if ( isLoading ) {
 		return (
@@ -103,74 +123,115 @@ export default function App() {
 		);
 	}
 
+	const selectedElement = selectedId
+		? findElementInTree( elements, selectedId )
+		: null;
+
 	return (
 		<div className="eltiz-editor" data-device={ device }>
 			<Toolbar
 				onSave={ save }
+				onPublish={ () => save( 'publish' ) }
 				isSaving={ isSaving }
 				isDirty={ isDirty }
-				device={ device }
+				deviceView={ device }
 				onDeviceChange={ setDevice }
 				canUndo={ historyIndex > 0 }
 				canRedo={ historyIndex < history.length - 1 }
 				onUndo={ undo }
 				onRedo={ redo }
-				onToggleNavigator={ () => setShowNavigator( v => ! v ) }
 				postId={ config.postId }
-				postTitle={ config.postTitle }
 			/>
 
 			<div className="eltiz-editor-main">
 				<Sidebar
 					widgets={ widgets }
-					categories={ categories }
-					globalStyles={ globalStyles }
-					selectedId={ selectedId }
-					elements={ elements }
-					onElementsChange={ setElements }
-					activeTab={ activeTab }
-					onTabChange={ setActiveTab }
-					panelView={ panelView }
-					onPanelViewChange={ setPanelView }
+					selectedElement={ selectedElement }
+					onDragStart={ ( e, widgetType ) => e.dataTransfer.setData( 'text/plain', widgetType ) }
+					onUpdateElement={ handleUpdateElement }
+					sidebarTab={ sidebarTab }
+					onSidebarTabChange={ tab => {
+						setSidebarTab( tab );
+					} }
 				/>
 
 				<Canvas
-					elements={ elements }
-					onElementsChange={ setElements }
+					elements={ elements || [] }
 					selectedId={ selectedId }
+					widgets={ widgets }
+					deviceView={ device }
+					dragOver={ null }
+					draggingId={ null }
 					onSelect={ setSelectedId }
-					device={ device }
+					onDuplicate={ handleDuplicate }
+					onDelete={ handleDelete }
+					onDragStart={ () => {} }
+					onDragEnd={ () => {} }
+					onDrop={ () => {} }
+					onDragOver={ () => {} }
 					onContextMenu={ handleContextMenu }
 				/>
-			</div>
 
-			{ showNavigator && (
-				<Navigator
-					elements={ elements }
-					selectedId={ selectedId }
-					onSelect={ setSelectedId }
-					onClose={ () => setShowNavigator( false ) }
-					onElementsChange={ setElements }
-				/>
-			) }
+				{ showNavigator && (
+					<Navigator
+						elements={ elements || [] }
+						selectedId={ selectedId }
+						onSelect={ setSelectedId }
+						widgets={ widgets }
+					/>
+				) }
+			</div>
 
 			{ contextMenu && (
 				<ContextMenu
 					x={ contextMenu.x }
 					y={ contextMenu.y }
 					elementId={ contextMenu.elementId }
-					elements={ elements }
-					onElementsChange={ setElements }
 					onClose={ () => setContextMenu( null ) }
-					onSelect={ setSelectedId }
+					onEdit={ ( id ) => {
+						setSelectedId( id );
+						setSidebarTab( 'settings' );
+						setContextMenu( null );
+					} }
+					onDuplicate={ handleDuplicate }
+					onDelete={ handleDelete }
 				/>
 			) }
 
 			{ notification && (
-				<div className={ `eltiz-notification eltiz-notification--${ notification.type }` } role="alert">
-					{ notification.message }
+				<div
+					className={ `eltiz-notifications` }
+					role="alert"
+					aria-live="polite"
+				>
+					<div className={ `eltiz-notification eltiz-notification--${ notification.type }` }>
+						{ notification.message }
+					</div>
 				</div>
 			) }
 		</div>
 	);
+}
+
+// ── Tree helpers ───────────────────────────────────────────────────────────────
+
+function findElementInTree( elements, id ) {
+	for ( const el of elements ) {
+		if ( el.id === id ) return el;
+		if ( el.children?.length ) {
+			const found = findElementInTree( el.children, id );
+			if ( found ) return found;
+		}
+	}
+	return null;
+}
+
+function updateElementInTree( elements, id, patch ) {
+	return elements.map( el => {
+		if ( el.id === id ) return { ...el, ...patch };
+		if ( el.children?.length ) {
+			return { ...el, children: updateElementInTree( el.children, id, patch ) };
+		}
+		return el;
+	} );
 }
