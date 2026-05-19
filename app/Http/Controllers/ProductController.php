@@ -144,6 +144,7 @@ class ProductController extends Controller
             'type'            => $product->type,
             'unit'            => $product->unit,
             'is_active'       => $product->is_active,
+            'images'          => $product->images ?? [],
             'update_url'      => route('products.update', $product),
             'edit_url'        => route('products.edit', $product),
         ]);
@@ -170,8 +171,15 @@ class ProductController extends Controller
             'images.*'   => 'nullable|image|mimes:jpeg,png,jpg,webp|max:2048',
         ]);
 
-        $bizId  = auth()->user()->business_id;
-        $images = $request->existing_images ?? [];
+        $bizId = auth()->user()->business_id;
+
+        // Start with existing images — if existing_images not sent at all (e.g. quick-edit),
+        // keep the product's current images instead of wiping them.
+        if ($request->has('existing_images')) {
+            $images = $request->existing_images ?? [];
+        } else {
+            $images = $product->images ?? [];
+        }
 
         // Upload new images
         if ($request->hasFile('images')) {

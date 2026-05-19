@@ -334,6 +334,10 @@
     <form x-show="!loading" method="POST" :action="product.update_url" class="flex-1 overflow-y-auto flex flex-col" @submit="saving = true">
         <input type="hidden" name="_method" value="PUT">
         @csrf
+        {{-- Preserve existing images so they don't get wiped on save --}}
+        <template x-for="img in (product.images || [])" :key="img">
+            <input type="hidden" name="existing_images[]" :value="img">
+        </template>
 
         <div class="flex-1 overflow-y-auto px-5 py-4 space-y-5">
 
