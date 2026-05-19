@@ -214,7 +214,12 @@ class TailoringController extends Controller
             ->setOptions([
                 'defaultFont'     => 'DejaVu Sans',
                 'isRemoteEnabled' => false,
-                'dpi'             => 150,
+                'dpi'             => 120,
+                'isPhpEnabled'    => true,
+                'margin_top'      => 0,
+                'margin_bottom'   => 0,
+                'margin_left'     => 0,
+                'margin_right'    => 0,
             ]);
 
         $filename = 'Tailoring-' . $tailoring->order_number . '.pdf';

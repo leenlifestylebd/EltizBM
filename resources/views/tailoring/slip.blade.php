@@ -13,296 +13,296 @@
         'Neck'        => $tailoring->neck,
         'Round Gher'  => $tailoring->round_gher,
     ];
-    $hasMeasurements = collect($measurements)->filter()->isNotEmpty();
+    $filled = collect($measurements)->filter();
 @endphp
 <!DOCTYPE html>
-<html lang="en">
+<html>
 <head>
 <meta charset="UTF-8">
 <style>
-* { margin: 0; padding: 0; box-sizing: border-box; }
-
-html, body {
+* { margin:0; padding:0; box-sizing:border-box; }
+body {
     font-family: DejaVu Sans, sans-serif;
-    font-size: 10px;
-    color: #1e293b;
+    font-size: 9.5pt;
+    color: #1a1a1a;
     background: #fff;
-    width: 210mm;
-    height: 297mm;
+}
+
+/* ── ONE COPY ─────────────────────────── */
+.copy {
+    width: 190mm;
+    margin: 4mm 10mm;
+    border: 1px solid #d1d5db;
+    border-radius: 3px;
     overflow: hidden;
 }
 
-/* Wrapper — exactly one A4 page */
-.page {
-    width: 210mm;
-    height: 297mm;
-    display: block;
-    overflow: hidden;
-}
-
-/* Each copy = ~143mm tall */
-.slip {
-    width: 210mm;
-    height: 143mm;
-    padding: 6mm 10mm;
-    overflow: hidden;
-    display: block;
-}
-
-/* Cut line divider — ~5mm */
-.divider {
-    width: 210mm;
-    height: 5mm;
-    border-top: 1px dashed #94a3b8;
-    border-bottom: 1px dashed #94a3b8;
-    background: #f8fafc;
-    display: flex;
-    align-items: center;
-    justify-content: center;
-}
-.divider span {
-    font-size: 7px;
-    color: #94a3b8;
-    letter-spacing: 2px;
-    text-transform: uppercase;
-}
-
-/* Header */
-.slip-header {
-    display: flex;
-    justify-content: space-between;
-    align-items: flex-start;
-    border-bottom: 2px solid {{ $pc }};
-    padding-bottom: 3mm;
-    margin-bottom: 3mm;
-}
-.biz-name { font-size: 13px; font-weight: 700; color: {{ $pc }}; }
-.biz-sub  { font-size: 8px; color: #64748b; margin-top: 1px; }
-.copy-badge {
-    font-size: 8px;
-    font-weight: 700;
-    letter-spacing: 1px;
-    text-transform: uppercase;
+/* ── TOP BAR ──────────────────────────── */
+.top-bar {
     background: {{ $pc }};
     color: #fff;
-    padding: 2px 7px;
-    border-radius: 3px;
-    display: inline-block;
+    padding: 3mm 4mm;
 }
-.order-info {
-    text-align: right;
-    margin-top: 2px;
-    font-size: 9px;
-    color: #475569;
-    font-weight: 600;
-}
+.top-bar table { width: 100%; }
+.biz-name  { font-size: 13pt; font-weight: 700; }
+.biz-sub   { font-size: 7.5pt; opacity: 0.85; margin-top: 1px; }
+.copy-lbl  { font-size: 8pt; font-weight: 700; letter-spacing: 1px; text-transform: uppercase;
+             background: rgba(255,255,255,0.25); padding: 2px 8px; border-radius: 20px; }
+.order-num { font-size: 11pt; font-weight: 700; margin-top: 2px; }
+.order-dt  { font-size: 7.5pt; opacity: 0.85; }
 
-/* Two column body */
-.body {
-    display: flex;
-    gap: 5mm;
-}
-.col-l { flex: 1.15; }
-.col-r { flex: 0.85; }
-
-/* Section label */
-.sec {
-    font-size: 7.5px;
+/* ── SECTION HEADER ───────────────────── */
+.sec-hdr {
+    background: {{ $p50 }};
+    border-top: 1px solid #e5e7eb;
+    border-bottom: 1px solid #e5e7eb;
+    padding: 1.5mm 4mm;
+    font-size: 7.5pt;
     font-weight: 700;
     text-transform: uppercase;
-    letter-spacing: 0.7px;
+    letter-spacing: 0.8px;
     color: {{ $pc }};
-    border-bottom: 1px solid {{ $p50 }};
-    padding-bottom: 1px;
-    margin-bottom: 2mm;
-    margin-top: 2.5mm;
 }
 
-/* Info row */
-.row {
-    display: flex;
-    justify-content: space-between;
-    margin-bottom: 1.5mm;
-    font-size: 9.5px;
-}
-.lbl { color: #64748b; }
-.val { font-weight: 600; color: #1e293b; }
+/* ── CONTENT AREA ─────────────────────── */
+.content { padding: 0; }
 
-/* Measurement grid */
-.meas {
-    display: flex;
-    flex-wrap: wrap;
-    gap: 1.2mm;
-}
-.mc {
-    width: 23%;
-    background: #f8fafc;
-    border: 1px solid #e2e8f0;
-    border-radius: 2px;
-    padding: 1.5mm 2mm;
+/* ── ROW DIVIDER ──────────────────────── */
+.row-div { border-top: 1px solid #f3f4f6; }
+
+/* ── INFO TABLE ───────────────────────── */
+.info-table { width: 100%; border-collapse: collapse; }
+.info-table td { padding: 2mm 4mm; vertical-align: top; }
+.info-table .lbl { color: #6b7280; font-size: 8.5pt; width: 28%; }
+.info-table .val { font-weight: 600; font-size: 9pt; }
+.info-table .border-l { border-left: 1px solid #f3f4f6; }
+
+/* ── MEASUREMENTS ─────────────────────── */
+.meas-table { width: 100%; border-collapse: collapse; }
+.meas-table td {
+    width: 12.5%;
     text-align: center;
+    padding: 2mm 1mm;
+    border-right: 1px solid #f3f4f6;
+    border-bottom: 1px solid #f3f4f6;
 }
-.mc .ml { font-size: 7px; color: #64748b; }
-.mc .mv { font-size: 9px; font-weight: 700; margin-top: 1px; }
+.meas-table td:last-child { border-right: none; }
+.meas-lbl { font-size: 7pt; color: #6b7280; }
+.meas-val { font-size: 10pt; font-weight: 700; color: #111827; margin-top: 1px; }
+.meas-empty .meas-val { color: #d1d5db; }
 
-/* Note box */
-.note {
+/* ── BOTTOM ROW ───────────────────────── */
+.bottom-table { width: 100%; border-collapse: collapse; border-top: 1px solid #e5e7eb; }
+.bottom-table td { vertical-align: top; padding: 2.5mm 4mm; }
+.bottom-table .b-left  { width: 55%; border-right: 1px solid #e5e7eb; }
+.bottom-table .b-right { width: 45%; }
+
+/* ── PAY ROWS ─────────────────────────── */
+.pay-row { display: block; margin-bottom: 1.5mm; }
+.pay-lbl { color: #6b7280; font-size: 8.5pt; }
+.pay-val { font-weight: 600; font-size: 9pt; float: right; }
+.pay-total-lbl { font-weight: 700; font-size: 9.5pt; }
+.pay-total-val { font-weight: 700; font-size: 10.5pt; float: right;
+    color: {{ $tailoring->due_amount > 0 ? '#dc2626' : '#16a34a' }}; }
+.pay-divider { border: none; border-top: 1px solid #e5e7eb; margin: 2mm 0; }
+
+/* ── NOTE BOX ─────────────────────────── */
+.note-box {
     background: #fffbeb;
     border: 1px solid #fde68a;
     border-radius: 2px;
     padding: 1.5mm 2.5mm;
-    font-size: 8.5px;
+    font-size: 8pt;
     color: #92400e;
-    margin-top: 2mm;
     line-height: 1.4;
+    margin-bottom: 2mm;
 }
 
-/* Payment box */
-.pay {
-    background: #f8fafc;
-    border: 1px solid #e2e8f0;
-    border-radius: 3px;
-    padding: 2.5mm;
-    margin-top: 2mm;
-}
-.prow {
-    display: flex;
-    justify-content: space-between;
-    font-size: 9.5px;
-    margin-bottom: 1.5mm;
-}
-.prow:last-child { margin-bottom: 0; }
-.phr { border: none; border-top: 1px solid #e2e8f0; margin: 1.5mm 0; }
-.due-lbl { font-weight: 700; }
-.due-val { font-weight: 700; font-size: 10.5px; color: {{ $tailoring->due_amount > 0 ? '#dc2626' : '#16a34a' }}; }
-
-/* Delivery */
-.dlv {
+/* ── DELIVERY BADGE ───────────────────── */
+.dlv-badge {
     display: inline-block;
     border: 1px solid {{ $pc }};
     background: {{ $p50 }};
     color: {{ $pc }};
-    font-size: 8.5px;
+    font-size: 8.5pt;
     font-weight: 700;
     border-radius: 3px;
-    padding: 1.5px 5px;
-    margin-top: 2mm;
+    padding: 1px 6px;
+    margin-bottom: 2mm;
 }
 
-/* Stage */
-.stage {
+/* ── SIGNATURE ────────────────────────── */
+.sig {
+    margin-top: 4mm;
+    border-top: 1px dashed #d1d5db;
+    padding-top: 1.5mm;
+    font-size: 7.5pt;
+    color: #9ca3af;
+    text-align: center;
+}
+
+/* ── STAGE ────────────────────────────── */
+.stage-badge {
     display: inline-block;
-    background: #f1f5f9;
-    color: #475569;
-    font-size: 8px;
+    background: #f3f4f6;
+    color: #374151;
+    font-size: 8pt;
     font-weight: 700;
     border-radius: 10px;
-    padding: 1.5px 6px;
-    margin-top: 1.5mm;
+    padding: 1px 7px;
+    margin-bottom: 3mm;
 }
 
-/* Signature */
-.sig {
-    border-top: 1px dashed #cbd5e1;
-    margin-top: 3mm;
-    padding-top: 1.5mm;
-    font-size: 7.5px;
-    color: #94a3b8;
+/* ── CUT LINE ─────────────────────────── */
+.cut-line {
+    width: 100%;
     text-align: center;
+    border-top: 1.5px dashed #9ca3af;
+    border-bottom: 1.5px dashed #9ca3af;
+    padding: 1.5mm 0;
+    margin: 0;
+    background: #f9fafb;
+    font-size: 7.5pt;
+    color: #9ca3af;
+    letter-spacing: 2px;
+    text-transform: uppercase;
 }
 </style>
 </head>
 <body>
-<div class="page">
 
 @for($copy = 1; $copy <= 2; $copy++)
 @php $isOffice = ($copy === 1); @endphp
 
-<div class="slip">
+<div class="copy">
 
-    {{-- Header --}}
-    <div class="slip-header">
-        <div>
-            <div class="biz-name">{{ $biz?->name ?? 'Business Name' }}</div>
-            @if($biz?->phone)<div class="biz-sub">📞 {{ $biz->phone }}</div>@endif
-            @if($biz?->address)<div class="biz-sub">📍 {{ $biz->address }}</div>@endif
-        </div>
-        <div>
-            <div style="text-align:right"><span class="copy-badge">{{ $isOffice ? 'Office Copy' : 'Customer Copy' }}</span></div>
-            <div class="order-info">{{ $tailoring->order_number }} &nbsp;|&nbsp; {{ $tailoring->created_at->format('d M Y') }}</div>
-        </div>
+    {{-- TOP BAR --}}
+    <div class="top-bar">
+        <table><tr>
+            <td>
+                <div class="biz-name">{{ $biz?->name ?? 'Business Name' }}</div>
+                @if($biz?->phone)<div class="biz-sub">📞 {{ $biz->phone }}</div>@endif
+                @if($biz?->address)<div class="biz-sub">📍 {{ Str::limit($biz->address, 60) }}</div>@endif
+            </td>
+            <td style="text-align:right; vertical-align:top;">
+                <div class="copy-lbl">{{ $isOffice ? '✦ Office Copy' : '✦ Customer Copy' }}</div>
+                <div class="order-num">{{ $tailoring->order_number }}</div>
+                <div class="order-dt">{{ $tailoring->created_at->format('d M Y') }}</div>
+            </td>
+        </tr></table>
     </div>
 
-    {{-- Body --}}
-    <div class="body">
+    {{-- CUSTOMER + FABRIC ROW --}}
+    <table class="info-table">
+        <tr>
+            <td style="width:50%; border-right:1px solid #f3f4f6; padding-bottom:3mm;">
+                <div class="sec-hdr" style="margin:-0px -4mm 2mm -4mm; padding-left:4mm;">Customer</div>
+                <table style="width:100%; border-collapse:collapse;">
+                    <tr>
+                        <td class="lbl">Name</td>
+                        <td class="val">{{ $tailoring->customer_name }}</td>
+                    </tr>
+                    @if($tailoring->customer_phone)
+                    <tr>
+                        <td class="lbl">Phone</td>
+                        <td class="val">{{ $tailoring->customer_phone }}</td>
+                    </tr>
+                    @endif
+                    @if($tailoring->delivery_date)
+                    <tr>
+                        <td class="lbl">Delivery</td>
+                        <td class="val" style="color:{{ $isOverdue ?? false ? '#dc2626' : $pc }}">
+                            📅 {{ $tailoring->delivery_date->format('d M Y') }}
+                        </td>
+                    </tr>
+                    @endif
+                    <tr>
+                        <td class="lbl">Stage</td>
+                        <td class="val">{{ $tailoring->stage_info['icon'] }} {{ $tailoring->stage_info['label'] }}</td>
+                    </tr>
+                </table>
+            </td>
+            <td style="width:50%; vertical-align:top; padding-bottom:3mm;">
+                <div class="sec-hdr" style="margin:-0px -4mm 2mm -4mm; padding-left:4mm;">Fabric & Design</div>
+                <table style="width:100%; border-collapse:collapse;">
+                    @if($tailoring->fabric_type)
+                    <tr>
+                        <td class="lbl">Fabric</td>
+                        <td class="val">{{ $tailoring->fabric_type }}</td>
+                    </tr>
+                    @endif
+                    @if($tailoring->color)
+                    <tr>
+                        <td class="lbl">Color</td>
+                        <td class="val">{{ $tailoring->color }}</td>
+                    </tr>
+                    @endif
+                    @if($tailoring->design_note)
+                    <tr>
+                        <td class="lbl" style="vertical-align:top;">Design</td>
+                        <td class="val" style="font-size:8pt; font-weight:400; line-height:1.4;">{{ Str::limit($tailoring->design_note, 80) }}</td>
+                    </tr>
+                    @endif
+                </table>
+            </td>
+        </tr>
+    </table>
 
-        {{-- LEFT --}}
-        <div class="col-l">
-            <div class="sec">Customer</div>
-            <div class="row"><span class="lbl">Name</span><span class="val">{{ $tailoring->customer_name }}</span></div>
-            @if($tailoring->customer_phone)
-            <div class="row"><span class="lbl">Phone</span><span class="val">{{ $tailoring->customer_phone }}</span></div>
-            @endif
+    {{-- MEASUREMENTS --}}
+    @if($filled->isNotEmpty())
+    <div class="sec-hdr">Measurements &nbsp;<span style="font-weight:400;text-transform:none;letter-spacing:0;">(inches)</span></div>
+    <table class="meas-table">
+        <tr>
+            @foreach($measurements as $label => $val)
+            <td class="{{ $val ? '' : 'meas-empty' }}">
+                <div class="meas-lbl">{{ $label }}</div>
+                <div class="meas-val">{{ $val ? number_format($val, 1).'"' : '—' }}</div>
+            </td>
+            @endforeach
+        </tr>
+    </table>
+    @if($tailoring->measurement_note)
+    <div style="padding:2mm 4mm; border-top:1px solid #f3f4f6;">
+        <div class="note-box">📝 {{ $tailoring->measurement_note }}</div>
+    </div>
+    @endif
+    @endif
 
-            @if($hasMeasurements)
-            <div class="sec">Measurements (inches)</div>
-            <div class="meas">
-                @foreach($measurements as $label => $val)
-                @if($val)
-                <div class="mc">
-                    <div class="ml">{{ $label }}</div>
-                    <div class="mv">{{ number_format($val, 1) }}"</div>
+    {{-- BOTTOM: PAYMENT + SIGNATURE --}}
+    <table class="bottom-table">
+        <tr>
+            <td class="b-left">
+                <div style="font-size:8pt;color:#6b7280;font-weight:700;text-transform:uppercase;letter-spacing:0.5px;margin-bottom:2mm;">Payment Summary</div>
+
+                <div style="overflow:hidden; margin-bottom:1.5mm;">
+                    <span class="pay-lbl">Total Price</span>
+                    <span class="pay-val">৳{{ number_format($tailoring->price, 0) }}</span>
                 </div>
-                @endif
-                @endforeach
-            </div>
-            @endif
+                <div style="overflow:hidden; margin-bottom:1.5mm;">
+                    <span class="pay-lbl">Advance Received</span>
+                    <span class="pay-val" style="color:#16a34a;">৳{{ number_format($tailoring->advance_paid, 0) }}</span>
+                </div>
+                <hr class="pay-divider">
+                <div style="overflow:hidden;">
+                    <span class="pay-total-lbl">Due Amount</span>
+                    <span class="pay-total-val">৳{{ number_format($tailoring->due_amount, 0) }}</span>
+                </div>
+            </td>
+            <td class="b-right">
+                <div style="font-size:8pt;color:#6b7280;font-weight:700;text-transform:uppercase;letter-spacing:0.5px;margin-bottom:2mm;">Authorized By</div>
+                <div class="sig">Signature ________________________</div>
+                <div style="margin-top:3mm;" class="sig">Date ____________________________</div>
+            </td>
+        </tr>
+    </table>
 
-            @if($tailoring->measurement_note)
-            <div class="note">📝 {{ $tailoring->measurement_note }}</div>
-            @endif
-        </div>
-
-        {{-- RIGHT --}}
-        <div class="col-r">
-            <div class="sec">Fabric & Design</div>
-            @if($tailoring->fabric_type)
-            <div class="row"><span class="lbl">Fabric</span><span class="val">{{ $tailoring->fabric_type }}</span></div>
-            @endif
-            @if($tailoring->color)
-            <div class="row"><span class="lbl">Color</span><span class="val">{{ $tailoring->color }}</span></div>
-            @endif
-            @if($tailoring->design_note)
-            <div class="note">✂️ {{ Str::limit($tailoring->design_note, 100) }}</div>
-            @endif
-
-            @if($tailoring->delivery_date)
-            <div class="sec">Delivery Date</div>
-            <div class="dlv">📅 {{ $tailoring->delivery_date->format('d M Y') }}</div>
-            @endif
-
-            <div class="stage">{{ $tailoring->stage_info['icon'] }} {{ $tailoring->stage_info['label'] }}</div>
-
-            <div class="sec">Payment</div>
-            <div class="pay">
-                <div class="prow"><span style="color:#64748b">Total</span><span>৳{{ number_format($tailoring->price, 0) }}</span></div>
-                <div class="prow"><span style="color:#64748b">Received</span><span style="color:#16a34a;font-weight:600">৳{{ number_format($tailoring->advance_paid, 0) }}</span></div>
-                <hr class="phr">
-                <div class="prow"><span class="due-lbl">Due</span><span class="due-val">৳{{ number_format($tailoring->due_amount, 0) }}</span></div>
-            </div>
-
-            <div class="sig">Signature ___________________</div>
-        </div>
-
-    </div>
 </div>
 
 @if($copy === 1)
-<div class="divider"><span>✂ &nbsp;&nbsp; cut here &nbsp;&nbsp; ✂</span></div>
+<div class="cut-line">✂ &nbsp;&nbsp;&nbsp; cut here &nbsp;&nbsp;&nbsp; ✂</div>
 @endif
 
 @endfor
 
-</div>
 </body>
 </html>
