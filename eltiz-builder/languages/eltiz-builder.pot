@@ -1,0 +1,629 @@
+# Copyright (C) 2024 Eltiz Builder
+# This file is distributed under the same license as the Eltiz Builder plugin.
+msgid ""
+msgstr ""
+"Project-Id-Version: Eltiz Builder 1.0.0\n"
+"Report-Msgid-Bugs-To: https://github.com/eltiz/eltiz-builder/issues\n"
+"POT-Creation-Date: 2024-01-01 00:00:00+00:00\n"
+"MIME-Version: 1.0\n"
+"Content-Type: text/plain; charset=UTF-8\n"
+"Content-Transfer-Encoding: 8bit\n"
+"PO-Revision-Date: YEAR-MO-DA HO:MI+ZONE\n"
+"Last-Translator: FULL NAME <EMAIL@ADDRESS>\n"
+"Language-Team: LANGUAGE <LL@li.org>\n"
+"Language: \n"
+"Plural-Forms: nplurals=INTEGER; plural=EXPRESSION;\n"
+"X-Generator: Poedit 3.x\n"
+"X-Domain: eltiz-builder\n"
+
+#: eltiz-builder.php
+msgid "Eltiz Builder"
+msgstr ""
+
+#: eltiz-builder.php
+msgid "PHP %s or higher is required. You are running PHP %s."
+msgstr ""
+
+#: eltiz-builder.php
+msgid "WordPress %s or higher is required."
+msgstr ""
+
+#: core/Plugin.php
+msgid "Eltiz Builder initialized"
+msgstr ""
+
+#: editor/Editor.php
+msgid "Edit with Eltiz Builder"
+msgstr ""
+
+#: editor/Editor.php
+msgid "Eltiz Builder — Edit Page"
+msgstr ""
+
+#: widgets/HeadingWidget.php
+msgid "Heading"
+msgstr ""
+
+#: widgets/HeadingWidget.php
+msgid "Title"
+msgstr ""
+
+#: widgets/HeadingWidget.php
+msgid "Hello World"
+msgstr ""
+
+#: widgets/HeadingWidget.php
+msgid "HTML Tag"
+msgstr ""
+
+#: widgets/HeadingWidget.php
+msgid "Alignment"
+msgstr ""
+
+#: widgets/HeadingWidget.php
+msgid "Left"
+msgstr ""
+
+#: widgets/HeadingWidget.php
+msgid "Center"
+msgstr ""
+
+#: widgets/HeadingWidget.php
+msgid "Right"
+msgstr ""
+
+#: widgets/HeadingWidget.php
+msgid "Justify"
+msgstr ""
+
+#: widgets/HeadingWidget.php
+msgid "Link"
+msgstr ""
+
+#: widgets/TextEditorWidget.php
+msgid "Text Editor"
+msgstr ""
+
+#: widgets/ImageWidget.php
+msgid "Image"
+msgstr ""
+
+#: widgets/ImageWidget.php
+msgid "Choose Image"
+msgstr ""
+
+#: widgets/ImageWidget.php
+msgid "Image Size"
+msgstr ""
+
+#: widgets/ImageWidget.php
+msgid "Full"
+msgstr ""
+
+#: widgets/ImageWidget.php
+msgid "Large"
+msgstr ""
+
+#: widgets/ImageWidget.php
+msgid "Medium"
+msgstr ""
+
+#: widgets/ImageWidget.php
+msgid "Thumbnail"
+msgstr ""
+
+#: widgets/ImageWidget.php
+msgid "Caption"
+msgstr ""
+
+#: widgets/ButtonWidget.php
+msgid "Button"
+msgstr ""
+
+#: widgets/ButtonWidget.php
+msgid "Click Here"
+msgstr ""
+
+#: widgets/ButtonWidget.php
+msgid "Button URL"
+msgstr ""
+
+#: widgets/ButtonWidget.php
+msgid "Full Width"
+msgstr ""
+
+#: widgets/VideoWidget.php
+msgid "Video"
+msgstr ""
+
+#: widgets/VideoWidget.php
+msgid "Video Type"
+msgstr ""
+
+#: widgets/VideoWidget.php
+msgid "YouTube"
+msgstr ""
+
+#: widgets/VideoWidget.php
+msgid "Vimeo"
+msgstr ""
+
+#: widgets/VideoWidget.php
+msgid "Self Hosted"
+msgstr ""
+
+#: widgets/VideoWidget.php
+msgid "YouTube URL"
+msgstr ""
+
+#: widgets/VideoWidget.php
+msgid "Vimeo URL"
+msgstr ""
+
+#: widgets/VideoWidget.php
+msgid "Autoplay"
+msgstr ""
+
+#: widgets/VideoWidget.php
+msgid "Loop"
+msgstr ""
+
+#: widgets/VideoWidget.php
+msgid "Mute"
+msgstr ""
+
+#: widgets/AccordionWidget.php
+msgid "Accordion"
+msgstr ""
+
+#: widgets/AccordionWidget.php
+msgid "Accordion Items"
+msgstr ""
+
+#: widgets/AccordionWidget.php
+msgid "Tab Title"
+msgstr ""
+
+#: widgets/AccordionWidget.php
+msgid "Tab Content"
+msgstr ""
+
+#: widgets/AccordionWidget.php
+msgid "Add Item"
+msgstr ""
+
+#: widgets/AccordionWidget.php
+msgid "Exclusive Mode"
+msgstr ""
+
+#: widgets/TabsWidget.php
+msgid "Tabs"
+msgstr ""
+
+#: widgets/TabsWidget.php
+msgid "Tab Items"
+msgstr ""
+
+#: widgets/CounterWidget.php
+msgid "Counter"
+msgstr ""
+
+#: widgets/CounterWidget.php
+msgid "Starting Number"
+msgstr ""
+
+#: widgets/CounterWidget.php
+msgid "Ending Number"
+msgstr ""
+
+#: widgets/CounterWidget.php
+msgid "Counter Title"
+msgstr ""
+
+#: widgets/CounterWidget.php
+msgid "Duration (ms)"
+msgstr ""
+
+#: widgets/CounterWidget.php
+msgid "Prefix"
+msgstr ""
+
+#: widgets/CounterWidget.php
+msgid "Suffix"
+msgstr ""
+
+#: widgets/CountdownWidget.php
+msgid "Countdown"
+msgstr ""
+
+#: widgets/CountdownWidget.php
+msgid "Due Date"
+msgstr ""
+
+#: widgets/CountdownWidget.php
+msgid "Days"
+msgstr ""
+
+#: widgets/CountdownWidget.php
+msgid "Hours"
+msgstr ""
+
+#: widgets/CountdownWidget.php
+msgid "Minutes"
+msgstr ""
+
+#: widgets/CountdownWidget.php
+msgid "Seconds"
+msgstr ""
+
+#: widgets/TestimonialsWidget.php
+msgid "Testimonials"
+msgstr ""
+
+#: widgets/GalleryWidget.php
+msgid "Gallery"
+msgstr ""
+
+#: widgets/GalleryWidget.php
+msgid "Add Images"
+msgstr ""
+
+#: widgets/GalleryWidget.php
+msgid "Columns"
+msgstr ""
+
+#: widgets/GalleryWidget.php
+msgid "Lightbox"
+msgstr ""
+
+#: widgets/PricingTableWidget.php
+msgid "Pricing Table"
+msgstr ""
+
+#: widgets/DividerWidget.php
+msgid "Divider"
+msgstr ""
+
+#: widgets/SpacerWidget.php
+msgid "Spacer"
+msgstr ""
+
+#: widgets/SpacerWidget.php
+msgid "Space"
+msgstr ""
+
+#: widgets/IconWidget.php
+msgid "Icon"
+msgstr ""
+
+#: widgets/IconBoxWidget.php
+msgid "Icon Box"
+msgstr ""
+
+#: widgets/SocialIconsWidget.php
+msgid "Social Icons"
+msgstr ""
+
+#: widgets/ProgressBarWidget.php
+msgid "Progress Bar"
+msgstr ""
+
+#: widgets/ProgressBarWidget.php
+msgid "Progress Title"
+msgstr ""
+
+#: widgets/ProgressBarWidget.php
+msgid "Percentage"
+msgstr ""
+
+#: widgets/ToggleWidget.php
+msgid "Toggle"
+msgstr ""
+
+#: widgets/GoogleMapsWidget.php
+msgid "Google Maps"
+msgstr ""
+
+#: widgets/GoogleMapsWidget.php
+msgid "Location"
+msgstr ""
+
+#: widgets/GoogleMapsWidget.php
+msgid "Zoom"
+msgstr ""
+
+#: widgets/HTMLWidget.php
+msgid "HTML"
+msgstr ""
+
+#: widgets/ShortcodeWidget.php
+msgid "Shortcode"
+msgstr ""
+
+#: widgets/PostsWidget.php
+msgid "Posts"
+msgstr ""
+
+#: widgets/PostsWidget.php
+msgid "Post Type"
+msgstr ""
+
+#: widgets/PostsWidget.php
+msgid "Posts Per Page"
+msgstr ""
+
+#: widgets/PostsWidget.php
+msgid "Read More"
+msgstr ""
+
+#: widgets/CallToActionWidget.php
+msgid "Call To Action"
+msgstr ""
+
+#: widgets/SearchFormWidget.php
+msgid "Search Form"
+msgstr ""
+
+#: widgets/SearchFormWidget.php
+msgid "Placeholder"
+msgstr ""
+
+#: widgets/SearchFormWidget.php
+msgid "Search"
+msgstr ""
+
+#: widgets/LoginFormWidget.php
+msgid "Login Form"
+msgstr ""
+
+#: widgets/LoginFormWidget.php
+msgid "Username"
+msgstr ""
+
+#: widgets/LoginFormWidget.php
+msgid "Password"
+msgstr ""
+
+#: widgets/LoginFormWidget.php
+msgid "Remember Me"
+msgstr ""
+
+#: widgets/LoginFormWidget.php
+msgid "Log In"
+msgstr ""
+
+#: widgets/BreadcrumbsWidget.php
+msgid "Breadcrumbs"
+msgstr ""
+
+#: widgets/BreadcrumbsWidget.php
+msgid "Separator"
+msgstr ""
+
+#: widgets/BreadcrumbsWidget.php
+msgid "Show Home"
+msgstr ""
+
+#: widgets/BreadcrumbsWidget.php
+msgid "Home Text"
+msgstr ""
+
+#: widgets/BreadcrumbsWidget.php
+msgid "Home"
+msgstr ""
+
+#: widgets/BreadcrumbsWidget.php
+msgid "Search results for: %s"
+msgstr ""
+
+#: widgets/BreadcrumbsWidget.php
+msgid "404 Not Found"
+msgstr ""
+
+#: widgets/FormWidget.php
+msgid "Form"
+msgstr ""
+
+#: widgets/FormWidget.php
+msgid "Form Name"
+msgstr ""
+
+#: widgets/FormWidget.php
+msgid "Form Fields"
+msgstr ""
+
+#: widgets/FormWidget.php
+msgid "Field Label"
+msgstr ""
+
+#: widgets/FormWidget.php
+msgid "Field Type"
+msgstr ""
+
+#: widgets/FormWidget.php
+msgid "Required"
+msgstr ""
+
+#: widgets/FormWidget.php
+msgid "Submit Button"
+msgstr ""
+
+#: widgets/FormWidget.php
+msgid "Send"
+msgstr ""
+
+#: widgets/FormWidget.php
+msgid "Your message has been sent successfully."
+msgstr ""
+
+#: widgets/FormWidget.php
+msgid "Something went wrong. Please try again."
+msgstr ""
+
+#: forms/FormManager.php
+msgid "Invalid nonce."
+msgstr ""
+
+#: forms/FormManager.php
+msgid "Spam detected."
+msgstr ""
+
+#: forms/FormManager.php
+msgid "%s is required."
+msgstr ""
+
+#: forms/FormManager.php
+msgid "%s must be a valid email address."
+msgstr ""
+
+#: admin/Admin.php
+msgid "Eltiz Builder"
+msgstr ""
+
+#: admin/Admin.php
+msgid "Dashboard"
+msgstr ""
+
+#: admin/Admin.php
+msgid "Templates"
+msgstr ""
+
+#: admin/Admin.php
+msgid "Global Styles"
+msgstr ""
+
+#: admin/Admin.php
+msgid "Form Submissions"
+msgstr ""
+
+#: admin/Admin.php
+msgid "Settings"
+msgstr ""
+
+#: admin/Admin.php
+msgid "System Info"
+msgstr ""
+
+#: admin/views/dashboard.php
+msgid "Welcome to Eltiz Builder"
+msgstr ""
+
+#: admin/views/dashboard.php
+msgid "Pages Built"
+msgstr ""
+
+#: admin/views/dashboard.php
+msgid "Templates Saved"
+msgstr ""
+
+#: admin/views/dashboard.php
+msgid "Form Submissions"
+msgstr ""
+
+#: admin/views/dashboard.php
+msgid "Active Modules"
+msgstr ""
+
+#: admin/views/settings.php
+msgid "Performance Mode"
+msgstr ""
+
+#: admin/views/settings.php
+msgid "CSS Generation Method"
+msgstr ""
+
+#: admin/views/settings.php
+msgid "Save Settings"
+msgstr ""
+
+#: dynamic-tags/DynamicTagsManager.php
+msgid "Post Title"
+msgstr ""
+
+#: dynamic-tags/DynamicTagsManager.php
+msgid "Post Content"
+msgstr ""
+
+#: dynamic-tags/DynamicTagsManager.php
+msgid "Post Excerpt"
+msgstr ""
+
+#: dynamic-tags/DynamicTagsManager.php
+msgid "Post Date"
+msgstr ""
+
+#: dynamic-tags/DynamicTagsManager.php
+msgid "Post Author"
+msgstr ""
+
+#: dynamic-tags/DynamicTagsManager.php
+msgid "Post Featured Image"
+msgstr ""
+
+#: dynamic-tags/DynamicTagsManager.php
+msgid "Post URL"
+msgstr ""
+
+#: dynamic-tags/DynamicTagsManager.php
+msgid "Site Name"
+msgstr ""
+
+#: dynamic-tags/DynamicTagsManager.php
+msgid "Site URL"
+msgstr ""
+
+#: dynamic-tags/DynamicTagsManager.php
+msgid "Current Date"
+msgstr ""
+
+#: dynamic-tags/DynamicTagsManager.php
+msgid "Post Meta"
+msgstr ""
+
+#: dynamic-tags/DynamicTagsManager.php
+msgid "User Name"
+msgstr ""
+
+#: dynamic-tags/DynamicTagsManager.php
+msgid "User Email"
+msgstr ""
+
+#: conditions/ConditionsManager.php
+msgid "Singular"
+msgstr ""
+
+#: conditions/ConditionsManager.php
+msgid "Archive"
+msgstr ""
+
+#: conditions/ConditionsManager.php
+msgid "Front Page"
+msgstr ""
+
+#: conditions/ConditionsManager.php
+msgid "Search Results"
+msgstr ""
+
+#: conditions/ConditionsManager.php
+msgid "404 Page"
+msgstr ""
+
+#: conditions/ConditionsManager.php
+msgid "User Role"
+msgstr ""
+
+#: conditions/ConditionsManager.php
+msgid "Post Type"
+msgstr ""
+
+#: conditions/ConditionsManager.php
+msgid "Taxonomy"
+msgstr ""
+
+#: loop-builder/LoopManager.php
+msgid "Load More"
+msgstr ""
+
+#: loop-builder/LoopManager.php
+msgid "No posts found."
+msgstr ""

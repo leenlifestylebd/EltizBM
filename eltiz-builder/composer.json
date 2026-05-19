@@ -1,0 +1,23 @@
+{
+  "name": "eltiz/eltiz-builder",
+  "description": "Eltiz Builder - A production-ready WordPress page builder plugin",
+  "type": "wordpress-plugin",
+  "license": "GPL-2.0-or-later",
+  "require": {
+    "php": ">=8.2"
+  },
+  "autoload": {
+    "psr-4": {
+      "EltizBuilder\\": "."
+    }
+  },
+  "config": {
+    "optimize-autoloader": true,
+    "sort-packages": true
+  },
+  "extra": {
+    "wordpress-plugin": {
+      "slug": "eltiz-builder"
+    }
+  }
+}

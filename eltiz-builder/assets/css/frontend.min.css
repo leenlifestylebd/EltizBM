@@ -1,0 +1,225 @@
+/* Eltiz Builder Frontend Styles v1.0.0 */
+
+/* ── Reset & Base ────────────────────────────────────────────── */
+.eltiz-element { box-sizing: border-box; }
+.eltiz-container { display: flex; flex-wrap: wrap; }
+.eltiz-container--column { flex-direction: column; }
+.eltiz-container--row    { flex-direction: row; }
+.eltiz-container--grid   { display: grid; }
+
+/* ── Heading ────────────────────────────────────────────────── */
+.eltiz-heading { margin: 0 0 .5em; line-height: 1.2; }
+
+/* ── Text Editor ─────────────────────────────────────────────── */
+.eltiz-text-editor { line-height: 1.6; }
+.eltiz-text-editor p { margin: 0 0 1em; }
+
+/* ── Image ───────────────────────────────────────────────────── */
+.eltiz-image img { max-width: 100%; height: auto; display: block; }
+.eltiz-image--align-center { text-align: center; }
+.eltiz-image--align-right  { text-align: right; }
+
+/* ── Button ─────────────────────────────────────────────────── */
+.eltiz-button-wrapper { display: inline-flex; }
+.eltiz-button { display: inline-flex; align-items: center; gap: .5em; padding: .75em 1.5em; border: none; border-radius: 4px; cursor: pointer; text-decoration: none; font-weight: 600; transition: opacity .2s; }
+.eltiz-button:hover { opacity: .88; }
+.eltiz-button--full { width: 100%; justify-content: center; }
+
+/* ── Divider ─────────────────────────────────────────────────── */
+.eltiz-divider { border: none; border-top: 2px solid #e5e7eb; margin: 1em 0; }
+
+/* ── Spacer ──────────────────────────────────────────────────── */
+.eltiz-spacer { display: block; }
+
+/* ── Video ───────────────────────────────────────────────────── */
+.eltiz-video-wrapper { position: relative; width: 100%; }
+.eltiz-video-wrapper iframe,.eltiz-video-wrapper video { display: block; width: 100%; }
+.eltiz-video-wrapper--aspect { padding-bottom: 56.25%; }
+.eltiz-video-wrapper--aspect iframe { position: absolute; inset: 0; height: 100%; }
+
+/* ── Accordion ───────────────────────────────────────────────── */
+.eltiz-accordion__item { border: 1px solid #e5e7eb; margin-bottom: -1px; }
+.eltiz-accordion__item-title { display: flex; align-items: center; justify-content: space-between; padding: 1em 1.25em; cursor: pointer; font-weight: 600; user-select: none; }
+.eltiz-accordion__item-title::after { content: '▼'; font-size: .7em; transition: transform .2s; }
+.eltiz-accordion__item.is-active .eltiz-accordion__item-title::after { transform: rotate(-180deg); }
+.eltiz-accordion__item-content { max-height: 0; overflow: hidden; transition: max-height .3s ease; padding: 0 1.25em; }
+.eltiz-accordion__item.is-active .eltiz-accordion__item-content { padding: 1em 1.25em; }
+
+/* ── Tabs ────────────────────────────────────────────────────── */
+.eltiz-tabs__nav { display: flex; border-bottom: 2px solid #e5e7eb; }
+.eltiz-tabs__nav-item { padding: .75em 1.25em; cursor: pointer; border-bottom: 2px solid transparent; margin-bottom: -2px; font-weight: 600; transition: color .2s, border-color .2s; }
+.eltiz-tabs__nav-item.is-active { border-bottom-color: var(--eltiz-primary, #6366f1); color: var(--eltiz-primary, #6366f1); }
+.eltiz-tabs__panel { display: none; padding: 1.25em 0; }
+.eltiz-tabs__panel.is-active { display: block; }
+
+/* ── Toggle ──────────────────────────────────────────────────── */
+.eltiz-toggle__item { border: 1px solid #e5e7eb; margin-bottom: -1px; }
+.eltiz-toggle__item-title { display: flex; align-items: center; justify-content: space-between; padding: 1em 1.25em; cursor: pointer; font-weight: 600; }
+.eltiz-toggle__item-content { max-height: 0; overflow: hidden; transition: max-height .3s ease; padding: 0 1.25em; }
+.eltiz-toggle__item.is-active .eltiz-toggle__item-content { padding: 1em 1.25em; }
+
+/* ── Counter ─────────────────────────────────────────────────── */
+.eltiz-counter { text-align: center; }
+.eltiz-counter__number { display: block; font-size: 3em; font-weight: 700; line-height: 1; color: var(--eltiz-primary, #6366f1); }
+.eltiz-counter__title  { font-size: 1em; color: var(--eltiz-muted, #6b7280); margin-top: .5em; }
+
+/* ── Countdown ───────────────────────────────────────────────── */
+.eltiz-countdown { display: flex; gap: 1em; justify-content: center; }
+.eltiz-countdown__segment { text-align: center; }
+.eltiz-countdown__number { display: block; font-size: 2.5em; font-weight: 700; }
+.eltiz-countdown__label  { font-size: .75em; text-transform: uppercase; letter-spacing: .05em; color: var(--eltiz-muted, #6b7280); }
+
+/* ── Gallery ─────────────────────────────────────────────────── */
+.eltiz-gallery { display: grid; gap: .5em; }
+.eltiz-gallery__item img { width: 100%; height: 100%; object-fit: cover; display: block; border-radius: 4px; }
+
+/* ── Lightbox ────────────────────────────────────────────────── */
+.eltiz-lightbox { display: none; position: fixed; inset: 0; z-index: 100000; align-items: center; justify-content: center; }
+.eltiz-lightbox.is-open { display: flex; }
+.eltiz-lightbox__backdrop { position: absolute; inset: 0; background: rgba(0,0,0,.85); }
+.eltiz-lightbox__content { position: relative; z-index: 1; max-width: 90vw; max-height: 90vh; }
+.eltiz-lightbox__img { max-width: 90vw; max-height: 85vh; object-fit: contain; border-radius: 4px; }
+.eltiz-lightbox__close { position: absolute; top: -2em; right: 0; background: none; border: none; color: #fff; font-size: 2em; cursor: pointer; line-height: 1; }
+
+/* ── Testimonials ────────────────────────────────────────────── */
+.eltiz-testimonials__item { padding: 1.5em; border: 1px solid #e5e7eb; border-radius: 8px; }
+.eltiz-testimonials__quote { font-style: italic; font-size: 1.1em; line-height: 1.6; margin: 0 0 1em; }
+.eltiz-testimonials__author { font-weight: 700; }
+.eltiz-testimonials__position { font-size: .85em; color: var(--eltiz-muted, #6b7280); }
+
+/* ── Pricing Table ───────────────────────────────────────────── */
+.eltiz-pricing-table { border: 1px solid #e5e7eb; border-radius: 8px; overflow: hidden; text-align: center; }
+.eltiz-pricing-table__header { padding: 2em 1.5em 1em; }
+.eltiz-pricing-table__title  { font-size: 1.25em; font-weight: 700; }
+.eltiz-pricing-table__price  { font-size: 3em; font-weight: 800; margin: .25em 0; }
+.eltiz-pricing-table__period { font-size: .85em; color: var(--eltiz-muted, #6b7280); }
+.eltiz-pricing-table__features { padding: 1em 1.5em; border-top: 1px solid #e5e7eb; text-align: left; }
+.eltiz-pricing-table__feature { padding: .5em 0; border-bottom: 1px solid #f3f4f6; }
+.eltiz-pricing-table__feature:last-child { border-bottom: none; }
+.eltiz-pricing-table__footer { padding: 1.5em; }
+
+/* ── Progress Bar ────────────────────────────────────────────── */
+.eltiz-progress-bar { }
+.eltiz-progress-bar__title { display: flex; justify-content: space-between; margin-bottom: .5em; font-weight: 600; }
+.eltiz-progress-bar__track { background: #e5e7eb; border-radius: 999px; overflow: hidden; height: 12px; }
+.eltiz-progress-bar__fill  { height: 100%; border-radius: 999px; width: 0; transition: width 1s ease; }
+
+/* ── Icon Box ────────────────────────────────────────────────── */
+.eltiz-icon-box { display: flex; gap: 1em; }
+.eltiz-icon-box--top { flex-direction: column; align-items: center; text-align: center; }
+.eltiz-icon-box__icon { font-size: 2em; flex-shrink: 0; }
+.eltiz-icon-box__title { font-weight: 700; margin-bottom: .25em; }
+
+/* ── Social Icons ────────────────────────────────────────────── */
+.eltiz-social-icons { display: flex; flex-wrap: wrap; gap: .5em; }
+.eltiz-social-icons__icon a { display: inline-flex; align-items: center; justify-content: center; width: 2.5em; height: 2.5em; border-radius: 4px; text-decoration: none; font-size: 1.1em; transition: opacity .2s; }
+.eltiz-social-icons__icon a:hover { opacity: .8; }
+
+/* ── Call To Action ──────────────────────────────────────────── */
+.eltiz-cta { padding: 3em 2em; text-align: center; }
+.eltiz-cta__title       { font-size: 2em; font-weight: 800; margin-bottom: .5em; }
+.eltiz-cta__description { font-size: 1.1em; margin-bottom: 1.5em; }
+
+/* ── Google Maps ─────────────────────────────────────────────── */
+.eltiz-map iframe { display: block; width: 100%; border: none; }
+
+/* ── Posts Grid ──────────────────────────────────────────────── */
+.eltiz-posts { display: grid; gap: 1.5em; }
+.eltiz-post-item__thumbnail img { width: 100%; height: auto; display: block; border-radius: 4px; }
+.eltiz-post-item__title { margin: .75em 0 .5em; font-weight: 700; }
+.eltiz-post-item__title a { text-decoration: none; color: inherit; }
+.eltiz-post-item__title a:hover { color: var(--eltiz-primary, #6366f1); }
+.eltiz-post-item__meta { font-size: .85em; color: var(--eltiz-muted, #6b7280); margin-bottom: .5em; }
+.eltiz-post-item__excerpt { font-size: .95em; }
+.eltiz-post-item__more { display: inline-block; margin-top: .75em; color: var(--eltiz-primary, #6366f1); text-decoration: none; font-weight: 600; }
+.eltiz-posts__load-more { display: flex; justify-content: center; margin-top: 2em; }
+.eltiz-posts__load-more-btn { padding: .75em 2em; background: var(--eltiz-primary, #6366f1); color: #fff; border: none; border-radius: 4px; cursor: pointer; font-weight: 600; }
+
+/* ── Breadcrumbs ─────────────────────────────────────────────── */
+.eltiz-breadcrumbs-list { display: flex; flex-wrap: wrap; list-style: none; padding: 0; margin: 0; gap: .25em; }
+.eltiz-breadcrumb-item { display: flex; align-items: center; gap: .25em; font-size: .9em; }
+.eltiz-breadcrumb-item a { color: var(--eltiz-primary, #6366f1); text-decoration: none; }
+.eltiz-breadcrumb-item--active { color: var(--eltiz-muted, #6b7280); }
+
+/* ── Forms ───────────────────────────────────────────────────── */
+.eltiz-form-field { margin-bottom: 1.25em; }
+.eltiz-form-field label { display: block; font-weight: 600; margin-bottom: .4em; }
+.eltiz-form-field input:not([type="checkbox"]):not([type="radio"]),
+.eltiz-form-field textarea,
+.eltiz-form-field select { width: 100%; padding: .65em 1em; border: 1px solid #d1d5db; border-radius: 4px; font-size: 1em; outline: none; transition: border-color .2s; box-sizing: border-box; }
+.eltiz-form-field input:focus,.eltiz-form-field textarea:focus,.eltiz-form-field select:focus { border-color: var(--eltiz-primary, #6366f1); }
+.eltiz-form__submit { padding: .75em 2em; background: var(--eltiz-primary, #6366f1); color: #fff; border: none; border-radius: 4px; cursor: pointer; font-size: 1em; font-weight: 600; }
+.eltiz-form__message { padding: 1em; border-radius: 4px; margin-top: 1em; }
+.eltiz-form__message--success { background: #d1fae5; color: #065f46; border: 1px solid #6ee7b7; }
+.eltiz-form__message--error   { background: #fee2e2; color: #7f1d1d; border: 1px solid #fca5a5; }
+
+/* ── Search Form ─────────────────────────────────────────────── */
+.eltiz-search-form { display: flex; }
+.eltiz-search-form input[type="search"] { flex: 1; padding: .65em 1em; border: 1px solid #d1d5db; border-right: none; border-radius: 4px 0 0 4px; font-size: 1em; outline: none; }
+.eltiz-search-form button { padding: .65em 1.25em; background: var(--eltiz-primary, #6366f1); color: #fff; border: none; border-radius: 0 4px 4px 0; cursor: pointer; }
+
+/* ── Popup ───────────────────────────────────────────────────── */
+.eltiz-popup { display: none; position: fixed; inset: 0; z-index: 99999; align-items: center; justify-content: center; }
+.eltiz-popup.is-open { display: flex; }
+.eltiz-popup__backdrop { position: absolute; inset: 0; background: rgba(0,0,0,.6); }
+.eltiz-popup__inner { position: relative; z-index: 1; background: #fff; border-radius: 8px; max-width: 90vw; max-height: 90vh; overflow: auto; }
+.eltiz-popup__close { position: absolute; top: .75em; right: .75em; background: none; border: none; font-size: 1.5em; cursor: pointer; line-height: 1; color: inherit; }
+
+/* ── WooCommerce Product Elements ────────────────────────────── */
+.eltiz-product-title   { font-size: 1.75em; font-weight: 700; margin-bottom: .5em; }
+.eltiz-product-price   { font-size: 1.5em; font-weight: 700; color: var(--eltiz-primary, #6366f1); margin-bottom: 1em; }
+.eltiz-product-rating  { display: flex; align-items: center; gap: .5em; margin-bottom: 1em; }
+.eltiz-add-to-cart-btn { padding: .75em 2em; background: var(--eltiz-primary, #6366f1); color: #fff; border: none; border-radius: 4px; font-weight: 700; cursor: pointer; font-size: 1em; }
+.eltiz-add-to-cart-btn:hover { opacity: .88; }
+
+/* ── Loop Carousel ───────────────────────────────────────────── */
+.eltiz-loop-carousel { overflow: hidden; position: relative; }
+.eltiz-loop-carousel-item { padding: .5em; }
+
+/* ── Animations (entrance) ───────────────────────────────────── */
+@keyframes eltizFadeIn       { from { opacity:0; }           to { opacity:1; } }
+@keyframes eltizFadeInUp     { from { opacity:0; transform:translateY(40px); } to { opacity:1; transform:none; } }
+@keyframes eltizFadeInDown   { from { opacity:0; transform:translateY(-40px); } to { opacity:1; transform:none; } }
+@keyframes eltizFadeInLeft   { from { opacity:0; transform:translateX(-40px); } to { opacity:1; transform:none; } }
+@keyframes eltizFadeInRight  { from { opacity:0; transform:translateX(40px); } to { opacity:1; transform:none; } }
+@keyframes eltizZoomIn       { from { opacity:0; transform:scale(.7); } to { opacity:1; transform:none; } }
+@keyframes eltizBounceIn     { 0%{opacity:0;transform:scale(.3)} 50%{opacity:1;transform:scale(1.05)} 70%{transform:scale(.9)} 100%{transform:none} }
+@keyframes eltizSlideInUp    { from { transform:translateY(100%); } to { transform:none; } }
+@keyframes eltizSlideInDown  { from { transform:translateY(-100%); } to { transform:none; } }
+@keyframes eltizSlideInLeft  { from { transform:translateX(-100%); } to { transform:none; } }
+@keyframes eltizSlideInRight { from { transform:translateX(100%); } to { transform:none; } }
+@keyframes eltizRotateIn     { from { opacity:0; transform:rotate(-180deg); } to { opacity:1; transform:none; } }
+@keyframes eltizHeartBeat    { 0%,100%{transform:scale(1)} 50%{transform:scale(1.15)} }
+@keyframes eltizPulse        { 0%,100%{opacity:1} 50%{opacity:.5} }
+@keyframes eltizShake        { 0%,100%{transform:translateX(0)} 25%{transform:translateX(-10px)} 75%{transform:translateX(10px)} }
+
+.eltiz-animated                       { animation-fill-mode: both; }
+.eltiz-fadeIn       { animation-name: eltizFadeIn; }
+.eltiz-fadeInUp     { animation-name: eltizFadeInUp; }
+.eltiz-fadeInDown   { animation-name: eltizFadeInDown; }
+.eltiz-fadeInLeft   { animation-name: eltizFadeInLeft; }
+.eltiz-fadeInRight  { animation-name: eltizFadeInRight; }
+.eltiz-zoomIn       { animation-name: eltizZoomIn; }
+.eltiz-bounceIn     { animation-name: eltizBounceIn; }
+.eltiz-slideInUp    { animation-name: eltizSlideInUp; }
+.eltiz-slideInDown  { animation-name: eltizSlideInDown; }
+.eltiz-slideInLeft  { animation-name: eltizSlideInLeft; }
+.eltiz-slideInRight { animation-name: eltizSlideInRight; }
+.eltiz-rotateIn     { animation-name: eltizRotateIn; }
+.eltiz-heartBeat    { animation-name: eltizHeartBeat; }
+.eltiz-pulse        { animation-name: eltizPulse; }
+.eltiz-shake        { animation-name: eltizShake; }
+
+/* ── Responsive ───────────────────────────────────────────────── */
+@media (max-width: 1024px) {
+  .eltiz-posts { grid-template-columns: repeat(2, 1fr); }
+}
+@media (max-width: 767px) {
+  .eltiz-posts { grid-template-columns: 1fr; }
+  .eltiz-countdown { gap: .5em; }
+  .eltiz-countdown__number { font-size: 1.75em; }
+}
+
+/* ── RTL ──────────────────────────────────────────────────────── */
+[dir="rtl"] .eltiz-breadcrumbs-list { flex-direction: row-reverse; }
+[dir="rtl"] .eltiz-icon-box         { flex-direction: row-reverse; }

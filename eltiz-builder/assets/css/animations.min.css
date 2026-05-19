@@ -1,0 +1,123 @@
+/* Eltiz Builder Animations Library v1.0.0 */
+
+/* All animation classes are also included in frontend.min.css.
+   This file is enqueued separately when the animations module is active
+   so sites without motion effects skip this payload. */
+
+.eltiz-animated { animation-fill-mode: both; }
+
+/* ── Fade ────────────────────────────────────────────────────── */
+@keyframes eltizFadeIn      { from{opacity:0}                               to{opacity:1} }
+@keyframes eltizFadeOut     { from{opacity:1}                               to{opacity:0} }
+@keyframes eltizFadeInUp    { from{opacity:0;transform:translateY(40px)}    to{opacity:1;transform:none} }
+@keyframes eltizFadeInDown  { from{opacity:0;transform:translateY(-40px)}   to{opacity:1;transform:none} }
+@keyframes eltizFadeInLeft  { from{opacity:0;transform:translateX(-40px)}   to{opacity:1;transform:none} }
+@keyframes eltizFadeInRight { from{opacity:0;transform:translateX(40px)}    to{opacity:1;transform:none} }
+@keyframes eltizFadeOutUp   { from{opacity:1;transform:none}                to{opacity:0;transform:translateY(-40px)} }
+@keyframes eltizFadeOutDown { from{opacity:1;transform:none}                to{opacity:0;transform:translateY(40px)} }
+
+.eltiz-fadeIn      { animation-name: eltizFadeIn; }
+.eltiz-fadeOut     { animation-name: eltizFadeOut; }
+.eltiz-fadeInUp    { animation-name: eltizFadeInUp; }
+.eltiz-fadeInDown  { animation-name: eltizFadeInDown; }
+.eltiz-fadeInLeft  { animation-name: eltizFadeInLeft; }
+.eltiz-fadeInRight { animation-name: eltizFadeInRight; }
+.eltiz-fadeOutUp   { animation-name: eltizFadeOutUp; }
+.eltiz-fadeOutDown { animation-name: eltizFadeOutDown; }
+
+/* ── Zoom ────────────────────────────────────────────────────── */
+@keyframes eltizZoomIn    { from{opacity:0;transform:scale(.7)}  to{opacity:1;transform:none} }
+@keyframes eltizZoomOut   { from{opacity:1;transform:none}       to{opacity:0;transform:scale(.7)} }
+@keyframes eltizZoomInUp  { from{opacity:0;transform:scale(.7) translateY(40px)} to{opacity:1;transform:none} }
+@keyframes eltizZoomInDown{ from{opacity:0;transform:scale(.7) translateY(-40px)} to{opacity:1;transform:none} }
+
+.eltiz-zoomIn    { animation-name: eltizZoomIn; }
+.eltiz-zoomOut   { animation-name: eltizZoomOut; }
+.eltiz-zoomInUp  { animation-name: eltizZoomInUp; }
+.eltiz-zoomInDown{ animation-name: eltizZoomInDown; }
+
+/* ── Bounce ──────────────────────────────────────────────────── */
+@keyframes eltizBounceIn {
+  0%{opacity:0;transform:scale(.3)} 50%{opacity:1;transform:scale(1.05)}
+  70%{transform:scale(.9)} 100%{opacity:1;transform:none}
+}
+@keyframes eltizBounceInUp {
+  0%{opacity:0;transform:translateY(80px)} 60%{opacity:1;transform:translateY(-20px)}
+  80%{transform:translateY(8px)} 100%{transform:none}
+}
+@keyframes eltizBounceInDown {
+  0%{opacity:0;transform:translateY(-80px)} 60%{opacity:1;transform:translateY(20px)}
+  80%{transform:translateY(-8px)} 100%{transform:none}
+}
+
+.eltiz-bounceIn     { animation-name: eltizBounceIn; }
+.eltiz-bounceInUp   { animation-name: eltizBounceInUp; }
+.eltiz-bounceInDown { animation-name: eltizBounceInDown; }
+
+/* ── Slide ───────────────────────────────────────────────────── */
+@keyframes eltizSlideInUp    { from{transform:translateY(100%)} to{transform:none} }
+@keyframes eltizSlideInDown  { from{transform:translateY(-100%)} to{transform:none} }
+@keyframes eltizSlideInLeft  { from{transform:translateX(-100%)} to{transform:none} }
+@keyframes eltizSlideInRight { from{transform:translateX(100%)} to{transform:none} }
+@keyframes eltizSlideOutUp   { from{transform:none} to{transform:translateY(-100%)} }
+@keyframes eltizSlideOutDown { from{transform:none} to{transform:translateY(100%)} }
+
+.eltiz-slideInUp    { animation-name: eltizSlideInUp; }
+.eltiz-slideInDown  { animation-name: eltizSlideInDown; }
+.eltiz-slideInLeft  { animation-name: eltizSlideInLeft; }
+.eltiz-slideInRight { animation-name: eltizSlideInRight; }
+.eltiz-slideOutUp   { animation-name: eltizSlideOutUp; }
+.eltiz-slideOutDown { animation-name: eltizSlideOutDown; }
+
+/* ── Rotate ──────────────────────────────────────────────────── */
+@keyframes eltizRotateIn      { from{opacity:0;transform:rotate(-200deg)} to{opacity:1;transform:none} }
+@keyframes eltizRotateInUpLeft{ from{opacity:0;transform:rotate(-45deg);transform-origin:left bottom} to{opacity:1;transform:none} }
+
+.eltiz-rotateIn       { animation-name: eltizRotateIn; }
+.eltiz-rotateInUpLeft { animation-name: eltizRotateInUpLeft; }
+
+/* ── Attention Seekers ───────────────────────────────────────── */
+@keyframes eltizHeartBeat { 0%,100%{transform:scale(1)} 14%,42%{transform:scale(1.3)} 28%,70%{transform:scale(1)} }
+@keyframes eltizPulse     { 0%,100%{transform:scale(1)} 50%{transform:scale(1.05)} }
+@keyframes eltizShake     { 0%,100%{transform:translateX(0)} 10%,30%,50%,70%,90%{transform:translateX(-10px)} 20%,40%,60%,80%{transform:translateX(10px)} }
+@keyframes eltizSwing     { 20%{transform:rotate(15deg)} 40%{transform:rotate(-10deg)} 60%{transform:rotate(5deg)} 80%{transform:rotate(-5deg)} 100%{transform:none} }
+@keyframes eltizRubberBand{ 0%,100%{transform:none} 30%{transform:scaleX(1.25) scaleY(.75)} 40%{transform:scaleX(.75) scaleY(1.25)} 50%{transform:scaleX(1.15) scaleY(.85)} 65%{transform:scaleX(.95) scaleY(1.05)} 75%{transform:scaleX(1.05) scaleY(.95)} }
+@keyframes eltizFlash     { 0%,50%,100%{opacity:1} 25%,75%{opacity:0} }
+@keyframes eltizWobble    { 0%,100%{transform:none} 15%{transform:translateX(-25%) rotate(-5deg)} 30%{transform:translateX(20%) rotate(3deg)} 45%{transform:translateX(-15%) rotate(-3deg)} 60%{transform:translateX(10%) rotate(2deg)} 75%{transform:translateX(-5%) rotate(-1deg)} }
+
+.eltiz-heartBeat  { animation-name: eltizHeartBeat; }
+.eltiz-pulse      { animation-name: eltizPulse; animation-iteration-count: infinite; }
+.eltiz-shake      { animation-name: eltizShake; }
+.eltiz-swing      { animation-name: eltizSwing; transform-origin: top center; }
+.eltiz-rubberBand { animation-name: eltizRubberBand; }
+.eltiz-flash      { animation-name: eltizFlash; }
+.eltiz-wobble     { animation-name: eltizWobble; }
+
+/* ── Durations ───────────────────────────────────────────────── */
+.eltiz-duration-300  { animation-duration: .3s; }
+.eltiz-duration-500  { animation-duration: .5s; }
+.eltiz-duration-700  { animation-duration: .7s; }
+.eltiz-duration-1000 { animation-duration: 1s; }
+.eltiz-duration-1200 { animation-duration: 1.2s; }
+.eltiz-duration-1500 { animation-duration: 1.5s; }
+.eltiz-duration-2000 { animation-duration: 2s; }
+
+/* ── Delays ──────────────────────────────────────────────────── */
+.eltiz-delay-100  { animation-delay: .1s; }
+.eltiz-delay-200  { animation-delay: .2s; }
+.eltiz-delay-300  { animation-delay: .3s; }
+.eltiz-delay-500  { animation-delay: .5s; }
+.eltiz-delay-700  { animation-delay: .7s; }
+.eltiz-delay-1000 { animation-delay: 1s; }
+
+/* ── Easing ──────────────────────────────────────────────────── */
+.eltiz-ease-linear  { animation-timing-function: linear; }
+.eltiz-ease-in      { animation-timing-function: ease-in; }
+.eltiz-ease-out     { animation-timing-function: ease-out; }
+.eltiz-ease-in-out  { animation-timing-function: ease-in-out; }
+.eltiz-ease-elastic { animation-timing-function: cubic-bezier(.68,-.55,.265,1.55); }
+
+/* ── Reduced Motion ──────────────────────────────────────────── */
+@media (prefers-reduced-motion: reduce) {
+  .eltiz-animated { animation: none !important; visibility: visible !important; }
+}
