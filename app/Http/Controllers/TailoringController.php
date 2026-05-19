@@ -8,6 +8,7 @@ use App\Models\Employee;
 use App\Models\Transaction;
 use Illuminate\Http\Request;
 use Illuminate\Support\Facades\DB;
+use Barryvdh\DomPDF\Facade\Pdf;
 
 class TailoringController extends Controller
 {
@@ -200,6 +201,24 @@ class TailoringController extends Controller
         ]);
 
         return back()->with('success', 'Worker assigned for ' . ucfirst($request->task_stage));
+    }
+
+    // ── SLIP PDF ──────────────────────────────────────────────────────────────
+    public function slip(TailoringOrder $tailoring)
+    {
+        abort_unless($tailoring->business_id === $this->bizId(), 403);
+        $tailoring->load('business', 'createdBy');
+
+        $pdf = Pdf::loadView('tailoring.slip', compact('tailoring'))
+            ->setPaper('a4', 'portrait')
+            ->setOptions([
+                'defaultFont'     => 'DejaVu Sans',
+                'isRemoteEnabled' => false,
+                'dpi'             => 150,
+            ]);
+
+        $filename = 'Tailoring-' . $tailoring->order_number . '.pdf';
+        return $pdf->download($filename);
     }
 
     // ── RECEIVE PAYMENT ───────────────────────────────────────────────────────

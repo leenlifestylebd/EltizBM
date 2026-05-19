@@ -39,6 +39,10 @@
         </div>
     </div>
     <div class="flex items-center gap-2 flex-shrink-0">
+        <a href="{{ route('tailoring.slip', $tailoring) }}" target="_blank"
+           class="px-3 py-1.5 text-xs bg-primary-50 dark:bg-primary-900/30 text-primary-600 dark:text-primary-400 rounded-lg hover:bg-primary-100 transition-colors">
+            🖨️ Print Slip
+        </a>
         <a href="{{ route('tailoring.edit', $tailoring) }}"
            class="px-3 py-1.5 text-xs bg-gray-100 dark:bg-slate-700 text-gray-600 dark:text-slate-300 rounded-lg hover:bg-gray-200 dark:hover:bg-slate-600 transition-colors">
             ✏️ Edit

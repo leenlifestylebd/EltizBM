@@ -360,6 +360,7 @@ Route::middleware(['auth', 'business'])->group(function () {
         Route::post('/{tailoring}/set-stage',              [TailoringController::class, 'setStage'])->name('set-stage');
         Route::post('/{tailoring}/assign-worker',          [TailoringController::class, 'assignWorker'])->name('assign-worker');
         Route::post('/{tailoring}/receive-payment',        [TailoringController::class, 'receivePayment'])->name('receive-payment');
+        Route::get('/{tailoring}/slip',                    [TailoringController::class, 'slip'])->name('slip');
     });
 
     // ---- STEADFAST ----
