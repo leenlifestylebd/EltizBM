@@ -42,13 +42,14 @@ class ProductController extends Controller
             default => null,
         };
 
-        $products       = $query->paginate(20);
-        $categories     = Category::where('business_id', $bizId)->orderBy('name')->get();
-        $totalProducts  = Product::where('business_id', $bizId)->count();
-        $lowStockCount  = Product::where('business_id', $bizId)->whereRaw('stock > 0 AND stock <= low_stock_alert')->count();
-        $outOfStockCount= Product::where('business_id', $bizId)->where('stock', '<=', 0)->count();
+        $products        = $query->paginate(20);
+        $categories      = Category::where('business_id', $bizId)->orderBy('name')->get();
+        $brands          = Brand::where('business_id', $bizId)->orderBy('name')->get();
+        $totalProducts   = Product::where('business_id', $bizId)->count();
+        $lowStockCount   = Product::where('business_id', $bizId)->whereRaw('stock > 0 AND stock <= low_stock_alert')->count();
+        $outOfStockCount = Product::where('business_id', $bizId)->where('stock', '<=', 0)->count();
 
-        return view('products.index', compact('products', 'categories', 'totalProducts', 'lowStockCount', 'outOfStockCount'));
+        return view('products.index', compact('products', 'categories', 'brands', 'totalProducts', 'lowStockCount', 'outOfStockCount'));
     }
 
     public function create()
@@ -122,6 +123,30 @@ class ProductController extends Controller
         $this->authorizeProduct($product);
         $product->load(['category', 'brand', 'variants', 'billOfMaterials']);
         return view('products.show', compact('product'));
+    }
+
+    public function quickEdit(Product $product)
+    {
+        $this->authorizeProduct($product);
+        return response()->json([
+            'id'              => $product->id,
+            'name'            => $product->name,
+            'description'     => $product->description,
+            'sku'             => $product->sku,
+            'barcode'         => $product->barcode,
+            'price'           => $product->price,
+            'cost_price'      => $product->cost_price,
+            'sale_price'      => $product->sale_price,
+            'stock'           => $product->stock,
+            'low_stock_alert' => $product->low_stock_alert,
+            'category_id'     => $product->category_id,
+            'brand_id'        => $product->brand_id,
+            'type'            => $product->type,
+            'unit'            => $product->unit,
+            'is_active'       => $product->is_active,
+            'update_url'      => route('products.update', $product),
+            'edit_url'        => route('products.edit', $product),
+        ]);
     }
 
     public function edit(Product $product)

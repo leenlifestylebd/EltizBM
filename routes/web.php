@@ -120,6 +120,7 @@ Route::middleware(['auth', 'business'])->group(function () {
         Route::post('/sync',       [ProductController::class, 'doSync'])->name('do-sync');
         Route::get('/{product}',     [ProductController::class, 'show'])->name('show');
         Route::get('/{product}/edit',[ProductController::class, 'edit'])->name('edit');
+        Route::get('/{product}/quick-edit',[ProductController::class, 'quickEdit'])->name('quick-edit');
         Route::put('/{product}',     [ProductController::class, 'update'])->name('update');
         Route::delete('/{product}',  [ProductController::class, 'destroy'])->name('destroy');
         Route::post('/{product}/generate-barcode', [ProductController::class, 'generateBarcode'])->name('generate-barcode');

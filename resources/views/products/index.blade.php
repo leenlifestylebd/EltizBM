@@ -2,6 +2,7 @@
 @section('title', 'Products')
 
 @section('content')
+<div x-data="productSlideOver()" @keydown.escape.window="close()">
 
 {{-- Header --}}
 <div class="flex items-center justify-between mb-4">
@@ -168,12 +169,12 @@
                     </td>
                     <td class="px-4 py-3">
                         <div class="flex items-center justify-center gap-1 opacity-0 group-hover:opacity-100 transition-opacity">
-                            <a href="{{ route('products.edit', $product) }}"
+                            <button @click="openEdit('{{ route('products.quick-edit', $product) }}')"
                                class="p-1.5 text-gray-400 hover:text-primary-600 hover:bg-primary-50 dark:hover:bg-primary-900/20 rounded-lg transition-colors">
                                 <svg class="w-4 h-4" fill="none" stroke="currentColor" viewBox="0 0 24 24">
                                     <path stroke-linecap="round" stroke-linejoin="round" stroke-width="2" d="M11 5H6a2 2 0 00-2 2v11a2 2 0 002 2h11a2 2 0 002-2v-5m-1.414-9.414a2 2 0 112.828 2.828L11.828 15H9v-2.828l8.586-8.586z"/>
                                 </svg>
-                            </a>
+                            </button>
                             <a href="{{ route('products.show', $product) }}"
                                class="p-1.5 text-gray-400 hover:text-green-600 hover:bg-green-50 dark:hover:bg-green-900/20 rounded-lg transition-colors">
                                 <svg class="w-4 h-4" fill="none" stroke="currentColor" viewBox="0 0 24 24">
@@ -256,12 +257,12 @@
                             @endif
                         </div>
                         <div class="flex items-center gap-2">
-                            <a href="{{ route('products.edit', $product) }}"
+                            <button @click="openEdit('{{ route('products.quick-edit', $product) }}')"
                                class="p-1.5 text-gray-400 hover:text-primary-600 bg-gray-100 dark:bg-slate-700 rounded-lg">
                                 <svg class="w-3.5 h-3.5" fill="none" stroke="currentColor" viewBox="0 0 24 24">
                                     <path stroke-linecap="round" stroke-linejoin="round" stroke-width="2" d="M11 5H6a2 2 0 00-2 2v11a2 2 0 002 2h11a2 2 0 002-2v-5m-1.414-9.414a2 2 0 112.828 2.828L11.828 15H9v-2.828l8.586-8.586z"/>
                                 </svg>
-                            </a>
+                            </button>
                             <form method="POST" action="{{ route('products.destroy', $product) }}" onsubmit="return confirm('Delete?')">
                                 @csrf @method('DELETE')
                                 <button type="submit" class="p-1.5 text-gray-400 hover:text-red-600 bg-gray-100 dark:bg-slate-700 rounded-lg">
@@ -290,6 +291,215 @@
     @endif
 </div>
 
+{{-- ── SLIDE-OVER PANEL ────────────────────────────────────────────── --}}
+
+{{-- Backdrop --}}
+<div x-show="open" x-cloak
+     x-transition:enter="transition-opacity ease-out duration-200"
+     x-transition:enter-start="opacity-0" x-transition:enter-end="opacity-100"
+     x-transition:leave="transition-opacity ease-in duration-150"
+     x-transition:leave-start="opacity-100" x-transition:leave-end="opacity-0"
+     @click="close()"
+     class="fixed inset-0 bg-black/40 z-40">
+</div>
+
+{{-- Panel --}}
+<div x-show="open" x-cloak
+     x-transition:enter="transition ease-out duration-250 transform"
+     x-transition:enter-start="translate-x-full" x-transition:enter-end="translate-x-0"
+     x-transition:leave="transition ease-in duration-200 transform"
+     x-transition:leave-start="translate-x-0" x-transition:leave-end="translate-x-full"
+     class="fixed top-0 right-0 h-full w-full sm:w-[480px] bg-white dark:bg-slate-800 shadow-2xl z-50 flex flex-col">
+
+    {{-- Panel Header --}}
+    <div class="flex items-center justify-between px-5 py-4 border-b border-gray-100 dark:border-slate-700 flex-shrink-0">
+        <div>
+            <h3 class="text-sm font-semibold text-gray-900 dark:text-white">Edit Product</h3>
+            <p class="text-xs text-gray-400 dark:text-slate-500 mt-0.5" x-text="product.name"></p>
+        </div>
+        <div class="flex items-center gap-2">
+            <a :href="product.edit_url" class="text-xs text-primary-600 dark:text-primary-400 hover:underline">Full Edit →</a>
+            <button @click="close()" class="p-1.5 rounded-lg text-gray-400 hover:text-gray-600 hover:bg-gray-100 dark:hover:bg-slate-700">
+                <svg class="w-4 h-4" fill="none" stroke="currentColor" viewBox="0 0 24 24"><path stroke-linecap="round" stroke-linejoin="round" stroke-width="2" d="M6 18L18 6M6 6l12 12"/></svg>
+            </button>
+        </div>
+    </div>
+
+    {{-- Loading --}}
+    <div x-show="loading" class="flex-1 flex items-center justify-center">
+        <div class="w-6 h-6 border-2 border-primary-500 border-t-transparent rounded-full animate-spin"></div>
+    </div>
+
+    {{-- Form --}}
+    <form x-show="!loading" method="POST" :action="product.update_url" class="flex-1 overflow-y-auto flex flex-col" @submit="saving = true">
+        <input type="hidden" name="_method" value="PUT">
+        @csrf
+
+        <div class="flex-1 overflow-y-auto px-5 py-4 space-y-5">
+
+            {{-- Success message --}}
+            @if(session('success'))
+            <div class="px-3 py-2 bg-green-50 dark:bg-green-900/20 border border-green-200 dark:border-green-800 rounded-lg text-xs text-green-700 dark:text-green-400">
+                {{ session('success') }}
+            </div>
+            @endif
+
+            {{-- Basic Info --}}
+            <div>
+                <h4 class="text-xs font-semibold text-gray-500 dark:text-slate-400 uppercase tracking-wide mb-3">Basic Info</h4>
+                <div class="space-y-3">
+                    <div>
+                        <label class="block text-xs font-medium text-gray-600 dark:text-slate-400 mb-1">Product Name <span class="text-red-400">*</span></label>
+                        <input type="text" name="name" :value="product.name" required
+                               class="w-full px-3 py-2 text-sm border border-gray-200 dark:border-slate-600 rounded-lg bg-white dark:bg-slate-700 text-gray-900 dark:text-white focus:outline-none focus:ring-2 focus:ring-primary-500">
+                    </div>
+                    <div>
+                        <label class="block text-xs font-medium text-gray-600 dark:text-slate-400 mb-1">Description</label>
+                        <textarea name="description" rows="2" x-text="product.description"
+                                  class="w-full px-3 py-2 text-sm border border-gray-200 dark:border-slate-600 rounded-lg bg-white dark:bg-slate-700 text-gray-900 dark:text-white focus:outline-none focus:ring-2 focus:ring-primary-500 resize-none"></textarea>
+                    </div>
+                    <div class="grid grid-cols-2 gap-3">
+                        <div>
+                            <label class="block text-xs font-medium text-gray-600 dark:text-slate-400 mb-1">SKU</label>
+                            <input type="text" name="sku" :value="product.sku"
+                                   class="w-full px-3 py-2 text-sm border border-gray-200 dark:border-slate-600 rounded-lg bg-white dark:bg-slate-700 text-gray-900 dark:text-white focus:outline-none font-mono">
+                        </div>
+                        <div>
+                            <label class="block text-xs font-medium text-gray-600 dark:text-slate-400 mb-1">Barcode</label>
+                            <input type="text" name="barcode" :value="product.barcode"
+                                   class="w-full px-3 py-2 text-sm border border-gray-200 dark:border-slate-600 rounded-lg bg-white dark:bg-slate-700 text-gray-900 dark:text-white focus:outline-none font-mono">
+                        </div>
+                    </div>
+                </div>
+            </div>
+
+            {{-- Pricing --}}
+            <div>
+                <h4 class="text-xs font-semibold text-gray-500 dark:text-slate-400 uppercase tracking-wide mb-3">Pricing</h4>
+                <div class="grid grid-cols-3 gap-3">
+                    <div>
+                        <label class="block text-xs font-medium text-gray-600 dark:text-slate-400 mb-1">Sell Price <span class="text-red-400">*</span></label>
+                        <div class="relative">
+                            <span class="absolute left-2.5 top-1/2 -translate-y-1/2 text-xs text-gray-400">৳</span>
+                            <input type="number" name="price" :value="product.price" step="0.01" min="0" required
+                                   class="w-full pl-6 pr-2 py-2 text-sm border border-gray-200 dark:border-slate-600 rounded-lg bg-white dark:bg-slate-700 text-gray-900 dark:text-white focus:outline-none focus:ring-2 focus:ring-primary-500">
+                        </div>
+                    </div>
+                    <div>
+                        <label class="block text-xs font-medium text-gray-600 dark:text-slate-400 mb-1">Cost Price</label>
+                        <div class="relative">
+                            <span class="absolute left-2.5 top-1/2 -translate-y-1/2 text-xs text-gray-400">৳</span>
+                            <input type="number" name="cost_price" :value="product.cost_price" step="0.01" min="0"
+                                   class="w-full pl-6 pr-2 py-2 text-sm border border-gray-200 dark:border-slate-600 rounded-lg bg-white dark:bg-slate-700 text-gray-900 dark:text-white focus:outline-none focus:ring-2 focus:ring-primary-500">
+                        </div>
+                    </div>
+                    <div>
+                        <label class="block text-xs font-medium text-gray-600 dark:text-slate-400 mb-1">Sale Price</label>
+                        <div class="relative">
+                            <span class="absolute left-2.5 top-1/2 -translate-y-1/2 text-xs text-gray-400">৳</span>
+                            <input type="number" name="sale_price" :value="product.sale_price" step="0.01" min="0"
+                                   class="w-full pl-6 pr-2 py-2 text-sm border border-gray-200 dark:border-slate-600 rounded-lg bg-white dark:bg-slate-700 text-gray-900 dark:text-white focus:outline-none focus:ring-2 focus:ring-primary-500">
+                        </div>
+                    </div>
+                </div>
+            </div>
+
+            {{-- Stock --}}
+            <div>
+                <h4 class="text-xs font-semibold text-gray-500 dark:text-slate-400 uppercase tracking-wide mb-3">Stock</h4>
+                <div class="grid grid-cols-2 gap-3">
+                    <div>
+                        <label class="block text-xs font-medium text-gray-600 dark:text-slate-400 mb-1">Current Stock</label>
+                        <input type="number" name="stock" :value="product.stock" min="0"
+                               class="w-full px-3 py-2 text-sm border border-gray-200 dark:border-slate-600 rounded-lg bg-white dark:bg-slate-700 text-gray-900 dark:text-white focus:outline-none focus:ring-2 focus:ring-primary-500">
+                    </div>
+                    <div>
+                        <label class="block text-xs font-medium text-gray-600 dark:text-slate-400 mb-1">Low Stock Alert</label>
+                        <input type="number" name="low_stock_alert" :value="product.low_stock_alert" min="0"
+                               class="w-full px-3 py-2 text-sm border border-gray-200 dark:border-slate-600 rounded-lg bg-white dark:bg-slate-700 text-gray-900 dark:text-white focus:outline-none focus:ring-2 focus:ring-primary-500">
+                    </div>
+                </div>
+            </div>
+
+            {{-- Category & Brand --}}
+            <div>
+                <h4 class="text-xs font-semibold text-gray-500 dark:text-slate-400 uppercase tracking-wide mb-3">Category & Brand</h4>
+                <div class="grid grid-cols-2 gap-3">
+                    <div>
+                        <label class="block text-xs font-medium text-gray-600 dark:text-slate-400 mb-1">Category</label>
+                        <select name="category_id"
+                                class="w-full px-3 py-2 text-sm border border-gray-200 dark:border-slate-600 rounded-lg bg-white dark:bg-slate-700 text-gray-900 dark:text-white focus:outline-none">
+                            <option value="">— None —</option>
+                            @foreach($categories as $cat)
+                            <option value="{{ $cat->id }}" :selected="product.category_id == {{ $cat->id }}">{{ $cat->name }}</option>
+                            @endforeach
+                        </select>
+                    </div>
+                    <div>
+                        <label class="block text-xs font-medium text-gray-600 dark:text-slate-400 mb-1">Brand</label>
+                        <select name="brand_id"
+                                class="w-full px-3 py-2 text-sm border border-gray-200 dark:border-slate-600 rounded-lg bg-white dark:bg-slate-700 text-gray-900 dark:text-white focus:outline-none">
+                            <option value="">— None —</option>
+                            @foreach($brands as $b)
+                            <option value="{{ $b->id }}" :selected="product.brand_id == {{ $b->id }}">{{ $b->name }}</option>
+                            @endforeach
+                        </select>
+                    </div>
+                </div>
+            </div>
+
+            {{-- Type, Unit, Status --}}
+            <div>
+                <h4 class="text-xs font-semibold text-gray-500 dark:text-slate-400 uppercase tracking-wide mb-3">Settings</h4>
+                <div class="grid grid-cols-3 gap-3">
+                    <div>
+                        <label class="block text-xs font-medium text-gray-600 dark:text-slate-400 mb-1">Type</label>
+                        <select name="type"
+                                class="w-full px-3 py-2 text-sm border border-gray-200 dark:border-slate-600 rounded-lg bg-white dark:bg-slate-700 text-gray-900 dark:text-white focus:outline-none">
+                            <option value="simple"    :selected="product.type == 'simple'">Simple</option>
+                            <option value="variable"  :selected="product.type == 'variable'">Variable</option>
+                            <option value="composite" :selected="product.type == 'composite'">Composite</option>
+                        </select>
+                    </div>
+                    <div>
+                        <label class="block text-xs font-medium text-gray-600 dark:text-slate-400 mb-1">Unit</label>
+                        <select name="unit"
+                                class="w-full px-3 py-2 text-sm border border-gray-200 dark:border-slate-600 rounded-lg bg-white dark:bg-slate-700 text-gray-900 dark:text-white focus:outline-none">
+                            @foreach(['pcs','kg','litre','meter','box','dozen','set'] as $u)
+                            <option value="{{ $u }}" :selected="product.unit == '{{ $u }}'">{{ ucfirst($u) }}</option>
+                            @endforeach
+                        </select>
+                    </div>
+                    <div>
+                        <label class="block text-xs font-medium text-gray-600 dark:text-slate-400 mb-1">Status</label>
+                        <select name="is_active"
+                                class="w-full px-3 py-2 text-sm border border-gray-200 dark:border-slate-600 rounded-lg bg-white dark:bg-slate-700 text-gray-900 dark:text-white focus:outline-none">
+                            <option value="1" :selected="product.is_active == 1">Active</option>
+                            <option value="0" :selected="product.is_active == 0">Inactive</option>
+                        </select>
+                    </div>
+                </div>
+            </div>
+
+        </div>
+
+        {{-- Footer Buttons --}}
+        <div class="flex-shrink-0 px-5 py-4 border-t border-gray-100 dark:border-slate-700 flex items-center gap-3">
+            <button type="submit" :disabled="saving"
+                    class="flex-1 flex items-center justify-center gap-2 px-4 py-2.5 bg-primary-600 text-white text-sm font-medium rounded-lg hover:bg-primary-700 disabled:opacity-60 transition-colors">
+                <span x-show="saving" class="w-4 h-4 border-2 border-white border-t-transparent rounded-full animate-spin"></span>
+                <span x-text="saving ? 'Saving...' : 'Save Changes'"></span>
+            </button>
+            <button type="button" @click="close()"
+                    class="px-4 py-2.5 bg-gray-100 dark:bg-slate-700 text-gray-600 dark:text-slate-300 text-sm font-medium rounded-lg hover:bg-gray-200 dark:hover:bg-slate-600 transition-colors">
+                Cancel
+            </button>
+        </div>
+    </form>
+</div>
+
+</div>{{-- end x-data --}}
+
 @endsection
 
 @push('scripts')
@@ -297,5 +507,47 @@
 document.getElementById('selectAll')?.addEventListener('change', function() {
     document.querySelectorAll('.product-checkbox').forEach(cb => cb.checked = this.checked);
 });
+
+function productSlideOver() {
+    return {
+        open: false,
+        loading: false,
+        saving: false,
+        product: {},
+
+        openEdit(url) {
+            this.open = true;
+            this.loading = true;
+            this.saving = false;
+            this.product = {};
+            document.body.style.overflow = 'hidden';
+
+            fetch(url, {
+                headers: { 'Accept': 'application/json', 'X-Requested-With': 'XMLHttpRequest' }
+            })
+            .then(r => r.json())
+            .then(data => {
+                this.product = data;
+                this.loading = false;
+                this.$nextTick(() => {
+                    // sync select values after Alpine renders
+                    const form = this.$el.querySelector('form');
+                    if (!form) return;
+                    form.querySelector('[name=category_id]').value = data.category_id ?? '';
+                    form.querySelector('[name=brand_id]').value    = data.brand_id ?? '';
+                    form.querySelector('[name=type]').value        = data.type ?? 'simple';
+                    form.querySelector('[name=unit]').value        = data.unit ?? 'pcs';
+                    form.querySelector('[name=is_active]').value   = data.is_active ? '1' : '0';
+                });
+            })
+            .catch(() => { this.open = false; this.loading = false; });
+        },
+
+        close() {
+            this.open = false;
+            document.body.style.overflow = '';
+        }
+    }
+}
 </script>
 @endpush
