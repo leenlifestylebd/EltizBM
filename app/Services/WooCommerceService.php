@@ -205,12 +205,23 @@ class WooCommerceService
         $parent = Product::find($localProductId);
         if (!$parent) return;
 
+        // Track variation prices so the parent variable product can reflect the
+        // representative regular/offer price (WooCommerce leaves the parent empty).
+        $minRegular = null;
+        $minSale    = null;
+
         foreach ($response->json() as $variant) {
             $attributes = collect($variant['attributes'])->mapWithKeys(
                 fn($a) => [$a['name'] => $a['option']]
             )->toArray();
 
             $variantName = $parent->name . ' - ' . collect($variant['attributes'])->pluck('option')->implode(' / ');
+
+            $vRegular = floatval($variant['regular_price'] ?: $variant['price'] ?: 0);
+            $vSale    = $variant['sale_price'] ? floatval($variant['sale_price']) : null;
+
+            if ($vRegular > 0)            $minRegular = $minRegular === null ? $vRegular : min($minRegular, $vRegular);
+            if ($vSale !== null && $vSale > 0) $minSale = $minSale === null ? $vSale : min($minSale, $vSale);
 
             // Create as separate product
             Product::updateOrCreate(
@@ -220,7 +231,8 @@ class WooCommerceService
                     'name'            => $variantName,
                     'slug'            => \Illuminate\Support\Str::slug($variantName) . '-' . $variant['id'],
                     'sku'             => $variant['sku'] ?: 'VAR-' . $variant['id'],
-                    'price'           => floatval($variant['regular_price'] ?: $variant['price'] ?: 0),
+                    'price'           => $vRegular,
+                    'sale_price'      => $vSale,
                     'cost_price'      => $parent->cost_price ?? 0,
                     'stock'           => $variant['stock_quantity'] ?? 0,
                     'unit'            => $parent->unit ?? 'pcs',
@@ -242,11 +254,20 @@ class WooCommerceService
                     'product_id' => $localProductId,
                     'name'       => collect($variant['attributes'])->pluck('option')->implode(' / '),
                     'sku'        => $variant['sku'] ?: 'VAR-' . $variant['id'],
-                    'price'      => floatval($variant['regular_price'] ?: $variant['price'] ?: 0),
+                    'price'      => $vRegular,
                     'stock'      => $variant['stock_quantity'] ?? 0,
                     'attributes' => $attributes,
                 ]
             );
+        }
+
+        // Reflect representative pricing on the parent so its Regular/Sale Price fields
+        // are not blank for variable products.
+        if ($minRegular !== null) {
+            $parent->update([
+                'price'      => $minRegular,
+                'sale_price' => $minSale,
+            ]);
         }
     } catch (\Exception $e) {
         Log::warning('Variant sync failed', ['product' => $wooProductId, 'error' => $e->getMessage()]);
