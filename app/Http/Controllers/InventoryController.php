@@ -100,25 +100,29 @@ class InventoryController extends Controller
                 ->where('business_id', $bizId)
                 ->firstOrFail();
 
-            DB::transaction(function () use ($po, $bizId) {
+            // Idempotency guard — receiving an already-received PO would double the
+            // stock. Only a PO that has not yet been received can add stock.
+            if ($po->status === 'received') {
+                return back()->with('error', 'This purchase order is already received.');
+            }
+
+            $stock = app(\App\Services\StockService::class);
+
+            DB::transaction(function () use ($po, $bizId, $stock) {
                 $po->update(['status' => 'received']);
 
-                // Increase stock for each item
+                // Increase stock for each item (StockService logs each movement
+                // with correct before/after values).
                 foreach ($po->items as $item) {
-                    Product::where('id', $item->product_id)
-                        ->where('business_id', $bizId)
-                        ->increment('stock', $item->quantity);
+                    $stock->adjust(
+                        businessId: $bizId,
+                        productId:  $item->product_id,
+                        type:       'increase',
+                        quantity:   $item->quantity,
+                        reason:     'Purchase Order: ' . $po->po_number,
+                    );
 
-                    StockAdjustment::create([
-                        'business_id'     => $bizId,
-                        'product_id'      => $item->product_id,
-                        'created_by'      => auth()->id(),
-                        'type'            => 'increase',
-                        'quantity'        => $item->quantity,
-                        'quantity_before' => Product::where('id', $item->product_id)->value('stock') - $item->quantity,
-                        'quantity_after'  => Product::where('id', $item->product_id)->value('stock'),
-                        'reason'          => 'Purchase Order: ' . $po->po_number,
-                    ]);
+                    $item->update(['received_quantity' => $item->quantity]);
                 }
             });
 
