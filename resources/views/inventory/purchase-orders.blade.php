@@ -40,7 +40,13 @@
                     <td class="px-4 py-3 font-semibold text-primary-600 dark:text-primary-400 text-xs">{{ $po->po_number }}</td>
                     <td class="px-4 py-3 text-sm text-gray-700 dark:text-slate-300">{{ $po->vendor?->name ?? 'N/A' }}</td>
                     <td class="px-4 py-3 text-right font-medium text-gray-900 dark:text-white">৳{{ number_format($po->total) }}</td>
-                    <td class="px-4 py-3 text-right text-sm text-gray-600 dark:text-slate-300">৳{{ number_format($po->paid_amount) }}</td>
+                    <td class="px-4 py-3 text-right text-sm text-gray-600 dark:text-slate-300">
+                        ৳{{ number_format($po->paid_amount) }}
+                        @php $poDue = max(0, $po->total - $po->paid_amount); @endphp
+                        @if($poDue > 0)
+                            <span class="block text-xs text-red-500">Due: ৳{{ number_format($poDue) }}</span>
+                        @endif
+                    </td>
                     <td class="px-4 py-3 text-center">
                         @php $colors=['draft'=>'gray','ordered'=>'blue','received'=>'green','partial'=>'yellow','cancelled'=>'red']; $c=$colors[$po->status]??'gray'; @endphp
                         <span class="inline-flex px-2 py-0.5 rounded-full text-xs font-medium bg-{{ $c }}-100 text-{{ $c }}-700 dark:bg-{{ $c }}-900/30 dark:text-{{ $c }}-400">{{ ucfirst($po->status) }}</span>
@@ -63,6 +69,13 @@
                                     <svg class="w-4 h-4" fill="none" stroke="currentColor" viewBox="0 0 24 24"><path stroke-linecap="round" stroke-linejoin="round" stroke-width="2" d="M5 13l4 4L19 7"/></svg>
                                 </button>
                             </form>
+                            @endif
+                            @if($poDue > 0)
+                            <button type="button"
+                                    @click="$dispatch('open-pay-po', { id: {{ $po->id }}, number: '{{ $po->po_number }}', due: {{ $poDue }} })"
+                                    class="p-1.5 text-gray-400 hover:text-emerald-600 hover:bg-emerald-50 dark:hover:bg-emerald-900/20 rounded-lg" title="Pay vendor">
+                                <svg class="w-4 h-4" fill="none" stroke="currentColor" viewBox="0 0 24 24"><path stroke-linecap="round" stroke-linejoin="round" stroke-width="2" d="M17 9V7a2 2 0 00-2-2H5a2 2 0 00-2 2v6a2 2 0 002 2h2m2 4h10a2 2 0 002-2v-6a2 2 0 00-2-2H9a2 2 0 00-2 2v6a2 2 0 002 2zm7-5a2 2 0 11-4 0 2 2 0 014 0z"/></svg>
+                            </button>
                             @endif
                         </div>
                     </td>
@@ -98,6 +111,48 @@
     @if($purchaseOrders->hasPages())
     <div class="px-4 py-3 border-t border-gray-100 dark:border-slate-700">{{ $purchaseOrders->withQueryString()->links() }}</div>
     @endif
+</div>
+
+{{-- Vendor Payment Modal --}}
+<div x-data="{ open: false, po: { id: null, number: '', due: 0 } }"
+     @open-pay-po.window="po = $event.detail; open = true">
+    <div x-show="open" x-cloak class="fixed inset-0 bg-black/50 z-50 flex items-end sm:items-center justify-center p-4">
+        <div @click.outside="open = false" class="bg-white dark:bg-slate-800 rounded-2xl w-full max-w-sm">
+            <div class="flex items-center justify-between px-5 py-4 border-b border-gray-100 dark:border-slate-700">
+                <h3 class="text-sm font-semibold text-gray-900 dark:text-white">Pay vendor — <span x-text="po.number"></span></h3>
+                <button @click="open = false" class="p-1 text-gray-400 hover:text-gray-600 text-xl leading-none">×</button>
+            </div>
+            <form method="POST" :action="`{{ url('inventory/purchase-orders') }}/${po.id}/pay`" class="p-5 space-y-4">
+                @csrf
+                <p class="text-xs text-gray-500 dark:text-slate-400">Outstanding due: <span class="font-semibold text-red-500">৳<span x-text="Number(po.due).toLocaleString()"></span></span></p>
+                <div>
+                    <label class="block text-xs font-semibold text-gray-500 uppercase tracking-wider mb-1.5">Amount</label>
+                    <input type="number" step="0.01" min="0.01" :max="po.due" name="amount" :value="po.due" required
+                           class="w-full px-4 py-2.5 bg-gray-50 dark:bg-slate-700 border border-gray-200 dark:border-slate-600 rounded-xl text-gray-900 dark:text-white text-sm focus:outline-none focus:ring-2 focus:ring-primary-500">
+                </div>
+                <div>
+                    <label class="block text-xs font-semibold text-gray-500 uppercase tracking-wider mb-1.5">Method</label>
+                    <select name="payment_method"
+                            class="w-full px-4 py-2.5 bg-gray-50 dark:bg-slate-700 border border-gray-200 dark:border-slate-600 rounded-xl text-gray-900 dark:text-white text-sm focus:outline-none focus:ring-2 focus:ring-primary-500">
+                        <option value="cash">Cash</option>
+                        <option value="bkash">bKash</option>
+                        <option value="nagad">Nagad</option>
+                        <option value="rocket">Rocket</option>
+                        <option value="bank">Bank</option>
+                        <option value="card">Card</option>
+                    </select>
+                </div>
+                <div>
+                    <label class="block text-xs font-semibold text-gray-500 uppercase tracking-wider mb-1.5">Date</label>
+                    <input type="date" name="payment_date" value="{{ date('Y-m-d') }}" required
+                           class="w-full px-4 py-2.5 bg-gray-50 dark:bg-slate-700 border border-gray-200 dark:border-slate-600 rounded-xl text-gray-900 dark:text-white text-sm focus:outline-none focus:ring-2 focus:ring-primary-500">
+                </div>
+                <button type="submit" class="w-full bg-emerald-600 hover:bg-emerald-700 text-white font-semibold py-2.5 rounded-xl text-sm transition-colors">
+                    Record payment
+                </button>
+            </form>
+        </div>
+    </div>
 </div>
 
 {{-- New PO Modal --}}

@@ -171,6 +171,53 @@ class InventoryController extends Controller
     }
 
     // =============================================
+    // VENDOR PAYMENT (against a purchase order)
+    // =============================================
+    public function payPurchaseOrder(Request $request, PurchaseOrder $po)
+    {
+        abort_if($po->business_id !== auth()->user()->business_id, 403);
+
+        $outstanding = max(0, (float) $po->total - (float) $po->paid_amount);
+
+        $request->validate([
+            'amount'         => "required|numeric|min:0.01|max:{$outstanding}",
+            'payment_method' => 'required|string|max:30',
+            'payment_date'   => 'required|date',
+        ]);
+
+        if ($outstanding <= 0) {
+            return back()->with('error', 'This purchase order is already fully paid.');
+        }
+
+        $bizId  = auth()->user()->business_id;
+        $amount = (float) $request->amount;
+
+        DB::transaction(function () use ($po, $bizId, $amount, $request) {
+            $newPaid   = (float) $po->paid_amount + $amount;
+            $payStatus = $newPaid >= (float) $po->total ? 'paid' : 'partial';
+
+            $po->update([
+                'paid_amount'    => $newPaid,
+                'payment_status' => $payStatus,
+            ]);
+
+            // Record the cash going out so it shows in expenses / account balance.
+            \App\Models\Transaction::create([
+                'business_id'      => $bizId,
+                'created_by'       => auth()->id(),
+                'type'             => 'expense',
+                'title'            => 'Purchase payment — ' . $po->po_number . ($po->vendor ? ' (' . $po->vendor->name . ')' : ''),
+                'amount'           => $amount,
+                'payment_method'   => $request->payment_method,
+                'reference'        => 'PO-PAY-' . $po->id,
+                'transaction_date' => $request->payment_date,
+            ]);
+        });
+
+        return back()->with('success', '৳' . number_format($amount) . ' paid against ' . $po->po_number . '.');
+    }
+
+    // =============================================
     // STOCK ADJUSTMENTS
     // =============================================
     public function adjustments()

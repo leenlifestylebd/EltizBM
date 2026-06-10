@@ -159,6 +159,7 @@ Route::middleware(['auth', 'business'])->group(function () {
         Route::get('/overview',         [InventoryController::class, 'overview'])->name('overview');
         Route::get('/purchase-orders',  [InventoryController::class, 'purchaseOrders'])->name('purchase-orders');
         Route::post('/purchase-orders', [InventoryController::class, 'storePurchaseOrder'])->name('purchase-orders.store');
+        Route::post('/purchase-orders/{po}/pay', [InventoryController::class, 'payPurchaseOrder'])->name('purchase-orders.pay');
         Route::get('/stock-levels',     [InventoryController::class, 'stockLevels'])->name('stock-levels');
         Route::get('/export-stock',     [InventoryController::class, 'exportStock'])->name('export-stock');
         Route::get('/adjustments',      [InventoryController::class, 'adjustments'])->name('adjustments');
