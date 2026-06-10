@@ -140,14 +140,56 @@ class OrderController extends Controller
             'payment_method'=> 'required|string',
         ]);
 
-        DB::transaction(function () use ($request, $order) {
-            $paid = floatval($request->paid_amount ?? 0);
-            $total = floatval($request->total ?? $order->total);
-            $due  = max(0, $total - $paid);
+        $bizId = $order->business_id;
+        $stock = app(\App\Services\StockService::class);
+
+        DB::transaction(function () use ($request, $order, $bizId, $stock) {
+            // Discount & shipping fall back to the order's existing values.
+            $discount = floatval($request->discount ?? $order->discount);
+            $shipping = floatval($request->shipping_charge ?? $order->shipping_charge);
+
+            // Re-create items if provided, and derive subtotal from them.
+            if ($request->has('items')) {
+                // Restore stock for the OLD item set (scoped + logged).
+                $stock->restoreForOrder($order);
+
+                $order->items()->delete();
+
+                $subtotal = 0;
+                foreach ($request->items as $item) {
+                    // Only link catalog products owned by this business.
+                    $product = !empty($item['product_id'])
+                        ? Product::where('id', $item['product_id'])->where('business_id', $bizId)->first()
+                        : null;
+
+                    OrderItem::create([
+                        'order_id'     => $order->id,
+                        'product_id'   => $product?->id,
+                        'product_name' => $item['product_name'],
+                        'price'        => $item['price'],
+                        'cost_price'   => $item['cost_price'] ?? 0,
+                        'quantity'     => $item['quantity'],
+                        'discount'     => $item['discount'] ?? 0,
+                        'total'        => $item['total'],
+                    ]);
+                    $subtotal += floatval($item['total']);
+                }
+
+                $order->update(['subtotal' => $subtotal]);
+                // Deduct stock for the NEW item set.
+                $order->load('items');
+                $stock->deductForOrder($order);
+            }
+
+            // Total is always derived server-side, never trusted from the client.
+            // $order->subtotal reflects the new items (if provided) or the existing value.
+            $total = max(0, $order->subtotal - $discount + $shipping);
+            $paid     = floatval($request->paid_amount ?? $order->paid_amount);
+            $due      = max(0, $total - $paid);
 
             $payStatus = 'unpaid';
-            if ($paid >= $total) $payStatus = 'paid';
-            elseif ($paid > 0)   $payStatus = 'partial';
+            if ($paid >= $total && $total > 0) $payStatus = 'paid';
+            elseif ($paid > 0)                 $payStatus = 'partial';
 
             $order->update([
                 'status'           => $request->status,
@@ -158,44 +200,13 @@ class OrderController extends Controller
                 'shipping_address' => $request->shipping_address,
                 'shipping_area'    => $request->shipping_area,
                 'shipping_district'=> $request->shipping_district,
+                'discount'         => $discount,
+                'shipping_charge'  => $shipping,
+                'total'            => $total,
                 'paid_amount'      => $paid,
                 'due_amount'       => $due,
                 'notes'            => $request->notes,
             ]);
-
-            // Re-create items if provided
-            if ($request->has('items')) {
-                // Restore old stock
-                foreach ($order->items as $item) {
-                    Product::where('id', $item->product_id)
-                        ->where('track_stock', true)
-                        ->increment('stock', $item->quantity);
-                }
-
-                $order->items()->delete();
-
-                $subtotal = 0;
-                foreach ($request->items as $item) {
-                    OrderItem::create([
-                        'order_id'     => $order->id,
-                        'product_id'   => $item['product_id'],
-                        'product_name' => $item['product_name'],
-                        'price'        => $item['price'],
-                        'cost_price'   => $item['cost_price'] ?? 0,
-                        'quantity'     => $item['quantity'],
-                        'discount'     => $item['discount'] ?? 0,
-                        'total'        => $item['total'],
-                    ]);
-                    $subtotal += $item['total'];
-
-                    // Deduct new stock
-                    Product::where('id', $item['product_id'])
-                        ->where('track_stock', true)
-                        ->decrement('stock', $item['quantity']);
-                }
-
-                $order->update(['subtotal' => $subtotal]);
-            }
         });
 
         return redirect()->route('orders.show', $order)
