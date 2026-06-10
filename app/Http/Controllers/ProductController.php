@@ -209,7 +209,17 @@ class ProductController extends Controller
             'track_stock'     => $request->boolean('track_stock', true),
         ]);
 
-        return redirect()->route('products.index')
+        // AJAX (inline slide-over) save: return JSON so the page never navigates.
+        if ($request->wantsJson() || $request->ajax()) {
+            return response()->json([
+                'success' => true,
+                'message' => "Product '{$product->name}' updated successfully!",
+            ]);
+        }
+
+        // Full-page save: return to the same list page (preserves pagination/filters)
+        // instead of jumping back to page 1.
+        return redirect()->back()
             ->with('success', "Product '{$product->name}' updated successfully!");
     }
 

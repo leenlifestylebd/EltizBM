@@ -331,7 +331,7 @@
     </div>
 
     {{-- Form --}}
-    <form x-show="!loading" method="POST" :action="product.update_url" class="flex-1 overflow-y-auto flex flex-col" @submit="saving = true">
+    <form x-show="!loading" method="POST" :action="product.update_url" class="flex-1 overflow-y-auto flex flex-col" @submit.prevent="save($event)">
         <input type="hidden" name="_method" value="PUT">
         @csrf
         {{-- Preserve existing images so they don't get wiped on save --}}
@@ -545,6 +545,27 @@ function productSlideOver() {
                 });
             })
             .catch(() => { this.open = false; this.loading = false; });
+        },
+
+        save(e) {
+            const form = e.target;
+            this.saving = true;
+            fetch(form.action, {
+                method: 'POST', // form carries _method=PUT
+                headers: { 'Accept': 'application/json', 'X-Requested-With': 'XMLHttpRequest' },
+                body: new FormData(form),
+            })
+            .then(r => r.ok ? r.json() : Promise.reject(r))
+            .then(() => {
+                // Reload the SAME list URL so pagination/filters are kept — no jump to page 1.
+                window.location.reload();
+            })
+            .catch(async (r) => {
+                this.saving = false;
+                let msg = 'Could not save. Please check the fields and try again.';
+                try { const d = await r.json(); if (d.message) msg = d.message; } catch (_) {}
+                alert(msg);
+            });
         },
 
         close() {
