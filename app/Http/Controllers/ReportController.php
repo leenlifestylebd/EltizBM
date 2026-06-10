@@ -81,7 +81,7 @@ class ReportController extends Controller
         $revenueTrend = Order::where('business_id', $bizId)
             ->whereIn('status', ['completed','delivered'])
             ->whereBetween('created_at', [$from, $to])
-            ->selectRaw("DATE_FORMAT(created_at, '{$trendFormat}') as period, SUM(total) as total")
+            ->selectRaw("strftime('{$trendFormat}', created_at) as period, SUM(total) as total")
             ->groupBy('period')
             ->orderBy('period')
             ->pluck('total', 'period');
@@ -89,7 +89,7 @@ class ReportController extends Controller
         $expenseTrend = Transaction::where('business_id', $bizId)
             ->where('type', 'expense')
             ->whereBetween('transaction_date', [$from, $to])
-            ->selectRaw("DATE_FORMAT(transaction_date, '{$trendFormat}') as period, SUM(amount) as total")
+            ->selectRaw("strftime('{$trendFormat}', transaction_date) as period, SUM(amount) as total")
             ->groupBy('period')
             ->orderBy('period')
             ->pluck('total', 'period');
@@ -217,7 +217,7 @@ class ReportController extends Controller
 
         // New customers per month
         $newPerMonth = Customer::where('business_id', $bizId)
-            ->selectRaw("DATE_FORMAT(created_at,'%Y-%m') as month, COUNT(*) as count")
+            ->selectRaw("strftime('%Y-%m', created_at) as month, COUNT(*) as count")
             ->groupBy('month')
             ->orderBy('month')
             ->limit(6)

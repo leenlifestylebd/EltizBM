@@ -1,0 +1,16 @@
+{
+  "version": "0.0.1",
+  "configurations": [
+    {
+      "name": "EltizBM",
+      "runtimeExecutable": "C:\\xampp\\php83\\php.exe",
+      "runtimeArgs": [
+        "C:\\laragon\\www\\EltizBM\\artisan",
+        "serve",
+        "--host=127.0.0.1",
+        "--port=8000"
+      ],
+      "port": 8000
+    }
+  ]
+}

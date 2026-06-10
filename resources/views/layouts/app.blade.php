@@ -179,9 +179,10 @@
                 <svg class="w-3 h-3 ml-auto transition-transform" :class="open ? 'rotate-180' : ''" fill="none" stroke="currentColor" viewBox="0 0 24 24"><path stroke-linecap="round" stroke-linejoin="round" stroke-width="2" d="M19 9l-7 7-7-7"/></svg>
             </button>
             <div x-show="open" x-cloak class="pl-9 space-y-0.5">
-                <a href="{{ route('production.index') }}" class="block px-3 py-2 text-xs text-gray-500 dark:text-slate-400 hover:text-primary-600 rounded-lg hover:bg-gray-50 dark:hover:bg-slate-700">Daily Entry</a>
+                <a href="{{ route('production.admin-overview') }}" class="block px-3 py-2 text-xs rounded-lg hover:bg-gray-50 dark:hover:bg-slate-700 {{ request()->routeIs('production.admin-overview') ? 'text-primary-600 dark:text-primary-400 font-medium' : 'text-gray-500 dark:text-slate-400 hover:text-primary-600' }}">📊 Team Overview</a>
                 <a href="{{ route('production.rates') }}" class="block px-3 py-2 text-xs text-gray-500 dark:text-slate-400 hover:text-primary-600 rounded-lg hover:bg-gray-50 dark:hover:bg-slate-700">Rates Setup</a>
                 <a href="{{ route('production.payroll') }}" class="block px-3 py-2 text-xs text-gray-500 dark:text-slate-400 hover:text-primary-600 rounded-lg hover:bg-gray-50 dark:hover:bg-slate-700">Payroll</a>
+                <a href="{{ route('production.tasks.index') }}" class="block px-3 py-2 text-xs rounded-lg hover:bg-gray-50 dark:hover:bg-slate-700 {{ request()->routeIs('production.tasks.*') ? 'text-primary-600 dark:text-primary-400 font-medium' : 'text-gray-500 dark:text-slate-400 hover:text-primary-600' }}">Task Assignment</a>
             </div>
         </div>
 

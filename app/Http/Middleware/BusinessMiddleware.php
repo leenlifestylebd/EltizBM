@@ -23,6 +23,8 @@ class BusinessMiddleware
             $allowed = [
                 'production.worker.dashboard',
                 'production.store',
+                'production.tasks.submit',
+                'production.tasks.my',
                 'logout',
             ];
             if (!in_array($request->route()->getName(), $allowed)) {

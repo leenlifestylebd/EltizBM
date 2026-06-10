@@ -21,6 +21,7 @@ use App\Http\Controllers\IntegrationController;
 use App\Http\Controllers\WooCommerceController;
 use App\Http\Controllers\WebOrderController;
 use App\Http\Controllers\SteadfastController;
+use App\Http\Controllers\ProductionTaskController;
 
 // =============================================
 // AUTH ROUTES
@@ -51,6 +52,7 @@ Route::middleware(['auth', 'business'])->group(function () {
         Route::get('/',            [OrderController::class, 'index'])->name('index');
         Route::get('/create',      [OrderController::class, 'create'])->name('create');
         Route::post('/',           [OrderController::class, 'store'])->name('store');
+        Route::get('/export',      [OrderController::class, 'export'])->name('export');
         Route::get('/{order}',     [OrderController::class, 'show'])->name('show');
         Route::get('/{order}/edit',[OrderController::class, 'edit'])->name('edit');
         Route::put('/{order}',     [OrderController::class, 'update'])->name('update');
@@ -73,6 +75,7 @@ Route::middleware(['auth', 'business'])->group(function () {
         Route::get('/',            [ProductController::class, 'index'])->name('index');
         Route::get('/create',      [ProductController::class, 'create'])->name('create');
         Route::post('/',           [ProductController::class, 'store'])->name('store');
+        Route::get('/export',      [ProductController::class, 'export'])->name('export');
         Route::get('/sync',        [ProductController::class, 'syncPage'])->name('sync');
         Route::post('/sync',       [ProductController::class, 'doSync'])->name('do-sync');
         Route::get('/{product}',     [ProductController::class, 'show'])->name('show');
@@ -105,6 +108,7 @@ Route::middleware(['auth', 'business'])->group(function () {
         Route::get('/purchase-orders',  [InventoryController::class, 'purchaseOrders'])->name('purchase-orders');
         Route::post('/purchase-orders', [InventoryController::class, 'storePurchaseOrder'])->name('purchase-orders.store');
         Route::get('/stock-levels',     [InventoryController::class, 'stockLevels'])->name('stock-levels');
+        Route::get('/export-stock',     [InventoryController::class, 'exportStock'])->name('export-stock');
         Route::get('/adjustments',      [InventoryController::class, 'adjustments'])->name('adjustments');
         Route::post('/adjustments',     [InventoryController::class, 'storeAdjustment'])->name('adjustments.store');
         Route::get('/barcode',          [InventoryController::class, 'barcode'])->name('barcode');
@@ -177,9 +181,7 @@ Route::middleware(['auth', 'business'])->group(function () {
 
     // ---- PRODUCTION SYSTEM ----
     Route::prefix('production')->name('production.')->group(function () {
-        Route::get('/',                [App\Http\Controllers\ProductionController::class, 'index'])->name('index');
-        Route::post('/',               [App\Http\Controllers\ProductionController::class, 'store'])->name('store');
-        Route::delete('/{entry}',      [App\Http\Controllers\ProductionController::class, 'destroy'])->name('destroy');
+        Route::get('/admin-overview',  [App\Http\Controllers\ProductionController::class, 'adminOverview'])->name('admin-overview');
         Route::get('/rates',           [App\Http\Controllers\ProductionController::class, 'rates'])->name('rates');
         Route::post('/rates',          [App\Http\Controllers\ProductionController::class, 'storeRate'])->name('rates.store');
         Route::put('/rates/{rate}',    [App\Http\Controllers\ProductionController::class, 'updateRate'])->name('rates.update');
@@ -187,6 +189,16 @@ Route::middleware(['auth', 'business'])->group(function () {
         Route::get('/payroll',         [App\Http\Controllers\ProductionController::class, 'payroll'])->name('payroll');
         Route::post('/payment',        [App\Http\Controllers\ProductionController::class, 'storePayment'])->name('payment.store');
         Route::get('/my-dashboard',    [App\Http\Controllers\ProductionController::class, 'workerDashboard'])->name('worker.dashboard');
+
+        // ---- PRODUCTION TASKS ----
+        Route::get('/tasks',                  [ProductionTaskController::class, 'index'])->name('tasks.index');
+        Route::get('/tasks/create',           [ProductionTaskController::class, 'create'])->name('tasks.create');
+        Route::post('/tasks',                 [ProductionTaskController::class, 'store'])->name('tasks.store');
+        Route::get('/tasks/{task}',           [ProductionTaskController::class, 'show'])->name('tasks.show');
+        Route::put('/tasks/{task}',           [ProductionTaskController::class, 'update'])->name('tasks.update');
+        Route::delete('/tasks/{task}',        [ProductionTaskController::class, 'destroy'])->name('tasks.destroy');
+        Route::post('/tasks/{task}/submit',   [ProductionTaskController::class, 'submit'])->name('tasks.submit');
+        Route::get('/my-tasks',               [ProductionTaskController::class, 'myTasks'])->name('tasks.my');
     });
 
     // ---- TASKS ----
@@ -217,10 +229,14 @@ Route::middleware(['auth', 'business'])->group(function () {
         Route::post('/users/{user}/approve',[SettingsController::class, 'approveUser'])->name('users.approve');
         Route::delete('/users/{user}/reject',[SettingsController::class, 'rejectUser'])->name('users.reject');
         Route::get('/statuses',       [SettingsController::class, 'statuses'])->name('statuses');
+        Route::post('/statuses',      [SettingsController::class, 'updateStatuses'])->name('statuses.update');
         Route::get('/warehouses',     [SettingsController::class, 'warehouses'])->name('warehouses');
         Route::post('/warehouses',    [SettingsController::class, 'storeWarehouse'])->name('warehouses.store');
         Route::get('/tags',           [SettingsController::class, 'tags'])->name('tags');
+        Route::post('/tags',          [SettingsController::class, 'storeTag'])->name('tags.store');
+        Route::delete('/tags',        [SettingsController::class, 'destroyTag'])->name('tags.destroy');
         Route::get('/print-templates',[SettingsController::class, 'printTemplates'])->name('print-templates');
+        Route::post('/print-templates',[SettingsController::class, 'updatePrintTemplates'])->name('print-templates.update');
     });
 
     // ---- INTEGRATIONS ----

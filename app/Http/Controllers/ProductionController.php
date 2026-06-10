@@ -6,6 +6,7 @@ use App\Models\Employee;
 use App\Models\ProductionRate;
 use App\Models\ProductionEntry;
 use App\Models\EmployeePayment;
+use App\Models\ProductionTask;
 use App\Models\Transaction;
 use Illuminate\Http\Request;
 use Carbon\Carbon;
@@ -200,6 +201,129 @@ class ProductionController extends Controller
         return back()->with('success', 'Payment recorded!');
     }
 
+    public function adminOverview(Request $request)
+    {
+        $bizId  = auth()->user()->business_id;
+        $period = $request->period ?? 'monthly';
+
+        // Determine date range based on period
+        switch ($period) {
+            case 'daily':
+                $date  = $request->date ? Carbon::parse($request->date) : today();
+                $from  = $date->copy()->startOfDay();
+                $to    = $date->copy()->endOfDay();
+                $label = $date->format('d M Y, l');
+                break;
+            case 'weekly':
+                $week  = $request->week ?? now()->format('Y-\WW');
+                [$yr, $wk] = explode('-W', $week);
+                $from  = Carbon::now()->setISODate((int)$yr, (int)$wk)->startOfWeek();
+                $to    = $from->copy()->endOfWeek();
+                $label = $from->format('d M') . ' – ' . $to->format('d M Y');
+                break;
+            default: // monthly
+                $month = $request->month ?? now()->format('Y-m');
+                $from  = Carbon::parse($month . '-01')->startOfMonth();
+                $to    = Carbon::parse($month . '-01')->endOfMonth();
+                $label = $from->format('F Y');
+                break;
+        }
+
+        $fromDate = $from->toDateString();
+        $toDate   = $to->toDateString();
+
+        // All active employees
+        $employees = Employee::where('business_id', $bizId)
+            ->where('status', 'active')
+            ->orderBy('name')
+            ->get();
+
+        // Tasks in period (use assigned_at for task filter)
+        $allTasks = ProductionTask::where('business_id', $bizId)
+            ->whereNotIn('status', ['cancelled'])
+            ->whereDate('assigned_at', '>=', $fromDate)
+            ->whereDate('assigned_at', '<=', $toDate)
+            ->get();
+
+        // Earnings (production entries) in period
+        $earnings = ProductionEntry::where('production_entries.business_id', $bizId)
+            ->whereBetween('entry_date', [$fromDate, $toDate])
+            ->selectRaw('employee_id, SUM(quantity) as total_qty, SUM(amount) as total_amount')
+            ->groupBy('employee_id')
+            ->pluck(null, 'employee_id')
+            ->toArray();
+
+        // Advances in period
+        $advances = \App\Models\EmployeePayment::where('business_id', $bizId)
+            ->whereBetween('payment_date', [$fromDate, $toDate])
+            ->whereIn('type', ['advance', 'deduction'])
+            ->selectRaw('employee_id, SUM(amount) as total')
+            ->groupBy('employee_id')
+            ->pluck('total', 'employee_id');
+
+        // Per-employee stats
+        $employeeStats = $employees->map(function ($emp) use ($allTasks, $earnings, $advances) {
+            $tasks   = $allTasks->where('employee_id', $emp->id);
+            $earning = $earnings[$emp->id] ?? null;
+            $advance = $advances[$emp->id] ?? 0;
+            $totalAmt = $earning['total_amount'] ?? 0;
+
+            return [
+                'employee'       => $emp,
+                'total_tasks'    => $tasks->count(),
+                'assigned'       => $tasks->where('status', 'assigned')->count(),
+                'in_progress'    => $tasks->where('status', 'in_progress')->count(),
+                'partial'        => $tasks->where('status', 'partial')->count(),
+                'completed'      => $tasks->where('status', 'completed')->count(),
+                'total_assigned' => $tasks->sum('assigned_quantity'),
+                'total_done'     => $tasks->sum('completed_quantity'),
+                'total_pending'  => $tasks->sum('assigned_quantity') - $tasks->sum('completed_quantity'),
+                'total_qty'      => $earning['total_qty'] ?? 0,
+                'total_earning'  => $totalAmt,
+                'advance'        => $advance,
+                'net_payable'    => $totalAmt - $advance,
+                'completion_pct' => $tasks->sum('assigned_quantity') > 0
+                    ? round(($tasks->sum('completed_quantity') / $tasks->sum('assigned_quantity')) * 100)
+                    : 0,
+            ];
+        })->sortByDesc('total_earning');
+
+        // Business summary
+        $summary = [
+            'total_employees' => $employees->count(),
+            'total_tasks'     => $allTasks->count(),
+            'total_assigned'  => $allTasks->where('status', 'assigned')->count(),
+            'total_partial'   => $allTasks->whereIn('status', ['partial', 'in_progress'])->count(),
+            'total_completed' => $allTasks->where('status', 'completed')->count(),
+            'total_earning'   => array_sum(array_column($earnings, 'total_amount')),
+            'total_pieces'    => array_sum(array_column($earnings, 'total_qty')),
+            'total_advance'   => $advances->sum(),
+        ];
+
+        // Month list (last 12 months)
+        $months = collect();
+        for ($i = 0; $i < 12; $i++) {
+            $m = now()->subMonths($i);
+            $months->push(['value' => $m->format('Y-m'), 'label' => $m->format('M Y')]);
+        }
+
+        // Quick presets
+        $presets = [
+            ['label' => 'আজ',         'period' => 'daily',   'date'  => today()->toDateString()],
+            ['label' => 'গতকাল',      'period' => 'daily',   'date'  => today()->subDay()->toDateString()],
+            ['label' => 'এই সপ্তাহ', 'period' => 'weekly',  'week'  => now()->format('Y-\WW')],
+            ['label' => 'গত সপ্তাহ', 'period' => 'weekly',  'week'  => now()->subWeek()->format('Y-\WW')],
+            ['label' => 'এই মাস',     'period' => 'monthly', 'month' => now()->format('Y-m')],
+            ['label' => 'গত মাস',     'period' => 'monthly', 'month' => now()->subMonth()->format('Y-m')],
+        ];
+
+        return view('production.admin-overview', compact(
+            'employeeStats', 'summary', 'period', 'label',
+            'months', 'presets',
+            'month', 'fromDate', 'toDate'
+        ));
+    }
+
     public function workerDashboard(Request $request)
     {
         $bizId  = auth()->user()->business_id;
@@ -260,18 +384,34 @@ class ProductionController extends Controller
             ->orderByDesc('entry_date')
             ->get();
 
-        $productReport = ProductionEntry::where('employee_id', $employee->id)
-            ->whereBetween('entry_date', [$from, $to])
-            ->join('production_rates', 'production_entries.production_rate_id', '=', 'production_rates.id')
-            ->selectRaw('production_rates.product_name, SUM(production_entries.quantity) as total_qty, SUM(production_entries.amount) as total_amount')
-            ->groupBy('production_rates.product_name')
+        $productReport = ProductionEntry::where('production_entries.employee_id', $employee->id)
+            ->whereBetween('production_entries.entry_date', [$from, $to])
+            ->leftJoin('production_rates', 'production_entries.production_rate_id', '=', 'production_rates.id')
+            ->selectRaw('COALESCE(production_rates.product_name, production_entries.notes, "Manual Entry") as product_name, SUM(production_entries.quantity) as total_qty, SUM(production_entries.amount) as total_amount')
+            ->groupBy('product_name')
             ->orderByDesc('total_amount')
             ->get();
+
+        $myTasks = ProductionTask::where('business_id', $bizId)
+            ->where('employee_id', $employee->id)
+            ->whereNotIn('status', ['cancelled'])
+            ->withCount('submissions')
+            ->orderByDesc('assigned_at')
+            ->get();
+
+        $taskStats = [
+            'total'       => $myTasks->count(),
+            'completed'   => $myTasks->where('status', 'completed')->count(),
+            'partial'     => $myTasks->where('status', 'partial')->count(),
+            'in_progress' => $myTasks->where('status', 'in_progress')->count(),
+            'assigned'    => $myTasks->where('status', 'assigned')->count(),
+        ];
 
         return view('production.worker-dashboard', compact(
             'employee', 'allEmployees', 'entries', 'payments', 'rates',
             'totalEarning', 'totalQty', 'totalAdvance', 'netPayable',
-            'from', 'to', 'dailyReport', 'productReport'
+            'from', 'to', 'dailyReport', 'productReport',
+            'myTasks', 'taskStats'
         ));
     }
 }
