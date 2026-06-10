@@ -36,6 +36,7 @@
                     <th class="text-left px-4 py-3 text-xs font-medium text-gray-500 dark:text-slate-400">Phone</th>
                     <th class="text-right px-4 py-3 text-xs font-medium text-gray-500 dark:text-slate-400">Total Purchase</th>
                     <th class="text-right px-4 py-3 text-xs font-medium text-gray-500 dark:text-slate-400 text-red-500">Due Amount</th>
+                    <th class="text-center px-4 py-3 text-xs font-medium text-gray-500 dark:text-slate-400">Action</th>
                 </tr>
             </thead>
             <tbody class="divide-y divide-gray-50 dark:divide-slate-700">
@@ -46,9 +47,16 @@
                     <td class="px-4 py-3 text-sm text-gray-500 dark:text-slate-400">{{ $c->phone ?? '—' }}</td>
                     <td class="px-4 py-3 text-right text-sm text-gray-600 dark:text-slate-300">৳{{ number_format($c->total_purchase) }}</td>
                     <td class="px-4 py-3 text-right font-bold text-red-600 dark:text-red-400">৳{{ number_format($c->due_amount) }}</td>
+                    <td class="px-4 py-3 text-center">
+                        <button type="button"
+                                @click="$dispatch('open-collect-due', { id: {{ $c->id }}, name: @js($c->name), due: {{ $c->due_amount }} })"
+                                class="px-3 py-1.5 text-xs font-semibold text-white bg-emerald-600 hover:bg-emerald-700 rounded-lg transition-colors">
+                            Collect
+                        </button>
+                    </td>
                 </tr>
                 @empty
-                <tr><td colspan="5" class="px-4 py-12 text-center text-sm text-gray-400 dark:text-slate-500">No customers with due amounts 🎉</td></tr>
+                <tr><td colspan="6" class="px-4 py-12 text-center text-sm text-gray-400 dark:text-slate-500">No customers with due amounts 🎉</td></tr>
                 @endforelse
             </tbody>
         </table>
@@ -56,6 +64,44 @@
     @if($customers->hasPages())
     <div class="px-4 py-3 border-t border-gray-100 dark:border-slate-700">{{ $customers->links() }}</div>
     @endif
+</div>
+
+{{-- Collect Due Modal --}}
+<div x-data="{ open: false, c: { id: null, name: '', due: 0 } }"
+     @open-collect-due.window="c = $event.detail; open = true">
+    <div x-show="open" x-cloak class="fixed inset-0 bg-black/50 z-50 flex items-end sm:items-center justify-center p-4">
+        <div @click.outside="open = false" class="bg-white dark:bg-slate-800 rounded-2xl w-full max-w-sm">
+            <div class="flex items-center justify-between px-5 py-4 border-b border-gray-100 dark:border-slate-700">
+                <h3 class="text-sm font-semibold text-gray-900 dark:text-white">Collect from <span x-text="c.name"></span></h3>
+                <button @click="open = false" class="p-1 text-gray-400 hover:text-gray-600 text-xl leading-none">×</button>
+            </div>
+            <form method="POST" :action="`{{ url('people/customers') }}/${c.id}/collect-due`" class="p-5 space-y-4">
+                @csrf
+                <p class="text-xs text-gray-500 dark:text-slate-400">Outstanding due: <span class="font-semibold text-red-500">৳<span x-text="Number(c.due).toLocaleString()"></span></span></p>
+                <div>
+                    <label class="block text-xs font-semibold text-gray-500 uppercase tracking-wider mb-1.5">Amount</label>
+                    <input type="number" step="0.01" min="0.01" :max="c.due" name="amount" :value="c.due" required
+                           class="w-full px-4 py-2.5 bg-gray-50 dark:bg-slate-700 border border-gray-200 dark:border-slate-600 rounded-xl text-gray-900 dark:text-white text-sm focus:outline-none focus:ring-2 focus:ring-emerald-500">
+                </div>
+                <div>
+                    <label class="block text-xs font-semibold text-gray-500 uppercase tracking-wider mb-1.5">Method</label>
+                    <select name="payment_method"
+                            class="w-full px-4 py-2.5 bg-gray-50 dark:bg-slate-700 border border-gray-200 dark:border-slate-600 rounded-xl text-gray-900 dark:text-white text-sm focus:outline-none focus:ring-2 focus:ring-emerald-500">
+                        <option value="cash">Cash</option>
+                        <option value="bkash">bKash</option>
+                        <option value="nagad">Nagad</option>
+                        <option value="rocket">Rocket</option>
+                        <option value="bank">Bank</option>
+                        <option value="card">Card</option>
+                    </select>
+                </div>
+                <p class="text-xs text-gray-400 dark:text-slate-500">Applied oldest-first to this customer's unpaid orders.</p>
+                <button type="submit" class="w-full bg-emerald-600 hover:bg-emerald-700 text-white font-semibold py-2.5 rounded-xl text-sm transition-colors">
+                    Collect payment
+                </button>
+            </form>
+        </div>
+    </div>
 </div>
 
 @endsection

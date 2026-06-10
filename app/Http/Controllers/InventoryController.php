@@ -100,25 +100,29 @@ class InventoryController extends Controller
                 ->where('business_id', $bizId)
                 ->firstOrFail();
 
-            DB::transaction(function () use ($po, $bizId) {
+            // Idempotency guard — receiving an already-received PO would double the
+            // stock. Only a PO that has not yet been received can add stock.
+            if ($po->status === 'received') {
+                return back()->with('error', 'This purchase order is already received.');
+            }
+
+            $stock = app(\App\Services\StockService::class);
+
+            DB::transaction(function () use ($po, $bizId, $stock) {
                 $po->update(['status' => 'received']);
 
-                // Increase stock for each item
+                // Increase stock for each item (StockService logs each movement
+                // with correct before/after values).
                 foreach ($po->items as $item) {
-                    Product::where('id', $item->product_id)
-                        ->where('business_id', $bizId)
-                        ->increment('stock', $item->quantity);
+                    $stock->adjust(
+                        businessId: $bizId,
+                        productId:  $item->product_id,
+                        type:       'increase',
+                        quantity:   $item->quantity,
+                        reason:     'Purchase Order: ' . $po->po_number,
+                    );
 
-                    StockAdjustment::create([
-                        'business_id'     => $bizId,
-                        'product_id'      => $item->product_id,
-                        'created_by'      => auth()->id(),
-                        'type'            => 'increase',
-                        'quantity'        => $item->quantity,
-                        'quantity_before' => Product::where('id', $item->product_id)->value('stock') - $item->quantity,
-                        'quantity_after'  => Product::where('id', $item->product_id)->value('stock'),
-                        'reason'          => 'Purchase Order: ' . $po->po_number,
-                    ]);
+                    $item->update(['received_quantity' => $item->quantity]);
                 }
             });
 
@@ -164,6 +168,53 @@ class InventoryController extends Controller
         });
 
         return back()->with('success', 'Purchase order created!');
+    }
+
+    // =============================================
+    // VENDOR PAYMENT (against a purchase order)
+    // =============================================
+    public function payPurchaseOrder(Request $request, PurchaseOrder $po)
+    {
+        abort_if($po->business_id !== auth()->user()->business_id, 403);
+
+        $outstanding = max(0, (float) $po->total - (float) $po->paid_amount);
+
+        $request->validate([
+            'amount'         => "required|numeric|min:0.01|max:{$outstanding}",
+            'payment_method' => 'required|string|max:30',
+            'payment_date'   => 'required|date',
+        ]);
+
+        if ($outstanding <= 0) {
+            return back()->with('error', 'This purchase order is already fully paid.');
+        }
+
+        $bizId  = auth()->user()->business_id;
+        $amount = (float) $request->amount;
+
+        DB::transaction(function () use ($po, $bizId, $amount, $request) {
+            $newPaid   = (float) $po->paid_amount + $amount;
+            $payStatus = $newPaid >= (float) $po->total ? 'paid' : 'partial';
+
+            $po->update([
+                'paid_amount'    => $newPaid,
+                'payment_status' => $payStatus,
+            ]);
+
+            // Record the cash going out so it shows in expenses / account balance.
+            \App\Models\Transaction::create([
+                'business_id'      => $bizId,
+                'created_by'       => auth()->id(),
+                'type'             => 'expense',
+                'title'            => 'Purchase payment — ' . $po->po_number . ($po->vendor ? ' (' . $po->vendor->name . ')' : ''),
+                'amount'           => $amount,
+                'payment_method'   => $request->payment_method,
+                'reference'        => 'PO-PAY-' . $po->id,
+                'transaction_date' => $request->payment_date,
+            ]);
+        });
+
+        return back()->with('success', '৳' . number_format($amount) . ' paid against ' . $po->po_number . '.');
     }
 
     // =============================================
@@ -289,38 +340,10 @@ class InventoryController extends Controller
 
     public function storeTransfer(Request $request)
     {
-        $request->validate([
-            'product_id' => 'required|integer',
-            'quantity'   => 'required|integer|min:1',
-        ]);
-
-        $bizId   = auth()->user()->business_id;
-        $product = Product::where('id', $request->product_id)
-            ->where('business_id', $bizId)
-            ->firstOrFail();
-
-        if ($product->stock < $request->quantity) {
-            return back()->with('error', 'Insufficient stock for transfer.');
-        }
-
-        $before = $product->stock;
-        $after  = $before - $request->quantity;
-
-        $product->update(['stock' => $after]);
-
-        StockAdjustment::create([
-            'business_id'     => $bizId,
-            'product_id'      => $product->id,
-            'warehouse_id'    => $request->from_warehouse_id ?: null,
-            'created_by'      => auth()->id(),
-            'type'            => 'transfer',
-            'quantity'        => $request->quantity,
-            'quantity_before' => $before,
-            'quantity_after'  => $after,
-            'reason'          => $request->reason ?? 'Warehouse transfer',
-        ]);
-
-        return back()->with('success', 'Transfer completed!');
+        // Single-warehouse setup: a "transfer" used to decrement total stock with no
+        // destination to receive it, silently destroying inventory. Until per-warehouse
+        // stock exists, transfers are disabled rather than allowed to lose stock.
+        return back()->with('error', 'Stock transfers are disabled in a single-warehouse setup. Use Stock Adjustments instead.');
     }
 
     // =============================================

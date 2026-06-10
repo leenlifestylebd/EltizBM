@@ -62,6 +62,65 @@ class PeopleController extends Controller
         return back()->with('success', 'Customer deleted.');
     }
 
+    // ---- Collect a customer's outstanding due ----
+    public function collectDue(Request $request, Customer $customer)
+    {
+        abort_if($customer->business_id !== auth()->user()->business_id, 403);
+
+        $customerDue = (float) $customer->due_amount;
+
+        $request->validate([
+            'amount'         => "required|numeric|min:0.01|max:{$customerDue}",
+            'payment_method' => 'required|string|max:30',
+        ]);
+
+        if ($customerDue <= 0) {
+            return back()->with('error', 'This customer has no outstanding due.');
+        }
+
+        $remaining = (float) $request->amount;
+        $orderService = app(\App\Services\OrderService::class);
+
+        \Illuminate\Support\Facades\DB::transaction(function () use ($customer, &$remaining, $orderService, $request) {
+            // Apply oldest-first to the customer's unpaid orders so order dues,
+            // customer due and income all stay in sync (collectPayment handles each).
+            $orders = $customer->orders()
+                ->where('due_amount', '>', 0)
+                ->orderBy('created_at')
+                ->get();
+
+            foreach ($orders as $order) {
+                if ($remaining <= 0) break;
+                $pay = min($remaining, (float) $order->due_amount);
+                $orderService->collectPayment($order, $pay);
+                $remaining -= $pay;
+            }
+
+            // Any leftover (customer due not tied to a specific order, e.g. legacy
+            // walk-in dues) is cleared directly with a matching income entry.
+            if ($remaining > 0) {
+                $apply = min($remaining, (float) $customer->fresh()->due_amount);
+                if ($apply > 0) {
+                    Customer::where('id', $customer->id)->decrement('due_amount', $apply);
+                    \App\Models\Transaction::create([
+                        'business_id'      => $customer->business_id,
+                        'created_by'       => auth()->id(),
+                        'type'             => 'income',
+                        'title'            => 'Due collected from ' . $customer->name,
+                        'amount'           => $apply,
+                        'payment_method'   => $request->payment_method,
+                        'reference'        => 'CUSTOMER-PAY-' . $customer->id,
+                        'transaction_date' => today(),
+                    ]);
+                    $remaining -= $apply;
+                }
+            }
+        });
+
+        $collected = (float) $request->amount - $remaining;
+        return back()->with('success', '৳' . number_format($collected) . ' collected from ' . $customer->name . '.');
+    }
+
     // ---- Vendors ----
     public function vendors(Request $request)
     {

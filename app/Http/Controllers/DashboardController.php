@@ -25,7 +25,16 @@ class DashboardController extends Controller
                                          ->whereDate('transaction_date', $today)->sum('amount'),
             'products'     => Product::where('business_id', $bizId)->count(),
             'shipments'    => Shipment::where('business_id', $bizId)->whereDate('created_at', $today)->count(),
+            'low_stock'    => Product::where('business_id', $bizId)->where('track_stock', true)
+                                     ->whereRaw('stock <= low_stock_alert')->count(),
         ];
+
+        $lowStockProducts = Product::where('business_id', $bizId)
+            ->where('track_stock', true)
+            ->whereRaw('stock <= low_stock_alert')
+            ->orderBy('stock')
+            ->limit(6)
+            ->get(['id', 'name', 'sku', 'stock', 'low_stock_alert']);
 
         $recentOrders = Order::where('business_id', $bizId)
             ->orderByDesc('created_at')
@@ -38,7 +47,7 @@ class DashboardController extends Controller
             ->limit(10)
             ->get();
 
-        return view('dashboard.index', compact('stats', 'recentOrders', 'todayShipments'));
+        return view('dashboard.index', compact('stats', 'recentOrders', 'todayShipments', 'lowStockProducts'));
     }
 
     public function apiStats(Request $request)

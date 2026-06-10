@@ -30,5 +30,33 @@ class User extends Authenticatable
     public function isOwner():   bool { return $this->role === 'owner'; }
     public function isAdmin():   bool { return in_array($this->role, ['owner','admin']); }
     public function isManager(): bool { return in_array($this->role, ['owner','admin','manager']); }
-    public function hasPermission(string $p): bool { if ($this->isOwner()) return true; return in_array($p, $this->permissions ?? []); }
+    /**
+     * Module-level access check.
+     * - owner/admin always have full access
+     * - a user with no explicit permissions set keeps full access (backward compatible
+     *   with every account that existed before per-user permissions were introduced)
+     * - once permissions ARE set, only the listed modules are allowed
+     */
+    public function hasPermission(string $p): bool
+    {
+        if ($this->isAdmin()) return true;
+        $perms = $this->permissions ?? [];
+        if (empty($perms)) return true;
+        return in_array($p, $perms);
+    }
+
+    /** Module keys that can be granted to a manager/staff user. */
+    public const MODULES = [
+        'orders'       => 'Orders',
+        'pos'          => 'POS',
+        'products'     => 'Products & Catalog',
+        'inventory'    => 'Inventory & Purchases',
+        'accounts'     => 'Accounts & Money',
+        'reports'      => 'Reports',
+        'people'       => 'Customers & Vendors',
+        'employees'    => 'Employees & Production',
+        'courier'      => 'Courier & Shipping',
+        'settings'     => 'Settings',
+        'integrations' => 'Integrations',
+    ];
 }

@@ -108,6 +108,24 @@
                                class="w-full px-3 py-2.5 text-sm border border-gray-200 dark:border-slate-600 rounded-lg bg-white dark:bg-slate-700 text-gray-900 dark:text-white focus:outline-none focus:ring-2 focus:ring-primary-500">
                     </div>
                 </div>
+
+                {{-- Module access (manager/staff). Leave all unchecked = full access. --}}
+                <div>
+                    <label class="block text-xs font-medium text-gray-700 dark:text-slate-300 mb-1.5">
+                        Module Access
+                        <span class="text-gray-400 font-normal">— leave all unchecked for full access</span>
+                    </label>
+                    <div class="grid grid-cols-2 sm:grid-cols-3 gap-2">
+                        @foreach(\App\Models\User::MODULES as $key => $label)
+                        <label class="flex items-center gap-2 px-2.5 py-1.5 border border-gray-200 dark:border-slate-600 rounded-lg cursor-pointer hover:bg-gray-50 dark:hover:bg-slate-700">
+                            <input type="checkbox" name="permissions[]" value="{{ $key }}"
+                                   class="rounded border-gray-300 text-primary-600 focus:ring-primary-500">
+                            <span class="text-xs text-gray-700 dark:text-slate-300">{{ $label }}</span>
+                        </label>
+                        @endforeach
+                    </div>
+                </div>
+
                 <button type="submit" class="w-full bg-green-600 hover:bg-green-700 text-white font-medium py-2.5 text-sm rounded-lg transition-colors">
                     Add Team Member
                 </button>
@@ -159,6 +177,21 @@
                                 <option value="{{ $r }}" {{ $user->role === $r ? 'selected':'' }}>{{ ucfirst($r) }}</option>
                             @endforeach
                         </select>
+                        @endif
+                        @if($user->role !== 'owner')
+                        <div class="w-full">
+                            <p class="text-xs text-gray-400 mb-1">Module access — none checked = full access (ignored for Admin):</p>
+                            <div class="grid grid-cols-2 sm:grid-cols-4 gap-1.5">
+                                @php $userPerms = $user->permissions ?? []; @endphp
+                                @foreach(\App\Models\User::MODULES as $key => $label)
+                                <label class="flex items-center gap-1.5 px-2 py-1 border border-gray-200 dark:border-slate-600 rounded cursor-pointer hover:bg-gray-50 dark:hover:bg-slate-700">
+                                    <input type="checkbox" name="permissions[]" value="{{ $key }}" {{ in_array($key, $userPerms) ? 'checked' : '' }}
+                                           class="rounded border-gray-300 text-primary-600 focus:ring-primary-500">
+                                    <span class="text-xs text-gray-700 dark:text-slate-300">{{ $label }}</span>
+                                </label>
+                                @endforeach
+                            </div>
+                        </div>
                         @endif
                         <button type="submit" class="px-2.5 py-1.5 bg-green-600 text-white text-xs rounded-lg hover:bg-green-700">Save</button>
                         <button type="button" @click="edit=false" class="px-2.5 py-1.5 bg-gray-200 dark:bg-slate-600 text-gray-700 text-xs rounded-lg">Cancel</button>

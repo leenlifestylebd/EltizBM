@@ -83,7 +83,7 @@ Route::middleware(['auth', 'business'])->group(function () {
     Route::get('/', [DashboardController::class, 'index'])->name('dashboard');
 
     // ---- ORDERS ----
-    Route::prefix('orders')->name('orders.')->group(function () {
+    Route::prefix('orders')->name('orders.')->middleware('permission:orders')->group(function () {
         Route::get('/',            [OrderController::class, 'index'])->name('index');
         Route::get('/create',      [OrderController::class, 'create'])->name('create');
         Route::post('/',           [OrderController::class, 'store'])->name('store');
@@ -100,7 +100,7 @@ Route::middleware(['auth', 'business'])->group(function () {
     });
 
     // ---- WEB ORDERS (WooCommerce) ----
-    Route::prefix('web-orders')->name('web-orders.')->group(function () {
+    Route::prefix('web-orders')->name('web-orders.')->middleware('permission:orders')->group(function () {
         Route::get('/',                [WebOrderController::class, 'index'])->name('index');
         Route::get('/{order}',         [WebOrderController::class, 'show'])->name('show');
         Route::post('/sync',           [WebOrderController::class, 'sync'])->name('sync');
@@ -108,7 +108,7 @@ Route::middleware(['auth', 'business'])->group(function () {
     });
 
     // ---- PRODUCTS ----
-    Route::prefix('products')->name('products.')->group(function () {
+    Route::prefix('products')->name('products.')->middleware('permission:products')->group(function () {
         Route::get('/',            [ProductController::class, 'index'])->name('index');
         Route::get('/create',      [ProductController::class, 'create'])->name('create');
         Route::post('/',           [ProductController::class, 'store'])->name('store');
@@ -136,7 +136,7 @@ Route::middleware(['auth', 'business'])->group(function () {
     Route::resource('attributes', AttributeController::class);
 
     // ---- COURIER & RETURNS ----
-    Route::prefix('courier')->name('courier.')->group(function () {
+    Route::prefix('courier')->name('courier.')->middleware('permission:courier')->group(function () {
         Route::get('/',        [CourierController::class, 'index'])->name('index');
         Route::get('/create',  [CourierController::class, 'create'])->name('create');
         Route::post('/',       [CourierController::class, 'store'])->name('store');
@@ -155,10 +155,11 @@ Route::middleware(['auth', 'business'])->group(function () {
     });
 
     // ---- INVENTORY ----
-    Route::prefix('inventory')->name('inventory.')->group(function () {
+    Route::prefix('inventory')->name('inventory.')->middleware('permission:inventory')->group(function () {
         Route::get('/overview',         [InventoryController::class, 'overview'])->name('overview');
         Route::get('/purchase-orders',  [InventoryController::class, 'purchaseOrders'])->name('purchase-orders');
         Route::post('/purchase-orders', [InventoryController::class, 'storePurchaseOrder'])->name('purchase-orders.store');
+        Route::post('/purchase-orders/{po}/pay', [InventoryController::class, 'payPurchaseOrder'])->name('purchase-orders.pay');
         Route::get('/stock-levels',     [InventoryController::class, 'stockLevels'])->name('stock-levels');
         Route::get('/export-stock',     [InventoryController::class, 'exportStock'])->name('export-stock');
         Route::get('/adjustments',      [InventoryController::class, 'adjustments'])->name('adjustments');
@@ -170,7 +171,7 @@ Route::middleware(['auth', 'business'])->group(function () {
     });
 
     // ---- ACCOUNTS ----
-    Route::prefix('accounts')->name('accounts.')->group(function () {
+    Route::prefix('accounts')->name('accounts.')->middleware('permission:accounts')->group(function () {
         Route::get('/overview',          [AccountController::class, 'overview'])->name('overview');
         Route::get('/income',            [AccountController::class, 'income'])->name('income');
         Route::post('/income',           [AccountController::class, 'storeIncome'])->name('income.store');
@@ -184,7 +185,7 @@ Route::middleware(['auth', 'business'])->group(function () {
     });
 
     // ---- REPORTS ----
-    Route::prefix('reports')->name('reports.')->group(function () {
+    Route::prefix('reports')->name('reports.')->middleware('permission:reports')->group(function () {
         Route::get('/all',               [ReportController::class, 'all'])->name('all');
         Route::get('/profit-loss',       [ReportController::class, 'profitLoss'])->name('profit-loss');
         Route::get('/expense-category',  [ReportController::class, 'expenseCategory'])->name('expense-category');
@@ -206,11 +207,12 @@ Route::middleware(['auth', 'business'])->group(function () {
     });
 
     // ---- PEOPLE ----
-    Route::prefix('people')->name('people.')->group(function () {
+    Route::prefix('people')->name('people.')->middleware('permission:people')->group(function () {
         Route::get('/customers',               [PeopleController::class, 'customers'])->name('customers');
         Route::post('/customers',              [PeopleController::class, 'storeCustomer'])->name('customers.store');
         Route::get('/customers/{customer}',    [PeopleController::class, 'showCustomer'])->name('customers.show');
         Route::put('/customers/{customer}',    [PeopleController::class, 'updateCustomer'])->name('customers.update');
+        Route::post('/customers/{customer}/collect-due', [PeopleController::class, 'collectDue'])->name('customers.collect-due');
         Route::delete('/customers/{customer}', [PeopleController::class, 'destroyCustomer'])->name('customers.destroy');
 
         Route::get('/vendors',             [PeopleController::class, 'vendors'])->name('vendors');
@@ -221,7 +223,7 @@ Route::middleware(['auth', 'business'])->group(function () {
     });
 
     // ---- EMPLOYEES ----
-    Route::prefix('employees')->name('employees.')->group(function () {
+    Route::prefix('employees')->name('employees.')->middleware('permission:employees')->group(function () {
         Route::get('/',                       [EmployeeController::class, 'index'])->name('index');
         Route::get('/create',                 [EmployeeController::class, 'create'])->name('create');
         Route::post('/',                      [EmployeeController::class, 'store'])->name('store');
@@ -269,7 +271,7 @@ Route::middleware(['auth', 'business'])->group(function () {
     });
 
     // ---- MATERIALS ----
-    Route::prefix('materials')->name('materials.')->group(function () {
+    Route::prefix('materials')->name('materials.')->middleware('permission:inventory')->group(function () {
         Route::get('/',               [MaterialController::class, 'index'])->name('index');
         Route::post('/',              [MaterialController::class, 'store'])->name('store');
         Route::delete('/{material}',  [MaterialController::class, 'destroy'])->name('destroy');
@@ -280,7 +282,7 @@ Route::middleware(['auth', 'business'])->group(function () {
     Route::resource('tasks', TaskController::class);
 
     // ---- POS ----
-    Route::prefix('pos')->name('pos.')->group(function () {
+    Route::prefix('pos')->name('pos.')->middleware('permission:pos')->group(function () {
         Route::get('/',                [PosController::class, 'index'])->name('index');
         Route::post('/checkout',       [PosController::class, 'checkout'])->name('checkout');
         Route::get('/receipt/{order}', [PosController::class, 'receipt'])->name('receipt');
@@ -334,7 +336,7 @@ Route::middleware(['auth', 'business'])->group(function () {
     Route::post('/payment/nagad/{order}',      [\App\Http\Controllers\PaymentController::class, 'nagadCreate'])->name('payment.nagad.create');
     Route::get('/payment/nagad/{order}/callback', [\App\Http\Controllers\PaymentController::class, 'nagadCallback'])->name('payment.nagad.callback');
 
-    Route::prefix('integrations')->name('integrations.')->group(function () {
+    Route::prefix('integrations')->name('integrations.')->middleware('permission:integrations')->group(function () {
         Route::get('/',                   [IntegrationController::class, 'index'])->name('index');
         Route::get('/woocommerce',        [WooCommerceController::class, 'settings'])->name('woocommerce');
         Route::get('/payment-gateways',   [IntegrationController::class, 'paymentGateways'])->name('payment-gateways');
@@ -365,7 +367,7 @@ Route::middleware(['auth', 'business'])->group(function () {
     });
 
     // ---- STEADFAST ----
-    Route::prefix('steadfast')->name('steadfast.')->group(function () {
+    Route::prefix('steadfast')->name('steadfast.')->middleware('permission:courier')->group(function () {
         Route::get('/',                        [SteadfastController::class, 'index'])->name('index');
         Route::post('/send/{order}',           [SteadfastController::class, 'sendOrder'])->name('send-order');
         Route::post('/bulk-send',              [SteadfastController::class, 'bulkSend'])->name('bulk-send');

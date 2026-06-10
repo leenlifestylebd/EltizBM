@@ -53,15 +53,20 @@ class OrderController extends Controller
 
         $orders = $query->paginate(20);
 
-        // Status counts for tabs
+        // Status counts for tabs — one grouped query instead of seven COUNTs.
+        $counts = Order::where('business_id', $bizId)
+            ->selectRaw('status, COUNT(*) as c')
+            ->groupBy('status')
+            ->pluck('c', 'status');
+
         $statusCounts = [
-            'all'        => Order::where('business_id', $bizId)->count(),
-            'pending'    => Order::where('business_id', $bizId)->where('status', 'pending')->count(),
-            'confirmed'  => Order::where('business_id', $bizId)->where('status', 'confirmed')->count(),
-            'processing' => Order::where('business_id', $bizId)->where('status', 'processing')->count(),
-            'shipped'    => Order::where('business_id', $bizId)->where('status', 'shipped')->count(),
-            'delivered'  => Order::where('business_id', $bizId)->where('status', 'delivered')->count(),
-            'cancelled'  => Order::where('business_id', $bizId)->where('status', 'cancelled')->count(),
+            'all'        => (int) $counts->sum(),
+            'pending'    => (int) ($counts['pending']    ?? 0),
+            'confirmed'  => (int) ($counts['confirmed']  ?? 0),
+            'processing' => (int) ($counts['processing'] ?? 0),
+            'shipped'    => (int) ($counts['shipped']    ?? 0),
+            'delivered'  => (int) ($counts['delivered']  ?? 0),
+            'cancelled'  => (int) ($counts['cancelled']  ?? 0),
         ];
 
         return view('orders.index', compact('orders', 'statusCounts'));
@@ -140,14 +145,56 @@ class OrderController extends Controller
             'payment_method'=> 'required|string',
         ]);
 
-        DB::transaction(function () use ($request, $order) {
-            $paid = floatval($request->paid_amount ?? 0);
-            $total = floatval($request->total ?? $order->total);
-            $due  = max(0, $total - $paid);
+        $bizId = $order->business_id;
+        $stock = app(\App\Services\StockService::class);
+
+        DB::transaction(function () use ($request, $order, $bizId, $stock) {
+            // Discount & shipping fall back to the order's existing values.
+            $discount = floatval($request->discount ?? $order->discount);
+            $shipping = floatval($request->shipping_charge ?? $order->shipping_charge);
+
+            // Re-create items if provided, and derive subtotal from them.
+            if ($request->has('items')) {
+                // Restore stock for the OLD item set (scoped + logged).
+                $stock->restoreForOrder($order);
+
+                $order->items()->delete();
+
+                $subtotal = 0;
+                foreach ($request->items as $item) {
+                    // Only link catalog products owned by this business.
+                    $product = !empty($item['product_id'])
+                        ? Product::where('id', $item['product_id'])->where('business_id', $bizId)->first()
+                        : null;
+
+                    OrderItem::create([
+                        'order_id'     => $order->id,
+                        'product_id'   => $product?->id,
+                        'product_name' => $item['product_name'],
+                        'price'        => $item['price'],
+                        'cost_price'   => $item['cost_price'] ?? 0,
+                        'quantity'     => $item['quantity'],
+                        'discount'     => $item['discount'] ?? 0,
+                        'total'        => $item['total'],
+                    ]);
+                    $subtotal += floatval($item['total']);
+                }
+
+                $order->update(['subtotal' => $subtotal]);
+                // Deduct stock for the NEW item set.
+                $order->load('items');
+                $stock->deductForOrder($order);
+            }
+
+            // Total is always derived server-side, never trusted from the client.
+            // $order->subtotal reflects the new items (if provided) or the existing value.
+            $total = max(0, $order->subtotal - $discount + $shipping);
+            $paid     = floatval($request->paid_amount ?? $order->paid_amount);
+            $due      = max(0, $total - $paid);
 
             $payStatus = 'unpaid';
-            if ($paid >= $total) $payStatus = 'paid';
-            elseif ($paid > 0)   $payStatus = 'partial';
+            if ($paid >= $total && $total > 0) $payStatus = 'paid';
+            elseif ($paid > 0)                 $payStatus = 'partial';
 
             $order->update([
                 'status'           => $request->status,
@@ -158,44 +205,13 @@ class OrderController extends Controller
                 'shipping_address' => $request->shipping_address,
                 'shipping_area'    => $request->shipping_area,
                 'shipping_district'=> $request->shipping_district,
+                'discount'         => $discount,
+                'shipping_charge'  => $shipping,
+                'total'            => $total,
                 'paid_amount'      => $paid,
                 'due_amount'       => $due,
                 'notes'            => $request->notes,
             ]);
-
-            // Re-create items if provided
-            if ($request->has('items')) {
-                // Restore old stock
-                foreach ($order->items as $item) {
-                    Product::where('id', $item->product_id)
-                        ->where('track_stock', true)
-                        ->increment('stock', $item->quantity);
-                }
-
-                $order->items()->delete();
-
-                $subtotal = 0;
-                foreach ($request->items as $item) {
-                    OrderItem::create([
-                        'order_id'     => $order->id,
-                        'product_id'   => $item['product_id'],
-                        'product_name' => $item['product_name'],
-                        'price'        => $item['price'],
-                        'cost_price'   => $item['cost_price'] ?? 0,
-                        'quantity'     => $item['quantity'],
-                        'discount'     => $item['discount'] ?? 0,
-                        'total'        => $item['total'],
-                    ]);
-                    $subtotal += $item['total'];
-
-                    // Deduct new stock
-                    Product::where('id', $item['product_id'])
-                        ->where('track_stock', true)
-                        ->decrement('stock', $item['quantity']);
-                }
-
-                $order->update(['subtotal' => $subtotal]);
-            }
         });
 
         return redirect()->route('orders.show', $order)
@@ -304,14 +320,28 @@ class OrderController extends Controller
     {
         $this->authorize($order);
 
-        // Restore stock
-        foreach ($order->items as $item) {
-            Product::where('id', $item->product_id)
-                ->where('track_stock', true)
-                ->increment('stock', $item->quantity);
-        }
+        $this->logActivity('deleted', $order, [
+            'order_number' => $order->order_number,
+            'total'        => $order->total,
+            'status'       => $order->status,
+        ]);
 
-        $order->delete();
+        DB::transaction(function () use ($order) {
+            // Restore stock (scoped + logged) only for orders that still hold stock —
+            // cancelled/returned orders already had their stock restored.
+            if (!in_array($order->status, ['cancelled', 'returned', 'refunded'])) {
+                app(\App\Services\StockService::class)->restoreForOrder($order);
+            }
+
+            // Remove this order's money from the books: drop its linked income/expense
+            // transactions and roll back any due it was holding against the customer.
+            if ($order->customer_id && $order->due_amount > 0) {
+                Customer::where('id', $order->customer_id)->decrement('due_amount', $order->due_amount);
+            }
+            Transaction::where('order_id', $order->id)->delete();
+
+            $order->delete();
+        });
 
         return redirect()->route('orders.index')
             ->with('success', 'Order deleted.');
