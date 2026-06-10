@@ -93,6 +93,15 @@ class ProductionController extends Controller
 
         $employee = Employee::findOrFail($request->employee_id);
 
+        // A worker (employee role) may only file entries against their own linked
+        // employee record — never against a co-worker.
+        if (auth()->user()->role === 'employee') {
+            $self = Employee::where('business_id', auth()->user()->business_id)
+                ->where('user_id', auth()->id())
+                ->first();
+            abort_if(!$self || $self->id !== $employee->id, 403, 'You can only submit your own production.');
+        }
+
         ProductionEntry::create([
             'business_id'        => $employee->business_id,
             'employee_id'        => $request->employee_id,
