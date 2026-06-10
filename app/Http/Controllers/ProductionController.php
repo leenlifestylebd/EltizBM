@@ -145,28 +145,18 @@ class ProductionController extends Controller
                 'attendances'       => fn($q) => $q->whereBetween('attendance_date', [$startDate, $endDate]),
             ])
             ->get()
-            ->map(function ($emp) {
-                if ($emp->type === 'production') {
-                    $totalEarning = $emp->productionEntries->sum('amount');
-                } else {
-                    $presentDays  = $emp->attendances->whereIn('status', ['present', 'half_day'])->count();
-                    $workingDays  = $emp->working_days ?: 26;
-                    $perDay       = $emp->salary / $workingDays;
-                    $totalEarning = $perDay * $presentDays;
-                }
+            ->map(function ($emp) use ($startDate, $endDate) {
+                // Professional running ledger: prior balance carries in, overpay/advance
+                // is shown (not hidden), and the closing balance is the true amount due.
+                $L = $emp->payrollLedger($startDate, $endDate);
 
-                $totalAdvance = $emp->payments->where('type', 'advance')->sum('amount');
-                $totalBonus   = $emp->payments->where('type', 'bonus')->sum('amount');
-                $totalDeduct  = $emp->payments->where('type', 'deduction')->sum('amount');
-                $totalPaid    = $emp->payments->where('type', 'salary')->sum('amount');
-                $netPayable   = $totalEarning + $totalBonus - $totalAdvance - $totalDeduct - $totalPaid;
-
-                $emp->total_earning = $totalEarning;
-                $emp->total_advance = $totalAdvance;
-                $emp->total_bonus   = $totalBonus;
-                $emp->total_deduct  = $totalDeduct;
-                $emp->total_paid    = $totalPaid;
-                $emp->net_payable   = max(0, $netPayable);
+                $emp->opening_balance = $L['opening'];   // + owed from before, − advance carried
+                $emp->total_earning   = $L['earned'];
+                $emp->total_advance   = $L['advance'];
+                $emp->total_bonus     = $L['bonus'];
+                $emp->total_deduct    = $L['deduction'];
+                $emp->total_paid      = $L['paid'];
+                $emp->net_payable     = $L['closing'];   // + due to worker, − worker over-advanced
 
                 return $emp;
             });
@@ -267,17 +257,21 @@ class ProductionController extends Controller
 
     public function storePayment(Request $request)
     {
+        $bizId = auth()->user()->business_id;
+
         $request->validate([
-            'employee_id'    => 'required|exists:employees,id',
+            'employee_id'    => ['required', \Illuminate\Validation\Rule::exists('employees', 'id')->where('business_id', $bizId)],
             'amount'         => 'required|numeric|min:1',
             'type'           => 'required|in:advance,salary,bonus,deduction',
             'payment_date'   => 'required|date',
             'payment_method' => 'required|string',
         ]);
 
+        $employee = Employee::where('business_id', $bizId)->findOrFail($request->employee_id);
+
         EmployeePayment::create([
-            'business_id'    => auth()->user()->business_id,
-            'employee_id'    => $request->employee_id,
+            'business_id'    => $bizId,
+            'employee_id'    => $employee->id,
             'created_by'     => auth()->id(),
             'payment_date'   => $request->payment_date,
             'amount'         => $request->amount,
@@ -286,15 +280,22 @@ class ProductionController extends Controller
             'notes'          => $request->notes,
         ]);
 
-        Transaction::create([
-            'business_id'      => auth()->user()->business_id,
-            'created_by'       => auth()->id(),
-            'type'             => 'expense',
-            'title'            => ucfirst($request->type) . ' payment to ' . Employee::find($request->employee_id)->name,
-            'amount'           => $request->amount,
-            'payment_method'   => $request->payment_method,
-            'transaction_date' => $request->payment_date,
-        ]);
+        // Only advance and salary move cash out of the business, so only those become
+        // expense transactions. Bonus (extra owed) and deduction (reduces what's owed)
+        // are payroll adjustments — they affect the worker's ledger, not the cash book,
+        // and become an expense only when actually paid out as salary.
+        if (in_array($request->type, ['advance', 'salary'])) {
+            Transaction::create([
+                'business_id'      => $bizId,
+                'created_by'       => auth()->id(),
+                'type'             => 'expense',
+                'title'            => ucfirst($request->type) . ' payment to ' . $employee->name,
+                'amount'           => $request->amount,
+                'payment_method'   => $request->payment_method,
+                'reference'        => 'EMPPAY-' . $employee->id,
+                'transaction_date' => $request->payment_date,
+            ]);
+        }
 
         return back()->with('success', 'Payment recorded!');
     }
@@ -531,7 +532,11 @@ class ProductionController extends Controller
         $totalEarning = $entries->sum('amount');
         $totalQty     = $entries->sum('quantity');
         $totalAdvance = $payments->whereIn('type', ['advance', 'deduction'])->sum('amount');
-        $netPayable   = $totalEarning - $totalAdvance;
+
+        // Professional balance: carry the prior balance in and don't hide overpay.
+        $ledger         = $employee->payrollLedger($from, $to);
+        $openingBalance = $ledger['opening'];   // + due carried in, − advance carried in
+        $netPayable     = $ledger['closing'];   // + still owed to worker, − worker over-advanced
 
         $dailyReport = ProductionEntry::where('employee_id', $employee->id)
             ->whereBetween('entry_date', [$from, $to])
@@ -565,7 +570,7 @@ class ProductionController extends Controller
 
         return view('production.worker-dashboard', compact(
             'employee', 'allEmployees', 'entries', 'payments', 'rates',
-            'totalEarning', 'totalQty', 'totalAdvance', 'netPayable',
+            'totalEarning', 'totalQty', 'totalAdvance', 'netPayable', 'openingBalance',
             'from', 'to', 'dailyReport', 'productReport',
             'myTasks', 'taskStats'
         ));

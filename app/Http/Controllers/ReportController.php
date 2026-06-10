@@ -238,7 +238,11 @@ class ReportController extends Controller
 
         $stats = [
             'total_returns' => $returns->total(),
-            'return_value'  => $returns->sum('cod_amount'),
+            // Sum across the whole range, not just the current page of the paginator.
+            'return_value'  => Shipment::where('business_id', $bizId)
+                ->where('status', 'returned')
+                ->whereBetween('created_at', [$from, $to])
+                ->sum('cod_amount'),
             'order_returns' => $returnedOrders->total(),
         ];
 

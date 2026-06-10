@@ -43,6 +43,7 @@
                 <tr class="bg-gray-50 dark:bg-slate-700/50 border-b border-gray-100 dark:border-slate-700">
                     <th class="text-left px-4 py-3 text-xs font-medium text-gray-500">Employee</th>
                     <th class="text-center px-4 py-3 text-xs font-medium text-gray-500">Type</th>
+                    <th class="text-right px-4 py-3 text-xs font-medium text-gray-500" title="Balance carried from before this month">Opening</th>
                     <th class="text-right px-4 py-3 text-xs font-medium text-gray-500">Earning</th>
                     <th class="text-right px-4 py-3 text-xs font-medium text-gray-500">Advance</th>
                     <th class="text-right px-4 py-3 text-xs font-medium text-gray-500">Bonus</th>
@@ -67,15 +68,34 @@
                             {{ ucfirst($emp->type) }}
                         </span>
                     </td>
+                    <td class="px-4 py-3 text-right text-xs">
+                        @if(abs($emp->opening_balance ?? 0) >= 1)
+                            <span class="{{ $emp->opening_balance > 0 ? 'text-green-600 dark:text-green-400' : 'text-amber-600 dark:text-amber-400' }}"
+                                  title="{{ $emp->opening_balance > 0 ? 'Due carried from before' : 'Advance carried from before' }}">
+                                {{ $emp->opening_balance < 0 ? '−' : '' }}৳{{ number_format(abs($emp->opening_balance)) }}
+                            </span>
+                        @else
+                            <span class="text-gray-300">—</span>
+                        @endif
+                    </td>
                     <td class="px-4 py-3 text-right font-medium text-gray-900 dark:text-white">৳{{ number_format($emp->total_earning) }}</td>
                     <td class="px-4 py-3 text-right text-red-600 dark:text-red-400">{{ $emp->total_advance > 0 ? '৳'.number_format($emp->total_advance) : '—' }}</td>
                     <td class="px-4 py-3 text-right text-green-600 dark:text-green-400">{{ $emp->total_bonus > 0 ? '৳'.number_format($emp->total_bonus) : '—' }}</td>
                     <td class="px-4 py-3 text-right text-red-600 dark:text-red-400">{{ $emp->total_deduct > 0 ? '৳'.number_format($emp->total_deduct) : '—' }}</td>
                     <td class="px-4 py-3 text-right text-gray-500">{{ $emp->total_paid > 0 ? '৳'.number_format($emp->total_paid) : '—' }}</td>
                     <td class="px-4 py-3 text-right">
-                        <span class="font-bold text-lg {{ $emp->net_payable > 0 ? 'text-green-600 dark:text-green-400' : 'text-gray-400' }}">
-                            ৳{{ number_format($emp->net_payable) }}
-                        </span>
+                        @if($emp->net_payable < -0.5)
+                            {{-- Worker has been paid/advanced more than earned — carries forward --}}
+                            <span class="font-bold text-lg text-amber-600 dark:text-amber-400" title="Overpaid / advance — carries to next month">
+                                −৳{{ number_format(abs($emp->net_payable)) }}
+                            </span>
+                            <span class="block text-xs text-amber-500">advance</span>
+                        @else
+                            <span class="font-bold text-lg {{ $emp->net_payable > 0.5 ? 'text-green-600 dark:text-green-400' : 'text-gray-400' }}">
+                                ৳{{ number_format($emp->net_payable) }}
+                            </span>
+                            @if($emp->net_payable > 0.5)<span class="block text-xs text-green-500">due</span>@endif
+                        @endif
                     </td>
                     <td class="px-4 py-3 text-center">
                         @if($locked)
@@ -114,7 +134,7 @@
                     </td>
                 </tr>
                 @empty
-                <tr><td colspan="10" class="px-4 py-12 text-center text-sm text-gray-400">No employees found</td></tr>
+                <tr><td colspan="11" class="px-4 py-12 text-center text-sm text-gray-400">No employees found</td></tr>
                 @endforelse
             </tbody>
         </table>

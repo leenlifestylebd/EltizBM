@@ -37,3 +37,11 @@ Schedule::command('erp:low-stock-alert')->dailyAt('08:00')
 
 // Clean up expired sessions/cache daily at midnight
 Schedule::command('cache:prune-stale-tags')->daily();
+
+// Process queued jobs without a persistent worker daemon. On shared hosting (Hostinger)
+// there is no supervisor to keep `queue:work` running, so the scheduler drains the
+// queue once a minute. Covers the POS->WooCommerce stock push (dispatched on 'low').
+Schedule::command('queue:work --queue=default,low --stop-when-empty --max-time=55 --tries=3')
+    ->everyMinute()
+    ->withoutOverlapping()
+    ->name('process-queue');

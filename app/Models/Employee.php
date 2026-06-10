@@ -37,6 +37,76 @@ class Employee extends Model
         return $this->attendance()->whereDate('attendance_date', today())->first();
     }
 
+    /**
+     * Professional payroll ledger for a period.
+     *
+     * Returns the opening balance carried in from before the period, this period's
+     * earnings and payments, and the closing balance carried out.
+     *
+     *   closing = opening + (earned + bonus) − (deduction + advance + salaryPaid)
+     *
+     * A POSITIVE closing balance = the business still owes the worker (due).
+     * A NEGATIVE closing balance = the worker was paid/advanced more than earned and
+     * that amount carries forward as their advance (overpay), instead of being hidden.
+     */
+    public function payrollLedger($start, $end): array
+    {
+        $start = \Carbon\Carbon::parse($start)->startOfDay();
+        $end   = \Carbon\Carbon::parse($end)->endOfDay();
+        $beforeStart = $start->copy()->subDay()->endOfDay();
+
+        $earnedUpTo = function ($cutoff) {
+            if ($this->type === 'production') {
+                return (float) $this->productionEntries()->where('entry_date', '<=', $cutoff)->sum('amount');
+            }
+            $perDay = $this->working_days ? ((float) $this->salary / $this->working_days) : 0;
+            $days   = $this->attendances()->where('attendance_date', '<=', $cutoff)
+                ->whereIn('status', ['present', 'half_day'])->count();
+            return round($perDay * $days, 2);
+        };
+
+        $payAgg = function ($from, $to) {
+            $q = $this->payments();
+            if ($from) $q->where('payment_date', '>=', $from);
+            if ($to)   $q->where('payment_date', '<=', $to);
+            $rows = $q->get();
+            return [
+                'advance'   => (float) $rows->where('type', 'advance')->sum('amount'),
+                'bonus'     => (float) $rows->where('type', 'bonus')->sum('amount'),
+                'deduction' => (float) $rows->where('type', 'deduction')->sum('amount'),
+                'paid'      => (float) $rows->where('type', 'salary')->sum('amount'),
+            ];
+        };
+
+        // Opening balance: everything strictly before the period.
+        $earnedBefore = $earnedUpTo($beforeStart);
+        $pBefore      = $payAgg(null, $beforeStart);
+        $opening      = ($earnedBefore + $pBefore['bonus']) - ($pBefore['deduction'] + $pBefore['advance'] + $pBefore['paid']);
+
+        // This period.
+        if ($this->type === 'production') {
+            $earned = (float) $this->productionEntries()->whereBetween('entry_date', [$start, $end])->sum('amount');
+        } else {
+            $perDay = $this->working_days ? ((float) $this->salary / $this->working_days) : 0;
+            $days   = $this->attendances()->whereBetween('attendance_date', [$start, $end])
+                ->whereIn('status', ['present', 'half_day'])->count();
+            $earned = round($perDay * $days, 2);
+        }
+        $p = $payAgg($start, $end);
+
+        $closing = $opening + ($earned + $p['bonus']) - ($p['deduction'] + $p['advance'] + $p['paid']);
+
+        return [
+            'opening'   => round($opening, 2),
+            'earned'    => round($earned, 2),
+            'bonus'     => round($p['bonus'], 2),
+            'deduction' => round($p['deduction'], 2),
+            'advance'   => round($p['advance'], 2),
+            'paid'      => round($p['paid'], 2),
+            'closing'   => round($closing, 2),
+        ];
+    }
+
     // Dynamic properties for payroll
     public int $today_production  = 0;
     public int $month_production  = 0;
