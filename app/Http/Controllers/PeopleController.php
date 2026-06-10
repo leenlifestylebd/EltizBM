@@ -58,6 +58,11 @@ class PeopleController extends Controller
     public function destroyCustomer(Customer $customer)
     {
         abort_if($customer->business_id !== auth()->user()->business_id, 403);
+        $this->logActivity('deleted', $customer, [
+            'name'  => $customer->name,
+            'phone' => $customer->phone,
+            'due'   => $customer->due_amount,
+        ]);
         $customer->delete();
         return back()->with('success', 'Customer deleted.');
     }
@@ -167,6 +172,10 @@ class PeopleController extends Controller
     public function destroyVendor(\App\Models\Vendor $vendor)
     {
         abort_if($vendor->business_id !== auth()->user()->business_id, 403);
+        $this->logActivity('deleted', $vendor, [
+            'name'  => $vendor->name,
+            'phone' => $vendor->phone,
+        ]);
         $vendor->delete();
         return back()->with('success', 'Vendor deleted.');
     }

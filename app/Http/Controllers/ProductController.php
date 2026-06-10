@@ -217,6 +217,11 @@ class ProductController extends Controller
     {
         $this->authorizeProduct($product);
         $name = $product->name;
+        $this->logActivity('deleted', $product, [
+            'name'  => $product->name,
+            'sku'   => $product->sku,
+            'stock' => $product->stock,
+        ]);
         $product->delete();
 
         return redirect()->route('products.index')
