@@ -214,25 +214,46 @@ class OrderController extends Controller
 
         if ($request->action === 'collect_payment') {
             $amount = floatval($request->collect_amount ?? 0);
+            if ($amount <= 0) {
+                return back()->with('error', 'Enter a valid amount to collect.');
+            }
+            $amount = min($amount, (float) $order->due_amount);
+            if ($amount <= 0) {
+                return back()->with('error', 'This order has no outstanding due.');
+            }
             $this->orderService->collectPayment($order, $amount);
             $this->orderService->notifyPaymentReceived($order, $amount, $bizName);
             return back()->with('success', "৳{$amount} collected!");
         }
 
-        if ($status = $request->status) {
-            $order->update(['status' => $status]);
+        $request->validate([
+            'status' => 'required|in:pending,confirmed,processing,shipped,delivered,completed,cancelled,returned,refunded',
+        ]);
 
-            if ($status === 'confirmed') {
-                $this->orderService->notifyConfirmed($order, $bizName);
-            }
+        $status   = $request->status;
+        $previous = $order->status;
 
-            if ($status === 'delivered' && $order->payment_method === 'cod') {
-                $this->orderService->completeCod($order);
-            }
+        // No-op if the status hasn't actually changed — prevents duplicate income,
+        // double stock restore, and repeat notifications from re-clicking a status.
+        if ($status === $previous) {
+            return back()->with('success', 'Order status unchanged.');
+        }
 
-            if (in_array($status, ['cancelled', 'returned', 'refunded'])) {
-                $this->orderService->cancel($order, $status);
-            }
+        $cancelStates = ['cancelled', 'returned', 'refunded'];
+        $order->update(['status' => $status]);
+
+        if ($status === 'confirmed') {
+            $this->orderService->notifyConfirmed($order, $bizName);
+        }
+
+        // COD auto-complete only when transitioning INTO delivered and not yet paid.
+        if ($status === 'delivered' && $order->payment_method === 'cod' && $order->payment_status !== 'paid') {
+            $this->orderService->completeCod($order);
+        }
+
+        // Cancel/return side effects only when moving from a non-cancelled state.
+        if (in_array($status, $cancelStates) && !in_array($previous, $cancelStates)) {
+            $this->orderService->cancel($order, $status);
         }
 
         return back()->with('success', 'Order status updated!');
