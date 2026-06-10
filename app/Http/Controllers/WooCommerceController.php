@@ -126,7 +126,10 @@ class WooCommerceController extends Controller
 
         Log::info('WooCommerce webhook received', ['topic' => $topic, 'source' => $source]);
 
-        // Find business by store URL or first active
+        // Find business by store URL (the Source header). Never blindly fall back
+        // to "any active store" when multiple exist — that allows cross-tenant
+        // injection. Fall back only when exactly one active store is configured.
+        $wooSettings = null;
         if ($source) {
             $wooSettings = WoocommerceSetting::where('store_url', 'like', '%' . parse_url($source, PHP_URL_HOST) . '%')
                 ->where('is_active', true)
@@ -134,7 +137,10 @@ class WooCommerceController extends Controller
         }
 
         if (!$wooSettings) {
-            $wooSettings = WoocommerceSetting::where('is_active', true)->first();
+            $active = WoocommerceSetting::where('is_active', true)->limit(2)->get();
+            if ($active->count() === 1) {
+                $wooSettings = $active->first();
+            }
         }
 
         if (!$wooSettings) {
@@ -142,12 +148,13 @@ class WooCommerceController extends Controller
             return response()->json(['message' => 'Store not found'], 404);
         }
 
-        // Verify signature (optional)
-        if ($wooSettings->webhook_secret && $signature) {
-            $payload   = $request->getContent();
-            $hash      = base64_encode(hash_hmac('sha256', $payload, $wooSettings->webhook_secret, true));
-            if (!hash_equals($hash, $signature)) {
-                Log::warning('WooCommerce webhook: invalid signature');
+        // Verify signature. If a secret is configured, a valid signature is REQUIRED —
+        // an attacker must not be able to skip verification by omitting the header.
+        if ($wooSettings->webhook_secret) {
+            $payload = $request->getContent();
+            $hash    = base64_encode(hash_hmac('sha256', $payload, $wooSettings->webhook_secret, true));
+            if (!$signature || !hash_equals($hash, $signature)) {
+                Log::warning('WooCommerce webhook: invalid or missing signature');
                 return response()->json(['message' => 'Invalid signature'], 401);
             }
         }

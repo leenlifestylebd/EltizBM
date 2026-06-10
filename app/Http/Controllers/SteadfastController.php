@@ -327,6 +327,21 @@ class SteadfastController extends Controller
 
     public function webhook(Request $request)
     {
+        // Shared-secret gate. Configure STEADFAST_WEBHOOK_SECRET in .env and append
+        // ?secret=... (or send X-Webhook-Secret header) on the Steadfast dashboard URL.
+        // If no secret is configured yet, we log a warning but still process so the
+        // existing live integration is not broken mid-flight.
+        $expected = env('STEADFAST_WEBHOOK_SECRET');
+        if ($expected) {
+            $provided = $request->header('X-Webhook-Secret') ?: $request->query('secret');
+            if (!$provided || !hash_equals($expected, $provided)) {
+                Log::warning('Steadfast webhook: invalid or missing secret');
+                return response()->json(['status' => 'error', 'message' => 'Unauthorized'], 401);
+            }
+        } else {
+            Log::warning('Steadfast webhook processed WITHOUT a configured secret. Set STEADFAST_WEBHOOK_SECRET to secure this endpoint.');
+        }
+
         $payload = $request->all();
         Log::info('Steadfast webhook received', $payload);
 
