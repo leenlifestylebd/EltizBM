@@ -212,6 +212,7 @@
             </div>
         </div>
 
+        @if(auth()->user()->hasPermission('accounts'))
         <div x-data="{ open: {{ request()->routeIs('accounts.*') ? 'true' : 'false' }} }">
             <button @click="open = !open" class="w-full flex items-center gap-3 px-3 py-2.5 rounded-lg text-sm text-gray-600 dark:text-slate-300 hover:bg-gray-50 dark:hover:bg-slate-700 mb-0.5">
                 <svg class="w-4 h-4 flex-shrink-0" fill="none" stroke="currentColor" viewBox="0 0 24 24"><path stroke-linecap="round" stroke-linejoin="round" stroke-width="2" d="M3 10h18M7 15h1m4 0h1m-7 4h12a3 3 0 003-3V8a3 3 0 00-3-3H6a3 3 0 00-3 3v8a3 3 0 003 3z"/></svg>
@@ -225,7 +226,9 @@
                 <a href="{{ route('accounts.payment-transfer') }}" class="block px-3 py-2 text-xs text-gray-500 dark:text-slate-400 hover:text-primary-600 rounded-lg hover:bg-gray-50 dark:hover:bg-slate-700">Payment Transfer</a>
             </div>
         </div>
+        @endif
 
+        @if(auth()->user()->hasPermission('reports'))
         <div x-data="{ open: {{ request()->routeIs('reports.*') ? 'true' : 'false' }} }">
             <button @click="open = !open" class="w-full flex items-center gap-3 px-3 py-2.5 rounded-lg text-sm text-gray-600 dark:text-slate-300 hover:bg-gray-50 dark:hover:bg-slate-700 mb-0.5">
                 <svg class="w-4 h-4 flex-shrink-0" fill="none" stroke="currentColor" viewBox="0 0 24 24"><path stroke-linecap="round" stroke-linejoin="round" stroke-width="2" d="M9 17v-2m3 2v-4m3 4v-6m2 10H7a2 2 0 01-2-2V5a2 2 0 012-2h5.586a1 1 0 01.707.293l5.414 5.414a1 1 0 01.293.707V19a2 2 0 01-2 2z"/></svg>
@@ -240,12 +243,15 @@
                 <a href="{{ route('reports.business-overview') }}" class="block px-3 py-2 text-xs text-gray-500 dark:text-slate-400 hover:text-primary-600 rounded-lg hover:bg-gray-50 dark:hover:bg-slate-700">Business Overview</a>
             </div>
         </div>
+        @endif
 
+        @if(auth()->user()->hasPermission('people'))
         <a href="{{ route('people.customers') }}"
            class="nav-item flex items-center gap-3 px-3 py-2.5 rounded-lg text-sm text-gray-600 dark:text-slate-300 hover:bg-gray-50 dark:hover:bg-slate-700 mb-0.5">
             <svg class="w-4 h-4 flex-shrink-0" fill="none" stroke="currentColor" viewBox="0 0 24 24"><path stroke-linecap="round" stroke-linejoin="round" stroke-width="2" d="M17 20h5v-2a3 3 0 00-5.356-1.857M17 20H7m10 0v-2c0-.656-.126-1.283-.356-1.857M7 20H2v-2a3 3 0 015.356-1.857M7 20v-2c0-.656.126-1.283.356-1.857m0 0a5.002 5.002 0 019.288 0M15 7a3 3 0 11-6 0 3 3 0 016 0z"/></svg>
             People
         </a>
+        @endif
 
         {{-- Tailoring --}}
         <a href="{{ route('tailoring.index') }}"
