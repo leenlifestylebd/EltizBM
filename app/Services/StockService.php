@@ -30,7 +30,9 @@ class StockService
         foreach ($order->items as $item) {
             if (!$item->product_id) continue;
 
-            $product = Product::find($item->product_id);
+            $product = Product::where('id', $item->product_id)
+                ->where('business_id', $order->business_id)
+                ->first();
             if (!$product || !$product->track_stock) continue;
 
             $before = $product->stock;
@@ -58,7 +60,9 @@ class StockService
         foreach ($order->items as $item) {
             if (!$item->product_id) continue;
 
-            $product = Product::find($item->product_id);
+            $product = Product::where('id', $item->product_id)
+                ->where('business_id', $order->business_id)
+                ->first();
             if (!$product || !$product->track_stock) continue;
 
             $before = $product->stock;

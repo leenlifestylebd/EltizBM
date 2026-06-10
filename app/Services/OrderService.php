@@ -247,9 +247,18 @@ class OrderService
     private function syncItems(Order $order, array $items, bool $deductStock = true): void
     {
         foreach ($items as $item) {
+            // Only accept catalog products that belong to THIS business. A foreign
+            // product_id is treated as a custom (non-catalog) line so it can never
+            // touch another tenant's stock.
+            $product = !empty($item['product_id'])
+                ? Product::where('id', $item['product_id'])
+                    ->where('business_id', $order->business_id)
+                    ->first()
+                : null;
+
             OrderItem::create([
                 'order_id'     => $order->id,
-                'product_id'   => $item['product_id'],
+                'product_id'   => $product?->id,
                 'product_name' => $item['product_name'],
                 'price'        => $item['price'],
                 'cost_price'   => $item['cost_price'] ?? 0,
@@ -258,10 +267,9 @@ class OrderService
                 'total'        => $item['total'],
             ]);
 
-            if ($deductStock) {
-                Product::where('id', $item['product_id'])
-                    ->where('track_stock', true)
-                    ->decrement('stock', $item['quantity']);
+            if ($deductStock && $product && $product->track_stock) {
+                $newStock = max(0, $product->stock - (int) $item['quantity']);
+                $product->update(['stock' => $newStock]);
             }
         }
     }
