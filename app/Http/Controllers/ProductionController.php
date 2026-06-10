@@ -257,17 +257,21 @@ class ProductionController extends Controller
 
     public function storePayment(Request $request)
     {
+        $bizId = auth()->user()->business_id;
+
         $request->validate([
-            'employee_id'    => 'required|exists:employees,id',
+            'employee_id'    => ['required', \Illuminate\Validation\Rule::exists('employees', 'id')->where('business_id', $bizId)],
             'amount'         => 'required|numeric|min:1',
             'type'           => 'required|in:advance,salary,bonus,deduction',
             'payment_date'   => 'required|date',
             'payment_method' => 'required|string',
         ]);
 
+        $employee = Employee::where('business_id', $bizId)->findOrFail($request->employee_id);
+
         EmployeePayment::create([
-            'business_id'    => auth()->user()->business_id,
-            'employee_id'    => $request->employee_id,
+            'business_id'    => $bizId,
+            'employee_id'    => $employee->id,
             'created_by'     => auth()->id(),
             'payment_date'   => $request->payment_date,
             'amount'         => $request->amount,
@@ -276,15 +280,22 @@ class ProductionController extends Controller
             'notes'          => $request->notes,
         ]);
 
-        Transaction::create([
-            'business_id'      => auth()->user()->business_id,
-            'created_by'       => auth()->id(),
-            'type'             => 'expense',
-            'title'            => ucfirst($request->type) . ' payment to ' . Employee::find($request->employee_id)->name,
-            'amount'           => $request->amount,
-            'payment_method'   => $request->payment_method,
-            'transaction_date' => $request->payment_date,
-        ]);
+        // Only advance and salary move cash out of the business, so only those become
+        // expense transactions. Bonus (extra owed) and deduction (reduces what's owed)
+        // are payroll adjustments — they affect the worker's ledger, not the cash book,
+        // and become an expense only when actually paid out as salary.
+        if (in_array($request->type, ['advance', 'salary'])) {
+            Transaction::create([
+                'business_id'      => $bizId,
+                'created_by'       => auth()->id(),
+                'type'             => 'expense',
+                'title'            => ucfirst($request->type) . ' payment to ' . $employee->name,
+                'amount'           => $request->amount,
+                'payment_method'   => $request->payment_method,
+                'reference'        => 'EMPPAY-' . $employee->id,
+                'transaction_date' => $request->payment_date,
+            ]);
+        }
 
         return back()->with('success', 'Payment recorded!');
     }
