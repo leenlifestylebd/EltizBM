@@ -359,7 +359,8 @@ class ProductController extends Controller
                   ->orWhere('barcode', $term);
             })
             ->select('id', 'name', 'sku', 'barcode', 'price', 'sale_price', 'stock', 'images', 'unit')
-            ->limit(10)
+            ->orderBy('name')
+            ->limit(50)
             ->get()
             ->map(fn($p) => [
                 'id'       => $p->id,
