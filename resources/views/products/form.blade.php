@@ -77,7 +77,7 @@
                     <div class="grid grid-cols-1 sm:grid-cols-3 gap-3">
                         <div>
                             <label class="block text-xs font-medium text-gray-700 dark:text-slate-300 mb-1.5">
-                                Selling Price <span class="text-red-500">*</span>
+                                Regular Price <span class="text-red-500">*</span>
                             </label>
                             <div class="relative">
                                 <span class="absolute left-3 top-1/2 -translate-y-1/2 text-gray-500 dark:text-slate-400 text-sm">৳</span>
@@ -99,7 +99,7 @@
                             </div>
                         </div>
                         <div>
-                            <label class="block text-xs font-medium text-gray-700 dark:text-slate-300 mb-1.5">Sale Price</label>
+                            <label class="block text-xs font-medium text-gray-700 dark:text-slate-300 mb-1.5">Sale Price <span class="text-gray-400 font-normal">(offer)</span></label>
                             <div class="relative">
                                 <span class="absolute left-3 top-1/2 -translate-y-1/2 text-gray-500 dark:text-slate-400 text-sm">৳</span>
                                 <input type="number" name="sale_price" value="{{ old('sale_price', $product->sale_price ?? '') }}"

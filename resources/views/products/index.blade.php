@@ -382,7 +382,7 @@
                 <h4 class="text-xs font-semibold text-gray-500 dark:text-slate-400 uppercase tracking-wide mb-3">Pricing</h4>
                 <div class="grid grid-cols-3 gap-3">
                     <div>
-                        <label class="block text-xs font-medium text-gray-600 dark:text-slate-400 mb-1">Sell Price <span class="text-red-400">*</span></label>
+                        <label class="block text-xs font-medium text-gray-600 dark:text-slate-400 mb-1">Regular Price <span class="text-red-400">*</span></label>
                         <div class="relative">
                             <span class="absolute left-2.5 top-1/2 -translate-y-1/2 text-xs text-gray-400">৳</span>
                             <input type="number" name="price" :value="product.price" step="0.01" min="0" required
@@ -398,7 +398,7 @@
                         </div>
                     </div>
                     <div>
-                        <label class="block text-xs font-medium text-gray-600 dark:text-slate-400 mb-1">Sale Price</label>
+                        <label class="block text-xs font-medium text-gray-600 dark:text-slate-400 mb-1">Sale Price <span class="text-gray-400 font-normal">(offer)</span></label>
                         <div class="relative">
                             <span class="absolute left-2.5 top-1/2 -translate-y-1/2 text-xs text-gray-400">৳</span>
                             <input type="number" name="sale_price" :value="product.sale_price" step="0.01" min="0"
