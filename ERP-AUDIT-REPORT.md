@@ -1,3 +1,19 @@
+> ## ⚠️ CORRIGENDUM (2026-06-10, after merging origin/master)
+> The first pass of this report was written against a **stale worktree**. After merging
+> `origin/master`, the live codebase turned out to be far more advanced (SuperAdmin,
+> Returns, Materials, BOM, bKash/Nagad, Google OAuth, service-layer refactor, DbHelper).
+> Several audited issues were **already fixed** on master and required no change:
+> **C1** (cross-tenant approval → SuperAdmin + business-scoped), **C9** (`strftime` →
+> driver-aware `DbHelper`), **H2** (schema drift → `fix_missing_columns` with `hasColumn`
+> guards), and the **C8 customer-due** ordering.
+>
+> The issues **re-validated as still present on current master** were fixed in this branch
+> (Sprint 1): **C2** role authz, **C3/C4** webhook auth, **C5** order stock scoping,
+> **C6** P&L double-count, **C7** transfer money loss, **C12** account balances,
+> **C8** status idempotency, **H9** rate limiting, **H1** password-reset views.
+> Sections below describe the *original* findings; treat them as the rationale, not the
+> current state.
+
 # Eltiz ERP — Complete System Audit Report
 **Date:** 2026-06-10 | **Auditor:** Claude (ERP Architect / Security / QA / DBA review)
 **Scope:** Full codebase — 23 controllers, 32 models, 75+ views, 5 migrations, routes, middleware, services
