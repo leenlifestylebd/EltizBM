@@ -14,6 +14,7 @@ return Application::configure(basePath: dirname(__DIR__))
         $middleware->alias([
             'business'    => \App\Http\Middleware\BusinessMiddleware::class,
             'superadmin'  => \App\Http\Middleware\SuperAdminMiddleware::class,
+            'permission'  => \App\Http\Middleware\PermissionMiddleware::class,
         ]);
         $middleware->validateCsrfTokens(except: [
             'webhooks/woocommerce',
