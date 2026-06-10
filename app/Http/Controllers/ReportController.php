@@ -253,7 +253,7 @@ class ReportController extends Controller
         $bizId = auth()->user()->business_id;
 
         $balances = [];
-        foreach (['cash', 'bkash', 'nagad', 'rocket', 'bank', 'card'] as $method) {
+        foreach (['cash', 'bkash', 'nagad', 'rocket', 'bank', 'card', 'cod', 'other'] as $method) {
             $income  = Transaction::where('business_id', $bizId)->where('type', 'income')->where('payment_method', $method)->sum('amount');
             $expense = Transaction::where('business_id', $bizId)->where('type', 'expense')->where('payment_method', $method)->sum('amount');
             $balances[$method] = [

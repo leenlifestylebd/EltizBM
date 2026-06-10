@@ -98,8 +98,48 @@ class AccountController extends Controller
     }
     public function storeTransfer(Request $request)
     {
-        $request->validate(['title'=>'required','amount'=>'required|numeric','transaction_date'=>'required|date']);
-        Transaction::create(['business_id'=>auth()->user()->business_id,'created_by'=>auth()->id(),'type'=>'expense','title'=>$request->title.' (Transfer: '.ucfirst($request->from_method).' → '.ucfirst($request->to_method).')','amount'=>$request->amount,'payment_method'=>$request->from_method,'reference'=>'TRANSFER-'.now()->timestamp,'notes'=>$request->notes,'transaction_date'=>$request->transaction_date]);
+        $request->validate([
+            'title'            => 'required',
+            'amount'           => 'required|numeric|min:0.01',
+            'transaction_date' => 'required|date',
+            'from_method'      => 'required|string|different:to_method',
+            'to_method'        => 'required|string',
+        ]);
+
+        $bizId = auth()->user()->business_id;
+        $ref   = 'TRANSFER-' . now()->timestamp;
+        $label = $request->title . ' (Transfer: ' . ucfirst($request->from_method) . ' → ' . ucfirst($request->to_method) . ')';
+
+        // A transfer moves money between accounts: it leaves the source (expense)
+        // and arrives in the destination (income). Both legs share the TRANSFER-
+        // reference so reports can net them to zero — a transfer is not profit/loss,
+        // but it must move the per-method account balances.
+        \Illuminate\Support\Facades\DB::transaction(function () use ($bizId, $request, $ref, $label) {
+            Transaction::create([
+                'business_id'      => $bizId,
+                'created_by'       => auth()->id(),
+                'type'             => 'expense',
+                'title'            => $label,
+                'amount'           => $request->amount,
+                'payment_method'   => $request->from_method,
+                'reference'        => $ref,
+                'notes'            => $request->notes,
+                'transaction_date' => $request->transaction_date,
+            ]);
+
+            Transaction::create([
+                'business_id'      => $bizId,
+                'created_by'       => auth()->id(),
+                'type'             => 'income',
+                'title'            => $label,
+                'amount'           => $request->amount,
+                'payment_method'   => $request->to_method,
+                'reference'        => $ref,
+                'notes'            => $request->notes,
+                'transaction_date' => $request->transaction_date,
+            ]);
+        });
+
         return back()->with('success', 'Transfer recorded!');
     }
     public function destroyTransaction(Transaction $transaction)
