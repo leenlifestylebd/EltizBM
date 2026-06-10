@@ -39,11 +39,18 @@ class ReportQueryService
         $expenses = Transaction::where('business_id', $bizId)
             ->where('type', 'expense')
             ->whereBetween('transaction_date', [$from, $to])
+            ->whereNot(fn($q) => $q->where('reference', 'like', 'TRANSFER-%'))
             ->sum('amount');
 
+        // "Other income" = income NOT already counted as order revenue, and not an
+        // internal account transfer. Order payments create income transactions that
+        // belong to an order whose total is already in $revenue — counting them here
+        // too would double-count sales.
         $otherIncome = Transaction::where('business_id', $bizId)
             ->where('type', 'income')
             ->whereBetween('transaction_date', [$from, $to])
+            ->whereNull('order_id')
+            ->whereNot(fn($q) => $q->where('reference', 'like', 'TRANSFER-%'))
             ->sum('amount');
 
         $productionWages = ProductionEntry::where('business_id', $bizId)
@@ -58,6 +65,7 @@ class ReportQueryService
         $expenseBreakdown = Transaction::where('business_id', $bizId)
             ->where('type', 'expense')
             ->whereBetween('transaction_date', [$from, $to])
+            ->whereNot(fn($q) => $q->where('reference', 'like', 'TRANSFER-%'))
             ->with('category')
             ->selectRaw('category_id, SUM(amount) as total, COUNT(*) as count')
             ->groupBy('category_id')
@@ -79,6 +87,7 @@ class ReportQueryService
         $expenseTrend = Transaction::where('business_id', $bizId)
             ->where('type', 'expense')
             ->whereBetween('transaction_date', [$from, $to])
+            ->whereNot(fn($q) => $q->where('reference', 'like', 'TRANSFER-%'))
             ->selectRaw("{$trendExprT} as period, SUM(amount) as total")
             ->groupBy('period')->orderBy('period')
             ->pluck('total', 'period');
@@ -166,9 +175,10 @@ class ReportQueryService
             $end   = Carbon::create($year, $m, 1)->endOfMonth();
 
             $rev    = Order::where('business_id', $bizId)->whereIn('status', ['completed', 'delivered'])->whereBetween('created_at', [$start, $end])->sum('total');
-            $exp    = Transaction::where('business_id', $bizId)->where('type', 'expense')->whereBetween('transaction_date', [$start, $end])->sum('amount');
+            $exp    = Transaction::where('business_id', $bizId)->where('type', 'expense')->whereBetween('transaction_date', [$start, $end])->whereNot(fn($q) => $q->where('reference', 'like', 'TRANSFER-%'))->sum('amount');
             $wages  = ProductionEntry::where('business_id', $bizId)->whereBetween('entry_date', [$start, $end])->sum('amount');
-            $inc    = Transaction::where('business_id', $bizId)->where('type', 'income')->whereBetween('transaction_date', [$start, $end])->sum('amount');
+            // Exclude order-linked income (already in $rev) and transfers to avoid double counting.
+            $inc    = Transaction::where('business_id', $bizId)->where('type', 'income')->whereBetween('transaction_date', [$start, $end])->whereNull('order_id')->whereNot(fn($q) => $q->where('reference', 'like', 'TRANSFER-%'))->sum('amount');
             $orders = Order::where('business_id', $bizId)->whereBetween('created_at', [$start, $end])->count();
 
             $months[] = [

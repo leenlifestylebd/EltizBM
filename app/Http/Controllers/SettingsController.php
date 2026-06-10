@@ -150,6 +150,8 @@ class SettingsController extends Controller
     // =============================================
     public function userManagement()
     {
+        abort_unless(auth()->user()->isAdmin(), 403);
+
         $bizId       = auth()->user()->business_id;
         $users       = User::where('business_id', $bizId)->where('is_approved', 1)->orderBy('name')->get();
         $pendingUsers = User::where('business_id', $bizId)
@@ -161,6 +163,9 @@ class SettingsController extends Controller
 
     public function approveUser(Request $request, User $user)
     {
+        abort_unless(auth()->user()->isAdmin(), 403);
+        abort_if($user->business_id !== auth()->user()->business_id, 403);
+
         $user->update([
             'is_approved' => 1,
             'approved_by' => auth()->id(),
@@ -175,12 +180,17 @@ class SettingsController extends Controller
 
     public function rejectUser(User $user)
     {
+        abort_unless(auth()->user()->isAdmin(), 403);
+        abort_if($user->business_id !== auth()->user()->business_id, 403);
+
         $user->delete();
         return back()->with('success', 'User rejected and removed.');
     }
 
     public function storeUser(Request $request)
     {
+        abort_unless(auth()->user()->isAdmin(), 403);
+
         $request->validate([
             'name'     => 'required|string|max:100',
             'email'    => 'required|email|unique:users,email',
@@ -207,12 +217,23 @@ class SettingsController extends Controller
 
     public function updateUser(Request $request, User $user)
     {
+        abort_unless(auth()->user()->isAdmin(), 403);
         abort_if($user->business_id !== auth()->user()->business_id, 403);
+
+        // Never allow promoting/demoting the business owner via this form,
+        // and only allow assigning roles below owner.
+        $request->validate([
+            'role' => 'nullable|in:admin,manager,staff,employee',
+        ]);
+
+        $newRole = $user->role === 'owner'
+            ? 'owner'
+            : ($request->filled('role') ? $request->role : $user->role);
 
         $user->update([
             'name'        => $request->name,
             'phone'       => $request->phone,
-            'role'        => $request->role,
+            'role'        => $newRole,
             'is_active'   => $request->boolean('is_active', true),
             'permissions' => $request->permissions ?? [],
         ]);
