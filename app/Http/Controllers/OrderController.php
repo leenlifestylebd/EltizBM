@@ -53,15 +53,20 @@ class OrderController extends Controller
 
         $orders = $query->paginate(20);
 
-        // Status counts for tabs
+        // Status counts for tabs — one grouped query instead of seven COUNTs.
+        $counts = Order::where('business_id', $bizId)
+            ->selectRaw('status, COUNT(*) as c')
+            ->groupBy('status')
+            ->pluck('c', 'status');
+
         $statusCounts = [
-            'all'        => Order::where('business_id', $bizId)->count(),
-            'pending'    => Order::where('business_id', $bizId)->where('status', 'pending')->count(),
-            'confirmed'  => Order::where('business_id', $bizId)->where('status', 'confirmed')->count(),
-            'processing' => Order::where('business_id', $bizId)->where('status', 'processing')->count(),
-            'shipped'    => Order::where('business_id', $bizId)->where('status', 'shipped')->count(),
-            'delivered'  => Order::where('business_id', $bizId)->where('status', 'delivered')->count(),
-            'cancelled'  => Order::where('business_id', $bizId)->where('status', 'cancelled')->count(),
+            'all'        => (int) $counts->sum(),
+            'pending'    => (int) ($counts['pending']    ?? 0),
+            'confirmed'  => (int) ($counts['confirmed']  ?? 0),
+            'processing' => (int) ($counts['processing'] ?? 0),
+            'shipped'    => (int) ($counts['shipped']    ?? 0),
+            'delivered'  => (int) ($counts['delivered']  ?? 0),
+            'cancelled'  => (int) ($counts['cancelled']  ?? 0),
         ];
 
         return view('orders.index', compact('orders', 'statusCounts'));
