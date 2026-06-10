@@ -104,6 +104,7 @@ class AccountController extends Controller
     }
     public function destroyTransaction(Transaction $transaction)
     {
+        abort_unless(auth()->user()->isAdmin(), 403);
         abort_if($transaction->business_id !== auth()->user()->business_id, 403);
         $transaction->delete();
         return back()->with('success', 'Transaction deleted.');
