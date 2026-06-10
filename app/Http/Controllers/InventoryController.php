@@ -340,38 +340,10 @@ class InventoryController extends Controller
 
     public function storeTransfer(Request $request)
     {
-        $request->validate([
-            'product_id' => 'required|integer',
-            'quantity'   => 'required|integer|min:1',
-        ]);
-
-        $bizId   = auth()->user()->business_id;
-        $product = Product::where('id', $request->product_id)
-            ->where('business_id', $bizId)
-            ->firstOrFail();
-
-        if ($product->stock < $request->quantity) {
-            return back()->with('error', 'Insufficient stock for transfer.');
-        }
-
-        $before = $product->stock;
-        $after  = $before - $request->quantity;
-
-        $product->update(['stock' => $after]);
-
-        StockAdjustment::create([
-            'business_id'     => $bizId,
-            'product_id'      => $product->id,
-            'warehouse_id'    => $request->from_warehouse_id ?: null,
-            'created_by'      => auth()->id(),
-            'type'            => 'transfer',
-            'quantity'        => $request->quantity,
-            'quantity_before' => $before,
-            'quantity_after'  => $after,
-            'reason'          => $request->reason ?? 'Warehouse transfer',
-        ]);
-
-        return back()->with('success', 'Transfer completed!');
+        // Single-warehouse setup: a "transfer" used to decrement total stock with no
+        // destination to receive it, silently destroying inventory. Until per-warehouse
+        // stock exists, transfers are disabled rather than allowed to lose stock.
+        return back()->with('error', 'Stock transfers are disabled in a single-warehouse setup. Use Stock Adjustments instead.');
     }
 
     // =============================================

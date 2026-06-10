@@ -208,7 +208,7 @@
                 <a href="{{ route('inventory.stock-levels') }}" class="block px-3 py-2 text-xs text-gray-500 dark:text-slate-400 hover:text-primary-600 rounded-lg hover:bg-gray-50 dark:hover:bg-slate-700">Stock Levels</a>
                 <a href="{{ route('inventory.adjustments') }}" class="block px-3 py-2 text-xs text-gray-500 dark:text-slate-400 hover:text-primary-600 rounded-lg hover:bg-gray-50 dark:hover:bg-slate-700">Adjustments</a>
                 <a href="{{ route('inventory.barcode') }}" class="block px-3 py-2 text-xs text-gray-500 dark:text-slate-400 hover:text-primary-600 rounded-lg hover:bg-gray-50 dark:hover:bg-slate-700">Barcode Print</a>
-                <a href="{{ route('inventory.transfers') }}" class="block px-3 py-2 text-xs text-gray-500 dark:text-slate-400 hover:text-primary-600 rounded-lg hover:bg-gray-50 dark:hover:bg-slate-700">Stock Transfers</a>
+                {{-- Stock Transfers hidden: single-warehouse setup. Re-enable when multi-warehouse stock lands. --}}
             </div>
         </div>
 
