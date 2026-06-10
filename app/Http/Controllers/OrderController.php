@@ -326,13 +326,22 @@ class OrderController extends Controller
             'status'       => $order->status,
         ]);
 
-        // Restore stock (scoped + logged) only for orders that still hold stock —
-        // cancelled/returned orders already had their stock restored.
-        if (!in_array($order->status, ['cancelled', 'returned', 'refunded'])) {
-            app(\App\Services\StockService::class)->restoreForOrder($order);
-        }
+        DB::transaction(function () use ($order) {
+            // Restore stock (scoped + logged) only for orders that still hold stock —
+            // cancelled/returned orders already had their stock restored.
+            if (!in_array($order->status, ['cancelled', 'returned', 'refunded'])) {
+                app(\App\Services\StockService::class)->restoreForOrder($order);
+            }
 
-        $order->delete();
+            // Remove this order's money from the books: drop its linked income/expense
+            // transactions and roll back any due it was holding against the customer.
+            if ($order->customer_id && $order->due_amount > 0) {
+                Customer::where('id', $order->customer_id)->decrement('due_amount', $order->due_amount);
+            }
+            Transaction::where('order_id', $order->id)->delete();
+
+            $order->delete();
+        });
 
         return redirect()->route('orders.index')
             ->with('success', 'Order deleted.');

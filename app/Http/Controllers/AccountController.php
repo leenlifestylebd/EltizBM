@@ -86,8 +86,38 @@ class AccountController extends Controller
     }
     public function storeSalary(Request $request)
     {
-        $request->validate(['employee_id'=>'required','amount'=>'required|numeric','month'=>'required']);
-        Transaction::create(['business_id'=>auth()->user()->business_id,'created_by'=>auth()->id(),'type'=>'expense','title'=>$request->title,'amount'=>$request->amount,'payment_method'=>'cash','reference'=>'SALARY-'.$request->employee_id.'-'.$request->month,'transaction_date'=>now()->endOfMonth()->format('Y-m-d')]);
+        $request->validate([
+            'employee_id' => 'required|exists:employees,id',
+            'amount'      => 'required|numeric|min:0.01',
+            'month'       => 'required|date_format:Y-m',
+        ]);
+
+        $bizId = auth()->user()->business_id;
+
+        $employee = Employee::where('business_id', $bizId)->findOrFail($request->employee_id);
+        $ref      = 'SALARY-' . $employee->id . '-' . $request->month;
+
+        // Block paying the same employee's salary twice for the same month.
+        $already = Transaction::where('business_id', $bizId)
+            ->where('type', 'expense')
+            ->where('reference', $ref)
+            ->exists();
+
+        if ($already) {
+            return back()->with('error', $employee->name . "'s salary for " . $request->month . ' is already paid.');
+        }
+
+        Transaction::create([
+            'business_id'      => $bizId,
+            'created_by'       => auth()->id(),
+            'type'             => 'expense',
+            'title'            => $request->title ?: ('Salary — ' . $employee->name . ' (' . $request->month . ')'),
+            'amount'           => $request->amount,
+            'payment_method'   => $request->payment_method ?: 'cash',
+            'reference'        => $ref,
+            'transaction_date' => Carbon::parse($request->month . '-01')->endOfMonth()->format('Y-m-d'),
+        ]);
+
         return back()->with('success', 'Salary paid!');
     }
     public function paymentTransfer()
