@@ -14,11 +14,16 @@ class CourierController extends Controller
         $query = Shipment::where('business_id',$bizId)->with('order')->orderByDesc('created_at');
         if ($status = $request->status) $query->where('status',$status);
         $shipments = $query->paginate(20);
-        $statusCounts = [];
-        foreach (['' ,'pending','picked','in_transit','delivered','returned','cancelled'] as $s) {
-            $q = Shipment::where('business_id',$bizId);
-            if ($s) $q->where('status',$s);
-            $statusCounts[$s] = $q->count();
+        // Single grouped query replaces 7 separate count queries
+        $countsRaw = Shipment::where('business_id', $bizId)
+            ->selectRaw('status, count(*) as cnt')
+            ->groupBy('status')
+            ->pluck('cnt', 'status');
+
+        $total = $countsRaw->sum();
+        $statusCounts = ['' => $total];
+        foreach (['pending','picked','in_transit','delivered','returned','cancelled'] as $s) {
+            $statusCounts[$s] = $countsRaw->get($s, 0);
         }
         return view('courier.index', compact('shipments','statusCounts'));
     }
@@ -34,8 +39,9 @@ class CourierController extends Controller
         $request->validate(['order_id'=>'required|integer','courier_name'=>'required|string']);
         $bizId = auth()->user()->business_id;
         $order = Order::where('id',$request->order_id)->where('business_id',$bizId)->firstOrFail();
-        Shipment::create(['business_id'=>$bizId,'order_id'=>$order->id,'courier_name'=>$request->courier_name,'tracking_id'=>$request->tracking_id,'status'=>$request->status??'pending','charge'=>$request->charge??0,'cod_amount'=>$request->cod_amount??0,'notes'=>$request->notes,'shipped_at'=>$request->shipped_at]);
+        $shipment = Shipment::create(['business_id'=>$bizId,'order_id'=>$order->id,'courier_name'=>$request->courier_name,'tracking_id'=>$request->tracking_id,'status'=>$request->status??'pending','charge'=>$request->charge??0,'cod_amount'=>$request->cod_amount??0,'notes'=>$request->notes,'shipped_at'=>$request->shipped_at]);
         $order->update(['status'=>'shipped']);
+        (new \App\Services\SmsService($bizId))->sendShipmentUpdate($order, $request->courier_name, $request->tracking_id ?? '');
         return redirect()->route('courier.index')->with('success', 'Shipment created!');
     }
     public function show(Shipment $shipment)

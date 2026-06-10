@@ -3,6 +3,7 @@ namespace App\Http\Controllers;
 use App\Models\WoocommerceSetting;
 use App\Models\CourierSetting;
 use App\Models\SmsSetting;
+use App\Models\PaymentGatewaySetting;
 use Illuminate\Http\Request;
 
 class IntegrationController extends Controller
@@ -11,7 +12,17 @@ class IntegrationController extends Controller
     {
         $bizId = auth()->user()->business_id;
         $wooConnected = WoocommerceSetting::where('business_id', $bizId)->where('is_active', true)->exists();
-        return view('integrations.index', compact('wooConnected'));
+        $bkashActive  = PaymentGatewaySetting::where('business_id', $bizId)->where('gateway','bkash')->where('is_active',true)->exists();
+        $nagadActive  = PaymentGatewaySetting::where('business_id', $bizId)->where('gateway','nagad')->where('is_active',true)->exists();
+        return view('integrations.index', compact('wooConnected','bkashActive','nagadActive'));
+    }
+
+    public function paymentGateways()
+    {
+        $bizId = auth()->user()->business_id;
+        $bkash = PaymentGatewaySetting::where('business_id', $bizId)->where('gateway','bkash')->first();
+        $nagad = PaymentGatewaySetting::where('business_id', $bizId)->where('gateway','nagad')->first();
+        return view('integrations.payment-gateways', compact('bkash','nagad'));
     }
     public function courierProviders()
     {

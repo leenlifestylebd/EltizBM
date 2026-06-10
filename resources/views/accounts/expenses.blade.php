@@ -1,4 +1,4 @@
-@extends('layouts.app')
+﻿@extends('layouts.app')
 @section('title', 'Expenses')
 @section('content')
 <div class="flex items-center justify-between mb-4">
@@ -13,32 +13,51 @@
         <form method="POST" action="{{ route('accounts.expenses.store') }}" class="space-y-3">
             @csrf
             <div><label class="block text-xs font-medium text-gray-700 dark:text-slate-300 mb-1.5">Title <span class="text-red-500">*</span></label>
-            <input type="text" name="title" required class="w-full px-3 py-2.5 text-sm border border-gray-200 dark:border-slate-600 rounded-lg bg-white dark:bg-slate-700 text-gray-900 dark:text-white focus:outline-none focus:ring-2 focus:ring-blue-500" placeholder="e.g. Rent, Electricity..."></div>
+            <input type="text" name="title" required class="w-full px-3 py-2.5 text-sm border border-gray-200 dark:border-slate-600 rounded-lg bg-white dark:bg-slate-700 text-gray-900 dark:text-white focus:outline-none focus:ring-2 focus:ring-primary-500" placeholder="e.g. Rent, Electricity..."></div>
             <div><label class="block text-xs font-medium text-gray-700 dark:text-slate-300 mb-1.5">Amount <span class="text-red-500">*</span></label>
             <div class="relative"><span class="absolute left-3 top-1/2 -translate-y-1/2 text-gray-400 text-sm">৳</span>
-            <input type="number" name="amount" required min="0" step="0.01" class="w-full pl-7 pr-3 py-2.5 text-sm border border-gray-200 dark:border-slate-600 rounded-lg bg-white dark:bg-slate-700 text-gray-900 dark:text-white focus:outline-none focus:ring-2 focus:ring-blue-500"></div></div>
-            <div><label class="block text-xs font-medium text-gray-700 dark:text-slate-300 mb-1.5">Category</label>
-            <select name="category_id" class="w-full px-3 py-2.5 text-sm border border-gray-200 dark:border-slate-600 rounded-lg bg-white dark:bg-slate-700 text-gray-700 dark:text-slate-200 focus:outline-none focus:ring-2 focus:ring-blue-500">
-                <option value="">Select category</option>
-                @foreach($categories as $cat)<option value="{{ $cat->id }}">{{ $cat->name }}</option>@endforeach
-            </select></div>
+            <input type="number" name="amount" required min="0" step="0.01" class="w-full pl-7 pr-3 py-2.5 text-sm border border-gray-200 dark:border-slate-600 rounded-lg bg-white dark:bg-slate-700 text-gray-900 dark:text-white focus:outline-none focus:ring-2 focus:ring-primary-500"></div></div>
+            <div x-data="quickCat('expense')" @cat-created.window="onCreated($event.detail)">
+                <div class="flex items-center justify-between mb-1.5">
+                    <label class="block text-xs font-medium text-gray-700 dark:text-slate-300">Category</label>
+                    <button type="button" @click="open = !open"
+                            class="text-xs text-primary-600 dark:text-primary-400 hover:underline font-medium">
+                        <span x-text="open ? '✕ Cancel' : '+ New'"></span>
+                    </button>
+                </div>
+                <select name="category_id" x-ref="select"
+                        class="w-full px-3 py-2.5 text-sm border border-gray-200 dark:border-slate-600 rounded-lg bg-white dark:bg-slate-700 text-gray-700 dark:text-slate-200 focus:outline-none focus:ring-2 focus:ring-red-500">
+                    <option value="">Select category</option>
+                    @foreach($categories as $cat)<option value="{{ $cat->id }}">{{ $cat->name }}</option>@endforeach
+                </select>
+                <div x-show="open" x-cloak x-transition class="mt-2 flex gap-2">
+                    <input type="text" x-model="newName" @keydown.enter.prevent="save()"
+                           placeholder="New category name..."
+                           class="flex-1 px-3 py-2 text-sm border border-primary-300 dark:border-primary-600 rounded-lg bg-white dark:bg-slate-700 text-gray-900 dark:text-white focus:outline-none focus:ring-2 focus:ring-primary-500">
+                    <button type="button" @click="save()" :disabled="saving"
+                            class="px-3 py-2 bg-primary-600 hover:bg-primary-700 text-white text-xs font-semibold rounded-lg transition-colors disabled:opacity-50">
+                        <span x-text="saving ? '...' : 'Save'"></span>
+                    </button>
+                </div>
+                <p x-show="error" x-text="error" class="text-xs text-red-500 mt-1"></p>
+            </div>
             <div><label class="block text-xs font-medium text-gray-700 dark:text-slate-300 mb-1.5">Payment Method</label>
-            <select name="payment_method" class="w-full px-3 py-2.5 text-sm border border-gray-200 dark:border-slate-600 rounded-lg bg-white dark:bg-slate-700 text-gray-700 dark:text-slate-200 focus:outline-none focus:ring-2 focus:ring-blue-500">
+            <select name="payment_method" class="w-full px-3 py-2.5 text-sm border border-gray-200 dark:border-slate-600 rounded-lg bg-white dark:bg-slate-700 text-gray-700 dark:text-slate-200 focus:outline-none focus:ring-2 focus:ring-primary-500">
                 @foreach(['cash','bkash','nagad','rocket','bank','card','other'] as $m)<option value="{{ $m }}">{{ ucfirst($m) }}</option>@endforeach
             </select></div>
             <div><label class="block text-xs font-medium text-gray-700 dark:text-slate-300 mb-1.5">Date <span class="text-red-500">*</span></label>
-            <input type="date" name="transaction_date" required value="{{ today()->format('Y-m-d') }}" class="w-full px-3 py-2.5 text-sm border border-gray-200 dark:border-slate-600 rounded-lg bg-white dark:bg-slate-700 text-gray-900 dark:text-white focus:outline-none focus:ring-2 focus:ring-blue-500"></div>
+            <input type="date" name="transaction_date" required value="{{ today()->format('Y-m-d') }}" class="w-full px-3 py-2.5 text-sm border border-gray-200 dark:border-slate-600 rounded-lg bg-white dark:bg-slate-700 text-gray-900 dark:text-white focus:outline-none focus:ring-2 focus:ring-primary-500"></div>
             <button type="submit" class="w-full bg-red-600 hover:bg-red-700 text-white font-medium py-2.5 text-sm rounded-lg transition-colors">Add Expense</button>
         </form>
     </div>
     <div class="lg:col-span-2">
         <form method="GET" class="flex gap-2 mb-3">
-            <input type="month" name="month" value="{{ request('month', now()->format('Y-m')) }}" class="text-sm px-3 py-2 border border-gray-200 dark:border-slate-600 rounded-lg bg-white dark:bg-slate-700 text-gray-700 dark:text-slate-200 focus:outline-none focus:ring-2 focus:ring-blue-500">
-            <select name="category" class="flex-1 text-sm px-3 py-2 border border-gray-200 dark:border-slate-600 rounded-lg bg-white dark:bg-slate-700 text-gray-700 dark:text-slate-200 focus:outline-none focus:ring-2 focus:ring-blue-500">
+            <input type="month" name="month" value="{{ request('month', now()->format('Y-m')) }}" class="text-sm px-3 py-2 border border-gray-200 dark:border-slate-600 rounded-lg bg-white dark:bg-slate-700 text-gray-700 dark:text-slate-200 focus:outline-none focus:ring-2 focus:ring-primary-500">
+            <select name="category" class="flex-1 text-sm px-3 py-2 border border-gray-200 dark:border-slate-600 rounded-lg bg-white dark:bg-slate-700 text-gray-700 dark:text-slate-200 focus:outline-none focus:ring-2 focus:ring-primary-500">
                 <option value="">All Categories</option>
                 @foreach($categories as $cat)<option value="{{ $cat->id }}" {{ request('category')==$cat->id?'selected':'' }}>{{ $cat->name }}</option>@endforeach
             </select>
-            <button type="submit" class="px-3 py-2 bg-blue-600 text-white rounded-lg hover:bg-blue-700 text-sm transition-colors">Filter</button>
+            <button type="submit" class="px-3 py-2 bg-primary-600 text-white rounded-lg hover:bg-primary-700 text-sm transition-colors">Filter</button>
         </form>
         <div class="bg-white dark:bg-slate-800 rounded-xl border border-gray-100 dark:border-slate-700 overflow-hidden">
             <div class="divide-y divide-gray-50 dark:divide-slate-700">
@@ -69,4 +88,40 @@
         </div>
     </div>
 </div>
+@push('scripts')
+<script>
+function quickCat(type) {
+    return {
+        open: false, newName: '', saving: false, error: '',
+        save() {
+            if (!this.newName.trim()) return;
+            this.saving = true; this.error = '';
+            fetch('{{ route("settings.account-categories.store") }}', {
+                method: 'POST',
+                headers: {
+                    'Content-Type': 'application/json',
+                    'X-CSRF-TOKEN': document.querySelector('meta[name=csrf-token]').content,
+                    'Accept': 'application/json',
+                },
+                body: JSON.stringify({ name: this.newName.trim(), type }),
+            })
+            .then(r => r.json().then(d => ({ ok: r.ok, d })))
+            .then(({ ok, d }) => {
+                if (!ok) { this.error = d.error || 'Failed to create'; return; }
+                this.$dispatch('cat-created', { id: d.id, name: d.name, type });
+                this.newName = ''; this.open = false;
+            })
+            .catch(() => { this.error = 'Network error. Try again.'; })
+            .finally(() => this.saving = false);
+        },
+        onCreated(detail) {
+            if (detail.type !== type) return;
+            const opt = new Option(detail.name, detail.id, true, true);
+            this.$refs.select.appendChild(opt);
+        }
+    }
+}
+</script>
+@endpush
+
 @endsection

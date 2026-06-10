@@ -1,4 +1,4 @@
-{{-- ============================================================
+﻿{{-- ============================================================
      FILE: resources/views/courier/index.blade.php
      ============================================================ --}}
 @extends('layouts.app')
@@ -12,7 +12,7 @@
         <p class="text-xs text-gray-500 dark:text-slate-400 mt-0.5">{{ $shipments->total() }} total shipments</p>
     </div>
     <a href="{{ route('courier.create') }}"
-       class="flex items-center gap-1.5 px-3 py-2 text-xs font-medium text-white bg-blue-600 rounded-lg hover:bg-blue-700 transition-colors">
+       class="flex items-center gap-1.5 px-3 py-2 text-xs font-medium text-white bg-primary-600 rounded-lg hover:bg-primary-700 transition-colors">
         <svg class="w-3.5 h-3.5" fill="none" stroke="currentColor" viewBox="0 0 24 24"><path stroke-linecap="round" stroke-linejoin="round" stroke-width="2" d="M12 4v16m8-8H4"/></svg>
         New Shipment
     </a>
@@ -24,7 +24,7 @@
     @foreach($tabs as $key => $label)
     <a href="{{ route('courier.index', $key ? ['status'=>$key] : []) }}"
        class="flex-shrink-0 flex items-center gap-1.5 px-3 py-1.5 rounded-lg text-xs font-medium transition-colors whitespace-nowrap
-              {{ request('status','')===$key ? 'bg-blue-600 text-white' : 'bg-white dark:bg-slate-800 text-gray-600 dark:text-slate-300 border border-gray-200 dark:border-slate-700 hover:bg-gray-50 dark:hover:bg-slate-700' }}">
+              {{ request('status','')===$key ? 'bg-primary-600 text-white' : 'bg-white dark:bg-slate-800 text-gray-600 dark:text-slate-300 border border-gray-200 dark:border-slate-700 hover:bg-gray-50 dark:hover:bg-slate-700' }}">
         {{ $label }}
         @if(isset($statusCounts[$key]) && $statusCounts[$key] > 0)
             <span class="px-1.5 py-0.5 rounded-full text-xs {{ request('status','')===$key ? 'bg-white/20 text-white' : 'bg-gray-100 dark:bg-slate-700 text-gray-600 dark:text-slate-300' }}">
@@ -59,7 +59,7 @@
                 <tr class="hover:bg-gray-50 dark:hover:bg-slate-700/30 transition-colors group">
                     <td class="px-4 py-3">
                         <a href="{{ $shipment->order_id && $shipment->order ? route('orders.show', $shipment->order) : '#' }}"
-                           class="font-semibold text-blue-600 dark:text-blue-400 hover:underline text-xs">
+                           class="font-semibold text-primary-600 dark:text-primary-400 hover:underline text-xs">
                             #{{ $shipment->order->order_number ?? '—' }}
                         </a>
                     </td>
@@ -86,7 +86,7 @@
                     <td class="px-4 py-3 text-center">
                         <div class="flex items-center justify-center gap-1 opacity-0 group-hover:opacity-100 transition-opacity">
                             <a href="{{ route('courier.show', $shipment) }}"
-                               class="p-1.5 text-gray-400 hover:text-blue-600 hover:bg-blue-50 dark:hover:bg-blue-900/20 rounded-lg">
+                               class="p-1.5 text-gray-400 hover:text-primary-600 hover:bg-primary-50 dark:hover:bg-primary-900/20 rounded-lg">
                                 <svg class="w-4 h-4" fill="none" stroke="currentColor" viewBox="0 0 24 24"><path stroke-linecap="round" stroke-linejoin="round" stroke-width="2" d="M15 12a3 3 0 11-6 0 3 3 0 016 0z"/><path stroke-linecap="round" stroke-linejoin="round" stroke-width="2" d="M2.458 12C3.732 7.943 7.523 5 12 5c4.478 0 8.268 2.943 9.542 7-1.274 4.057-5.064 7-9.542 7-4.477 0-8.268-2.943-9.542-7z"/></svg>
                             </a>
                             <form method="POST" action="{{ route('courier.update', $shipment) }}" x-data>
@@ -115,7 +115,7 @@
         <div class="p-4">
             <div class="flex items-start justify-between mb-2">
                 <div>
-                    <a href="{{ route('courier.show', $shipment) }}" class="font-semibold text-blue-600 dark:text-blue-400 text-sm">
+                    <a href="{{ route('courier.show', $shipment) }}" class="font-semibold text-primary-600 dark:text-primary-400 text-sm">
                         #{{ $shipment->order->order_number ?? '—' }}
                     </a>
                     <p class="text-sm font-medium text-gray-900 dark:text-white mt-0.5">{{ $shipment->order->customer_name ?? '—' }}</p>

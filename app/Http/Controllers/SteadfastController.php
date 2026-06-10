@@ -37,7 +37,7 @@ class SteadfastController extends Controller
         if (!$exists) {
             Transaction::create([
                 'business_id'      => $shipment->business_id,
-                'created_by'       => 1,
+                'created_by'       => auth()->id() ?? $shipment->order->created_by,
                 'order_id'         => $shipment->order_id,
                 'type'             => 'income',
                 'title'            => 'COD collected - Order #' . $shipment->order->order_number,
@@ -383,7 +383,7 @@ class SteadfastController extends Controller
                     if ($shipment->order->paid_amount > 0) {
                         Transaction::create([
                             'business_id'      => $shipment->business_id,
-                            'created_by'       => 1,
+                            'created_by'       => auth()->id() ?? $shipment->order->created_by,
                             'order_id'         => $shipment->order_id,
                             'type'             => 'expense',
                             'title'            => 'Return/Cancel - Order #' . $shipment->order->order_number,
@@ -403,6 +403,26 @@ class SteadfastController extends Controller
         }
 
         return response()->json(['status' => 'success', 'message' => 'Webhook received.'], 200);
+    }
+
+    // =============================================
+    // FRAUD CHECK — AJAX (called from order form)
+    // =============================================
+    public function checkPhone(Request $request)
+    {
+        $phone = preg_replace('/\D/', '', $request->input('phone', ''));
+
+        if (strlen($phone) < 10) {
+            return response()->json(['found' => false, 'error' => 'Invalid phone number'], 422);
+        }
+
+        $service = $this->getService();
+        if (!$service) {
+            return response()->json(['found' => false, 'error' => 'Steadfast not connected'], 503);
+        }
+
+        $result = $service->fraudCheck($phone);
+        return response()->json($result);
     }
 
     public function getBalance()

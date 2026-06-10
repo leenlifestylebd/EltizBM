@@ -1,4 +1,4 @@
-@extends('layouts.app')
+﻿@extends('layouts.app')
 @section('title', 'Orders')
 
 @section('content')
@@ -9,14 +9,13 @@
         <h2 class="text-base font-semibold text-gray-900 dark:text-white">Orders</h2>
         <p class="text-xs text-gray-500 dark:text-slate-400 mt-0.5">{{ $orders->total() }} total orders</p>
     </div>
-    <a href="{{ route('orders.create') }}"
-       class="flex items-center gap-1.5 px-3 py-2 text-xs font-medium text-white bg-blue-600 rounded-lg hover:bg-blue-700 transition-colors">
-        <svg class="w-3.5 h-3.5" fill="none" stroke="currentColor" viewBox="0 0 24 24">
-            <path stroke-linecap="round" stroke-linejoin="round" stroke-width="2" d="M12 4v16m8-8H4"/>
-        </svg>
-        <span class="hidden xs:inline">New Order</span>
-        <span class="xs:hidden">New</span>
-    </a>
+    <div class="flex items-center gap-2">
+        <a href="{{ route('orders.export', request()->query()) }}"
+           class="hidden sm:flex items-center gap-1.5 px-3 py-2 text-xs font-medium text-gray-600 dark:text-slate-300 bg-white dark:bg-slate-700 border border-gray-200 dark:border-slate-600 rounded-lg hover:bg-gray-50 transition-colors">
+            <svg class="w-3.5 h-3.5" fill="none" stroke="currentColor" viewBox="0 0 24 24"><path stroke-linecap="round" stroke-linejoin="round" stroke-width="2" d="M4 16v1a3 3 0 003 3h10a3 3 0 003-3v-1m-4-4l-4 4m0 0l-4-4m4 4V4"/></svg>
+            Export CSV
+        </a>
+    </div>
 </div>
 
 {{-- Status Tabs (scrollable on mobile) --}}
@@ -38,7 +37,7 @@
     <a href="{{ route('orders.index', array_merge(request()->except('status','page'), $tab['key'] ? ['status' => $tab['key']] : [])) }}"
        class="flex-shrink-0 flex items-center gap-1.5 px-3 py-1.5 rounded-lg text-xs font-medium transition-colors whitespace-nowrap
               {{ $activeTab === $tab['key']
-                  ? 'bg-blue-600 text-white'
+                  ? 'bg-primary-600 text-white'
                   : 'bg-white dark:bg-slate-800 text-gray-600 dark:text-slate-300 border border-gray-200 dark:border-slate-700 hover:bg-gray-50 dark:hover:bg-slate-700' }}">
         {{ $tab['label'] }}
         @if($tab['count'] > 0)
@@ -64,15 +63,15 @@
             </svg>
             <input type="text" name="search" value="{{ request('search') }}"
                    placeholder="Order #, customer name, phone..."
-                   class="w-full pl-9 pr-3 py-2 text-sm border border-gray-200 dark:border-slate-600 rounded-lg bg-transparent text-gray-900 dark:text-white placeholder-gray-400 focus:outline-none focus:ring-2 focus:ring-blue-500">
+                   class="w-full pl-9 pr-3 py-2 text-sm border border-gray-200 dark:border-slate-600 rounded-lg bg-transparent text-gray-900 dark:text-white placeholder-gray-400 focus:outline-none focus:ring-2 focus:ring-primary-500">
         </div>
 
         <div class="flex gap-2">
             <input type="date" name="date_from" value="{{ request('date_from') }}"
-                   class="flex-1 sm:flex-none text-sm px-3 py-2 border border-gray-200 dark:border-slate-600 rounded-lg bg-white dark:bg-slate-700 text-gray-700 dark:text-slate-200 focus:outline-none focus:ring-2 focus:ring-blue-500">
+                   class="flex-1 sm:flex-none text-sm px-3 py-2 border border-gray-200 dark:border-slate-600 rounded-lg bg-white dark:bg-slate-700 text-gray-700 dark:text-slate-200 focus:outline-none focus:ring-2 focus:ring-primary-500">
             <input type="date" name="date_to" value="{{ request('date_to') }}"
-                   class="flex-1 sm:flex-none text-sm px-3 py-2 border border-gray-200 dark:border-slate-600 rounded-lg bg-white dark:bg-slate-700 text-gray-700 dark:text-slate-200 focus:outline-none focus:ring-2 focus:ring-blue-500">
-            <button type="submit" class="px-3 py-2 bg-blue-600 text-white rounded-lg hover:bg-blue-700 transition-colors">
+                   class="flex-1 sm:flex-none text-sm px-3 py-2 border border-gray-200 dark:border-slate-600 rounded-lg bg-white dark:bg-slate-700 text-gray-700 dark:text-slate-200 focus:outline-none focus:ring-2 focus:ring-primary-500">
+            <button type="submit" class="px-3 py-2 bg-primary-600 text-white rounded-lg hover:bg-primary-700 transition-colors">
                 <svg class="w-4 h-4" fill="none" stroke="currentColor" viewBox="0 0 24 24">
                     <path stroke-linecap="round" stroke-linejoin="round" stroke-width="2" d="M3 4a1 1 0 011-1h16a1 1 0 011 1v2a1 1 0 01-.293.707L13 13.414V19a1 1 0 01-.553.894l-4 2A1 1 0 017 21v-7.586L3.293 6.707A1 1 0 013 6V4z"/>
                 </svg>
@@ -104,7 +103,7 @@
                 <tr class="hover:bg-gray-50 dark:hover:bg-slate-700/30 transition-colors group">
                     <td class="px-4 py-3">
                         <a href="{{ route('orders.show', $order) }}"
-                           class="font-semibold text-blue-600 dark:text-blue-400 hover:underline text-xs">
+                           class="font-semibold text-primary-600 dark:text-primary-400 hover:underline text-xs">
                             #{{ $order->order_number }}
                         </a>
                         @if($order->source === 'woocommerce')
@@ -125,7 +124,7 @@
                             'manual'      => 'bg-gray-100 text-gray-600 dark:bg-slate-700 dark:text-slate-300',
                             'woocommerce' => 'bg-purple-100 text-purple-700 dark:bg-purple-900/30 dark:text-purple-400',
                             'pos'         => 'bg-green-100 text-green-700 dark:bg-green-900/30 dark:text-green-400',
-                            'web'         => 'bg-blue-100 text-blue-700 dark:bg-blue-900/30 dark:text-blue-400',
+                            'web'         => 'bg-primary-100 text-primary-700 dark:bg-primary-900/30 dark:text-primary-400',
                         ];
                         @endphp
                         <span class="inline-flex px-2 py-0.5 rounded text-xs font-medium {{ $sourceColors[$order->source] ?? 'bg-gray-100 text-gray-600' }}">
@@ -155,8 +154,8 @@
                         @php
                         $statusColors = [
                             'pending'    => 'bg-yellow-100 text-yellow-700 dark:bg-yellow-900/30 dark:text-yellow-400',
-                            'confirmed'  => 'bg-blue-100 text-blue-700 dark:bg-blue-900/30 dark:text-blue-400',
-                            'processing' => 'bg-indigo-100 text-indigo-700 dark:bg-indigo-900/30 dark:text-indigo-400',
+                            'confirmed'  => 'bg-primary-100 text-primary-700 dark:bg-primary-900/30 dark:text-primary-400',
+                            'processing' => 'bg-primary-100 text-primary-700 dark:bg-primary-900/30 dark:text-primary-400',
                             'shipped'    => 'bg-purple-100 text-purple-700 dark:bg-purple-900/30 dark:text-purple-400',
                             'delivered'  => 'bg-green-100 text-green-700 dark:bg-green-900/30 dark:text-green-400',
                             'completed'  => 'bg-green-100 text-green-700 dark:bg-green-900/30 dark:text-green-400',
@@ -175,7 +174,7 @@
                     <td class="px-4 py-3">
                         <div class="flex items-center justify-center gap-1 opacity-0 group-hover:opacity-100 transition-opacity">
                             <a href="{{ route('orders.show', $order) }}"
-                               class="p-1.5 text-gray-400 hover:text-blue-600 hover:bg-blue-50 dark:hover:bg-blue-900/20 rounded-lg" title="View">
+                               class="p-1.5 text-gray-400 hover:text-primary-600 hover:bg-primary-50 dark:hover:bg-primary-900/20 rounded-lg" title="View">
                                 <svg class="w-4 h-4" fill="none" stroke="currentColor" viewBox="0 0 24 24">
                                     <path stroke-linecap="round" stroke-linejoin="round" stroke-width="2" d="M15 12a3 3 0 11-6 0 3 3 0 016 0z"/><path stroke-linecap="round" stroke-linejoin="round" stroke-width="2" d="M2.458 12C3.732 7.943 7.523 5 12 5c4.478 0 8.268 2.943 9.542 7-1.274 4.057-5.064 7-9.542 7-4.477 0-8.268-2.943-9.542-7z"/>
                                 </svg>
@@ -187,7 +186,7 @@
                                 </svg>
                             </a>
                             <a href="{{ route('orders.edit', $order) }}"
-                               class="p-1.5 text-gray-400 hover:text-indigo-600 hover:bg-indigo-50 dark:hover:bg-indigo-900/20 rounded-lg" title="Edit">
+                               class="p-1.5 text-gray-400 hover:text-primary-600 hover:bg-primary-50 dark:hover:bg-primary-900/20 rounded-lg" title="Edit">
                                 <svg class="w-4 h-4" fill="none" stroke="currentColor" viewBox="0 0 24 24">
                                     <path stroke-linecap="round" stroke-linejoin="round" stroke-width="2" d="M11 5H6a2 2 0 00-2 2v11a2 2 0 002 2h11a2 2 0 002-2v-5m-1.414-9.414a2 2 0 112.828 2.828L11.828 15H9v-2.828l8.586-8.586z"/>
                                 </svg>
@@ -212,7 +211,7 @@
                             <path stroke-linecap="round" stroke-linejoin="round" stroke-width="1.5" d="M9 5H7a2 2 0 00-2 2v12a2 2 0 002 2h10a2 2 0 002-2V7a2 2 0 00-2-2h-2M9 5a2 2 0 002 2h2a2 2 0 002-2M9 5a2 2 0 012-2h2a2 2 0 012 2"/>
                         </svg>
                         <p class="text-sm text-gray-400 dark:text-slate-500">No orders found</p>
-                        <a href="{{ route('orders.create') }}" class="mt-2 inline-block text-xs text-blue-600 hover:underline">Create your first order</a>
+                        <a href="{{ route('orders.create') }}" class="mt-2 inline-block text-xs text-primary-600 hover:underline">Create your first order</a>
                     </td>
                 </tr>
                 @endforelse
@@ -227,7 +226,7 @@
             <div class="flex items-start justify-between mb-2">
                 <div>
                     <a href="{{ route('orders.show', $order) }}"
-                       class="font-semibold text-blue-600 dark:text-blue-400 text-sm">
+                       class="font-semibold text-primary-600 dark:text-primary-400 text-sm">
                         #{{ $order->order_number }}
                     </a>
                     <p class="text-sm font-medium text-gray-900 dark:text-white mt-0.5">{{ $order->customer_name }}</p>
@@ -255,7 +254,7 @@
                 </div>
                 <div class="flex items-center gap-1">
                     <a href="{{ route('orders.show', $order) }}"
-                       class="p-1.5 text-gray-400 bg-gray-100 dark:bg-slate-700 rounded-lg hover:text-blue-600">
+                       class="p-1.5 text-gray-400 bg-gray-100 dark:bg-slate-700 rounded-lg hover:text-primary-600">
                         <svg class="w-3.5 h-3.5" fill="none" stroke="currentColor" viewBox="0 0 24 24"><path stroke-linecap="round" stroke-linejoin="round" stroke-width="2" d="M15 12a3 3 0 11-6 0 3 3 0 016 0z"/><path stroke-linecap="round" stroke-linejoin="round" stroke-width="2" d="M2.458 12C3.732 7.943 7.523 5 12 5c4.478 0 8.268 2.943 9.542 7-1.274 4.057-5.064 7-9.542 7-4.477 0-8.268-2.943-9.542-7z"/></svg>
                     </a>
                     <a href="{{ route('orders.invoice', $order) }}" target="_blank"
@@ -263,7 +262,7 @@
                         <svg class="w-3.5 h-3.5" fill="none" stroke="currentColor" viewBox="0 0 24 24"><path stroke-linecap="round" stroke-linejoin="round" stroke-width="2" d="M9 12h6m-6 4h6m2 5H7a2 2 0 01-2-2V5a2 2 0 012-2h5.586a1 1 0 01.707.293l5.414 5.414a1 1 0 01.293.707V19a2 2 0 01-2 2z"/></svg>
                     </a>
                     <a href="{{ route('orders.edit', $order) }}"
-                       class="p-1.5 text-gray-400 bg-gray-100 dark:bg-slate-700 rounded-lg hover:text-indigo-600">
+                       class="p-1.5 text-gray-400 bg-gray-100 dark:bg-slate-700 rounded-lg hover:text-primary-600">
                         <svg class="w-3.5 h-3.5" fill="none" stroke="currentColor" viewBox="0 0 24 24"><path stroke-linecap="round" stroke-linejoin="round" stroke-width="2" d="M11 5H6a2 2 0 00-2 2v11a2 2 0 002 2h11a2 2 0 002-2v-5m-1.414-9.414a2 2 0 112.828 2.828L11.828 15H9v-2.828l8.586-8.586z"/></svg>
                     </a>
                     @if(auth()->user()->role === 'owner' || auth()->user()->role === 'admin')

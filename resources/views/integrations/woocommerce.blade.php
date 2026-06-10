@@ -1,4 +1,4 @@
-@extends('layouts.app')
+﻿@extends('layouts.app')
 @section('title', 'WooCommerce Integration')
 
 @section('content')
@@ -57,7 +57,7 @@
                 </label>
                 <input type="url" name="store_url"
                        value="{{ old('store_url', $wooSettings->store_url ?? '') }}" required
-                       class="w-full px-3 py-2.5 text-sm border border-gray-200 dark:border-slate-600 rounded-lg bg-white dark:bg-slate-700 text-gray-900 dark:text-white focus:outline-none focus:ring-2 focus:ring-blue-500"
+                       class="w-full px-3 py-2.5 text-sm border border-gray-200 dark:border-slate-600 rounded-lg bg-white dark:bg-slate-700 text-gray-900 dark:text-white focus:outline-none focus:ring-2 focus:ring-primary-500"
                        placeholder="https://yourstore.com">
                 <p class="text-xs text-gray-400 dark:text-slate-500 mt-1">Your WooCommerce store URL (without trailing slash)</p>
             </div>
@@ -68,7 +68,7 @@
                 </label>
                 <input type="text" name="consumer_key"
                        value="{{ old('consumer_key', $wooSettings?->consumer_key ? '••••••••' . substr($wooSettings->consumer_key, -6) : '') }}" required
-                       class="w-full px-3 py-2.5 text-sm border border-gray-200 dark:border-slate-600 rounded-lg bg-white dark:bg-slate-700 text-gray-900 dark:text-white focus:outline-none focus:ring-2 focus:ring-blue-500 font-mono"
+                       class="w-full px-3 py-2.5 text-sm border border-gray-200 dark:border-slate-600 rounded-lg bg-white dark:bg-slate-700 text-gray-900 dark:text-white focus:outline-none focus:ring-2 focus:ring-primary-500 font-mono"
                        placeholder="ck_xxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxx">
             </div>
 
@@ -78,7 +78,7 @@
                 </label>
                 <input type="text" name="consumer_secret"
                        value="{{ old('consumer_secret', $wooSettings?->consumer_secret ? '••••••••' . substr($wooSettings->consumer_secret, -6) : '') }}" required
-                       class="w-full px-3 py-2.5 text-sm border border-gray-200 dark:border-slate-600 rounded-lg bg-white dark:bg-slate-700 text-gray-900 dark:text-white focus:outline-none focus:ring-2 focus:ring-blue-500 font-mono"
+                       class="w-full px-3 py-2.5 text-sm border border-gray-200 dark:border-slate-600 rounded-lg bg-white dark:bg-slate-700 text-gray-900 dark:text-white focus:outline-none focus:ring-2 focus:ring-primary-500 font-mono"
                        placeholder="cs_xxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxx">
             </div>
 
@@ -88,15 +88,15 @@
                 </label>
                 <input type="text" name="webhook_secret"
                        value="{{ old('webhook_secret', $wooSettings->webhook_secret ?? '') }}"
-                       class="w-full px-3 py-2.5 text-sm border border-gray-200 dark:border-slate-600 rounded-lg bg-white dark:bg-slate-700 text-gray-900 dark:text-white focus:outline-none focus:ring-2 focus:ring-blue-500 font-mono"
+                       class="w-full px-3 py-2.5 text-sm border border-gray-200 dark:border-slate-600 rounded-lg bg-white dark:bg-slate-700 text-gray-900 dark:text-white focus:outline-none focus:ring-2 focus:ring-primary-500 font-mono"
                        placeholder="WooCommerce webhook secret key">
                 <p class="text-xs text-gray-400 dark:text-slate-500 mt-1">WooCommerce → Webhooks → Secret field থেকে copy করো</p>
             </div>
 
             {{-- How to get keys --}}
-            <div class="bg-blue-50 dark:bg-blue-900/20 border border-blue-100 dark:border-blue-800 rounded-lg p-3">
-                <p class="text-xs font-semibold text-blue-700 dark:text-blue-400 mb-1">How to get API keys?</p>
-                <ol class="text-xs text-blue-600 dark:text-blue-400 space-y-0.5 list-decimal list-inside">
+            <div class="bg-primary-50 dark:bg-primary-900/20 border border-primary-100 dark:border-primary-800 rounded-lg p-3">
+                <p class="text-xs font-semibold text-primary-700 dark:text-primary-400 mb-1">How to get API keys?</p>
+                <ol class="text-xs text-primary-600 dark:text-primary-400 space-y-0.5 list-decimal list-inside">
                     <li>Go to WooCommerce → Settings → Advanced → REST API</li>
                     <li>Click "Add Key"</li>
                     <li>Set Permissions to <strong>Read/Write</strong></li>
@@ -123,7 +123,7 @@
                             <input type="checkbox" name="{{ $opt['key'] }}" value="1"
                                    {{ old($opt['key'], $wooSettings?->{$opt['key']} ?? true) ? 'checked' : '' }}
                                    class="sr-only peer">
-                            <div class="w-9 h-5 bg-gray-200 dark:bg-slate-600 rounded-full peer peer-checked:after:translate-x-full peer-checked:bg-blue-600 after:content-[''] after:absolute after:top-0.5 after:left-0.5 after:bg-white after:border after:rounded-full after:h-4 after:w-4 after:transition-all"></div>
+                            <div class="w-9 h-5 bg-gray-200 dark:bg-slate-600 rounded-full peer peer-checked:after:translate-x-full peer-checked:bg-primary-600 after:content-[''] after:absolute after:top-0.5 after:left-0.5 after:bg-white after:border after:rounded-full after:h-4 after:w-4 after:transition-all"></div>
                         </div>
                     </label>
                     @endforeach
@@ -139,7 +139,7 @@
                     <span x-text="testing ? 'Testing...' : 'Test Connection'"></span>
                 </button>
                 <button type="submit"
-                        class="flex-1 flex items-center justify-center gap-2 px-4 py-2.5 bg-blue-600 hover:bg-blue-700 text-white text-sm font-medium rounded-lg transition-colors">
+                        class="flex-1 flex items-center justify-center gap-2 px-4 py-2.5 bg-primary-600 hover:bg-primary-700 text-white text-sm font-medium rounded-lg transition-colors">
                     <svg class="w-4 h-4" fill="none" stroke="currentColor" viewBox="0 0 24 24">
                         <path stroke-linecap="round" stroke-linejoin="round" stroke-width="2" d="M5 13l4 4L19 7"/>
                     </svg>
@@ -170,7 +170,7 @@
                     ['value' => 'push_all', 'label' => '⬆️ Push to WooCommerce',   'desc' => 'Stock levels'],
                     ['value' => 'full',     'label' => '🔄 Full Two-Way Sync',      'desc' => 'Everything'],
                 ] as $opt)
-                <label class="flex flex-col p-3 border border-gray-200 dark:border-slate-600 rounded-xl cursor-pointer hover:border-blue-400 hover:bg-blue-50 dark:hover:bg-blue-900/10 transition-colors has-[:checked]:border-blue-500 has-[:checked]:bg-blue-50 dark:has-[:checked]:bg-blue-900/20">
+                <label class="flex flex-col p-3 border border-gray-200 dark:border-slate-600 rounded-xl cursor-pointer hover:border-primary-400 hover:bg-primary-50 dark:hover:bg-primary-900/10 transition-colors has-[:checked]:border-primary-500 has-[:checked]:bg-primary-50 dark:has-[:checked]:bg-primary-900/20">
                     <input type="radio" name="sync_type" value="{{ $opt['value'] }}" class="sr-only"
                            {{ $opt['value'] === 'full' ? 'checked' : '' }}>
                     <span class="text-sm font-medium text-gray-900 dark:text-white">{{ $opt['label'] }}</span>

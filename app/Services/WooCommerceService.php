@@ -2,6 +2,7 @@
 
 namespace App\Services;
 
+use App\Models\User;
 use App\Models\WoocommerceSetting;
 use App\Models\Product;
 use App\Models\ProductVariant;
@@ -16,11 +17,21 @@ class WooCommerceService
 {
     protected WoocommerceSetting $settings;
     protected string $baseUrl;
+    protected int $systemUserId;
 
     public function __construct(WoocommerceSetting $settings)
     {
         $this->settings = $settings;
         $this->baseUrl  = rtrim($settings->store_url, '/') . '/wp-json/wc/v3/';
+
+        // Resolve the business owner's user ID for system-created records.
+        // Falls back to the authenticated user, then to the first owner of the business.
+        $this->systemUserId = auth()->id()
+            ?? User::where('business_id', $settings->business_id)
+                   ->where('role', 'owner')
+                   ->value('id')
+            ?? User::where('business_id', $settings->business_id)->value('id')
+            ?? 1;
     }
 
     // =============================================
@@ -97,11 +108,11 @@ class WooCommerceService
                             ->where('woo_product_id', $wp['id'])
                             ->first();
 
+                        // Base data that always updates
                         $productData = [
                             'business_id'    => $businessId,
                             'name'           => $wp['name'],
                             'slug'           => $wp['slug'] . '-' . $businessId,
-                            'sku'            => $wp['sku'] ?: 'WOO-' . $wp['id'],
                             'description'    => strip_tags($wp['short_description'] ?? $wp['description'] ?? ''),
                             'price'          => floatval($wp['regular_price'] ?: $wp['price'] ?: 0),
                             'sale_price'     => $wp['sale_price'] ? floatval($wp['sale_price']) : null,
@@ -113,18 +124,38 @@ class WooCommerceService
                             'woo_synced_at'  => now(),
                         ];
 
-                        // Download first image
-                        if (!empty($wp['images'])) {
-                            $productData['images'] = array_map(
-                                fn($img) => $img['src'],
-                                array_slice($wp['images'], 0, 5)
-                            );
-                        }
-
                         if ($existing) {
+                            // Don't overwrite SKU if user has set a custom one
+                            // (only auto-generated WOO-xxx SKUs get refreshed)
+                            $currentSku = $existing->sku ?? '';
+                            if (empty($currentSku) || str_starts_with($currentSku, 'WOO-')) {
+                                $productData['sku'] = $wp['sku'] ?: 'WOO-' . $wp['id'];
+                            }
+
+                            // Don't overwrite images if user has locally-uploaded ones
+                            // (local uploads are storage paths, not http URLs)
+                            $hasLocalImages = collect($existing->images ?? [])
+                                ->contains(fn($img) => !str_starts_with($img, 'http'));
+                            if (!$hasLocalImages && !empty($wp['images'])) {
+                                $productData['images'] = array_map(
+                                    fn($img) => $img['src'],
+                                    array_slice($wp['images'], 0, 5)
+                                );
+                            }
+
                             $existing->update($productData);
                             $updated++;
                         } else {
+                            // New product: import everything
+                            $productData['sku'] = $wp['sku'] ?: 'WOO-' . $wp['id'];
+
+                            if (!empty($wp['images'])) {
+                                $productData['images'] = array_map(
+                                    fn($img) => $img['src'],
+                                    array_slice($wp['images'], 0, 5)
+                                );
+                            }
+
                             Product::create($productData);
                             $imported++;
                         }
@@ -363,7 +394,7 @@ class WooCommerceService
         $order = Order::create([
             'business_id'       => $businessId,
             'customer_id'       => $customer?->id,
-            'created_by'        => 1, // System
+            'created_by'        => $this->systemUserId,
             'order_number'      => 'WOO-' . $wo['id'],
             'source'            => 'woocommerce',
             'status'            => $status,

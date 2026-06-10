@@ -1,4 +1,4 @@
-@extends('layouts.app')
+﻿@extends('layouts.app')
 @section('title', 'Dashboard')
 
 @section('content')
@@ -16,12 +16,6 @@
             Today's Update — {{ now()->format('d M Y') }}
         </p>
     </div>
-    <a href="{{ route('orders.create') }}"
-       class="w-9 h-9 bg-primary-600 rounded-full flex items-center justify-center text-white shadow-sm hover:bg-primary-700 transition-colors">
-        <svg class="w-5 h-5" fill="none" stroke="currentColor" viewBox="0 0 24 24">
-            <path stroke-linecap="round" stroke-linejoin="round" stroke-width="2" d="M12 4v16m8-8H4"/>
-        </svg>
-    </a>
 </div>
 
 {{-- Stats Grid — 2 col mobile, 3 col md, 6 col xl --}}
@@ -35,8 +29,8 @@
                 <p class="text-xl font-bold text-gray-900 dark:text-white mt-1">{{ $stats['total_orders'] ?? 0 }}</p>
                 <p class="text-xs text-gray-400 dark:text-slate-500 mt-0.5">today</p>
             </div>
-            <div class="w-9 h-9 bg-blue-50 dark:bg-blue-900/30 rounded-lg flex items-center justify-center flex-shrink-0">
-                <svg class="w-4 h-4 text-blue-500" fill="none" stroke="currentColor" viewBox="0 0 24 24">
+            <div class="w-9 h-9 bg-primary-50 dark:bg-primary-900/30 rounded-lg flex items-center justify-center flex-shrink-0">
+                <svg class="w-4 h-4 text-primary-500" fill="none" stroke="currentColor" viewBox="0 0 24 24">
                     <path stroke-linecap="round" stroke-linejoin="round" stroke-width="2" d="M3 3h2l.4 2M7 13h10l4-8H5.4M7 13L5.4 5M7 13l-2.293 2.293c-.63.63-.184 1.707.707 1.707H17m0 0a2 2 0 100 4 2 2 0 000-4zm-8 2a2 2 0 11-4 0 2 2 0 014 0z"/>
                 </svg>
             </div>
@@ -115,8 +109,8 @@
                 <p class="text-xl font-bold text-gray-900 dark:text-white mt-1">{{ $stats['shipments'] ?? 0 }}</p>
                 <p class="text-xs text-gray-400 dark:text-slate-500 mt-0.5">today</p>
             </div>
-            <div class="w-9 h-9 bg-indigo-50 dark:bg-indigo-900/30 rounded-lg flex items-center justify-center flex-shrink-0">
-                <svg class="w-4 h-4 text-indigo-500" fill="none" stroke="currentColor" viewBox="0 0 24 24">
+            <div class="w-9 h-9 bg-primary-50 dark:bg-primary-900/30 rounded-lg flex items-center justify-center flex-shrink-0">
+                <svg class="w-4 h-4 text-primary-500" fill="none" stroke="currentColor" viewBox="0 0 24 24">
                     <path d="M9 17a2 2 0 11-4 0 2 2 0 014 0zM19 17a2 2 0 11-4 0 2 2 0 014 0z"/>
                     <path stroke-linecap="round" stroke-linejoin="round" stroke-width="2" d="M13 16V6a1 1 0 00-1-1H4a1 1 0 00-1 1v10a1 1 0 001 1h1m8-1a1 1 0 01-1 1H9m4-1V8a1 1 0 011-1h2.586a1 1 0 01.707.293l3.414 3.414a1 1 0 01.293.707V16a1 1 0 01-1 1h-1m-6-1a1 1 0 001 1h1M5 17a2 2 0 104 0m-4 0a2 2 0 114 0m6 0a2 2 0 104 0m-4 0a2 2 0 114 0"/>
                 </svg>
@@ -179,7 +173,7 @@
                 <span class="text-xs px-2 py-1 rounded-full font-medium
                     {{ $shipment->status === 'delivered' ? 'bg-green-100 text-green-700' : '' }}
                     {{ $shipment->status === 'pending' ? 'bg-yellow-100 text-yellow-700' : '' }}
-                    {{ $shipment->status === 'in_transit' ? 'bg-blue-100 text-blue-700' : '' }}">
+                    {{ $shipment->status === 'in_transit' ? 'bg-primary-100 text-primary-700' : '' }}">
                     {{ ucfirst($shipment->status) }}
                 </span>
             </div>
@@ -192,7 +186,7 @@
     <div class="bg-white dark:bg-slate-800 rounded-xl border border-gray-100 dark:border-slate-700 overflow-hidden">
         <div class="flex items-center justify-between px-4 py-3 border-b border-gray-50 dark:border-slate-700">
             <h3 class="text-sm font-semibold text-gray-900 dark:text-white">Recent Orders</h3>
-            <a href="{{ route('orders.index') }}" class="text-xs text-primary-600 dark:text-blue-400 font-medium hover:underline">View All</a>
+            <a href="{{ route('orders.index') }}" class="text-xs text-primary-600 dark:text-primary-400 font-medium hover:underline">View All</a>
         </div>
         @if(($recentOrders ?? collect())->isEmpty())
         <div class="flex flex-col items-center justify-center py-10">
@@ -215,7 +209,7 @@
                 <tbody class="divide-y divide-gray-50 dark:divide-slate-700">
                     @foreach($recentOrders as $order)
                     <tr class="hover:bg-gray-50 dark:hover:bg-slate-700/50 transition-colors">
-                        <td class="px-4 py-2.5 font-medium text-primary-600 dark:text-blue-400">
+                        <td class="px-4 py-2.5 font-medium text-primary-600 dark:text-primary-400">
                             <a href="{{ route('orders.show', $order) }}">#{{ $order->order_number }}</a>
                         </td>
                         <td class="px-4 py-2.5 text-gray-700 dark:text-slate-300 truncate max-w-24">{{ $order->customer_name }}</td>
@@ -224,7 +218,7 @@
                             <span class="inline-flex px-2 py-0.5 rounded-full text-xs font-medium
                                 {{ $order->status === 'completed' ? 'bg-green-100 text-green-700 dark:bg-green-900/30 dark:text-green-400' : '' }}
                                 {{ $order->status === 'pending' ? 'bg-yellow-100 text-yellow-700 dark:bg-yellow-900/30 dark:text-yellow-400' : '' }}
-                                {{ $order->status === 'processing' ? 'bg-blue-100 text-blue-700 dark:bg-blue-900/30 dark:text-blue-400' : '' }}
+                                {{ $order->status === 'processing' ? 'bg-primary-100 text-primary-700 dark:bg-primary-900/30 dark:text-primary-400' : '' }}
                                 {{ $order->status === 'cancelled' ? 'bg-red-100 text-red-700 dark:bg-red-900/30 dark:text-red-400' : '' }}">
                                 {{ ucfirst($order->status) }}
                             </span>
@@ -239,32 +233,5 @@
 
 </div>
 
-{{-- Quick Actions -- Mobile friendly --}}
-<div class="bg-white dark:bg-slate-800 rounded-xl border border-gray-100 dark:border-slate-700 p-4 mb-5">
-    <h3 class="text-sm font-semibold text-gray-900 dark:text-white mb-3">Quick Actions</h3>
-    <div class="grid grid-cols-2 xs:grid-cols-3 sm:grid-cols-4 md:grid-cols-6 gap-2">
-        @php
-        $quickActions = [
-            ['route' => 'orders.create',     'icon' => 'M12 4v16m8-8H4',         'label' => 'New Order',    'color' => 'blue'],
-            ['route' => 'pos.index',         'icon' => 'M9 7h6m0 10v-3m-3 3h.01M9 17h.01M9 14h.01M12 14h.01M15 11h.01M12 11h.01M9 11h.01M7 21h10a2 2 0 002-2V5a2 2 0 00-2-2H7a2 2 0 00-2 2v14a2 2 0 002 2z', 'label' => 'POS Sale', 'color' => 'purple'],
-            ['route' => 'products.create',   'icon' => 'M20 7l-8-4-8 4m16 0l-8 4m8-4v10l-8 4m0-10L4 7m8 4v10M4 7v10l8 4', 'label' => 'Add Product', 'color' => 'green'],
-            ['route' => 'accounts.expenses', 'icon' => 'M9 14l6-6m-5.5.5h.01m4.99 5h.01M19 21V5a2 2 0 00-2-2H7a2 2 0 00-2 2v16l3.5-2 3.5 2 3.5-2 3.5 2z', 'label' => 'Add Expense', 'color' => 'red'],
-            ['route' => 'courier.create',    'icon' => 'M13 16V6a1 1 0 00-1-1H4a1 1 0 00-1 1v10a1 1 0 001 1h1m8-1a1 1 0 01-1 1H9m4-1V8a1 1 0 011-1h2.586a1 1 0 01.707.293l3.414 3.414a1 1 0 01.293.707V16a1 1 0 01-1 1h-1', 'label' => 'New Shipment', 'color' => 'indigo'],
-            ['route' => 'reports.profit-loss','icon' => 'M9 17v-2m3 2v-4m3 4v-6m2 10H7a2 2 0 01-2-2V5a2 2 0 012-2h5.586a1 1 0 01.707.293l5.414 5.414a1 1 0 01.293.707V19a2 2 0 01-2 2z', 'label' => 'Reports', 'color' => 'amber'],
-        ];
-        @endphp
-        @foreach($quickActions as $action)
-        <a href="{{ route($action['route']) }}"
-           class="flex flex-col items-center gap-2 p-3 rounded-xl bg-gray-50 dark:bg-slate-700/50 hover:bg-{{ $action['color'] }}-50 dark:hover:bg-{{ $action['color'] }}-900/20 group transition-all">
-            <div class="w-9 h-9 bg-{{ $action['color'] }}-100 dark:bg-{{ $action['color'] }}-900/30 rounded-lg flex items-center justify-center group-hover:scale-110 transition-transform">
-                <svg class="w-4 h-4 text-{{ $action['color'] }}-600 dark:text-{{ $action['color'] }}-400" fill="none" stroke="currentColor" viewBox="0 0 24 24">
-                    <path stroke-linecap="round" stroke-linejoin="round" stroke-width="2" d="{{ $action['icon'] }}"/>
-                </svg>
-            </div>
-            <span class="text-xs text-center text-gray-600 dark:text-slate-300 font-medium leading-tight">{{ $action['label'] }}</span>
-        </a>
-        @endforeach
-    </div>
-</div>
 
 @endsection

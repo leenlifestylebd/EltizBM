@@ -1,4 +1,4 @@
-@extends('layouts.app')
+﻿@extends('layouts.app')
 @section('title', isset($order) ? 'Edit Order' : 'New Order')
 
 @section('content')
@@ -34,15 +34,15 @@
                         <input type="text" id="customerSearch"
                                placeholder="Search customer by name or phone..."
                                autocomplete="off"
-                               class="w-full px-3 py-2.5 text-sm border border-gray-200 dark:border-slate-600 rounded-lg bg-white dark:bg-slate-700 text-gray-900 dark:text-white placeholder-gray-400 focus:outline-none focus:ring-2 focus:ring-blue-500"
+                               class="w-full px-3 py-2.5 text-sm border border-gray-200 dark:border-slate-600 rounded-lg bg-white dark:bg-slate-700 text-gray-900 dark:text-white placeholder-gray-400 focus:outline-none focus:ring-2 focus:ring-primary-500"
                                @input="searchCustomer($event.target.value)">
                         <div x-show="customerResults.length > 0" x-cloak
                              class="absolute z-20 top-full left-0 right-0 mt-1 bg-white dark:bg-slate-800 border border-gray-200 dark:border-slate-700 rounded-xl shadow-lg overflow-hidden">
                             <template x-for="c in customerResults" :key="c.id">
                                 <div @click="selectCustomer(c)"
                                      class="flex items-center gap-3 px-4 py-2.5 hover:bg-gray-50 dark:hover:bg-slate-700 cursor-pointer">
-                                    <div class="w-8 h-8 bg-blue-100 dark:bg-blue-900/30 rounded-full flex items-center justify-center flex-shrink-0">
-                                        <span class="text-xs font-semibold text-blue-600 dark:text-blue-400" x-text="c.name.charAt(0).toUpperCase()"></span>
+                                    <div class="w-8 h-8 bg-primary-100 dark:bg-primary-900/30 rounded-full flex items-center justify-center flex-shrink-0">
+                                        <span class="text-xs font-semibold text-primary-600 dark:text-primary-400" x-text="c.name.charAt(0).toUpperCase()"></span>
                                     </div>
                                     <div>
                                         <p class="text-sm font-medium text-gray-900 dark:text-white" x-text="c.name"></p>
@@ -59,35 +59,101 @@
                             <label class="block text-xs font-medium text-gray-700 dark:text-slate-300 mb-1.5">Name <span class="text-red-500">*</span></label>
                             <input type="text" name="customer_name" id="customerName"
                                    value="{{ old('customer_name', isset($order) ? $order->customer_name : '') }}" required
-                                   class="w-full px-3 py-2.5 text-sm border border-gray-200 dark:border-slate-600 rounded-lg bg-white dark:bg-slate-700 text-gray-900 dark:text-white focus:outline-none focus:ring-2 focus:ring-blue-500"
+                                   class="w-full px-3 py-2.5 text-sm border border-gray-200 dark:border-slate-600 rounded-lg bg-white dark:bg-slate-700 text-gray-900 dark:text-white focus:outline-none focus:ring-2 focus:ring-primary-500"
                                    placeholder="Customer name">
                             <input type="hidden" name="customer_id" id="customerId" value="{{ old('customer_id', isset($order) ? $order->customer_id : '') }}">
                         </div>
-                        <div>
-                            <label class="block text-xs font-medium text-gray-700 dark:text-slate-300 mb-1.5">Phone</label>
+                        <div class="sm:col-span-1">
+                            <label class="block text-xs font-medium text-gray-700 dark:text-slate-300 mb-1.5">
+                                Phone
+                                <span x-show="fraudLoading" class="ml-1 text-primary-500 animate-pulse">checking...</span>
+                            </label>
                             <input type="text" name="customer_phone" id="customerPhone"
                                    value="{{ old('customer_phone', isset($order) ? $order->customer_phone : '') }}"
-                                   class="w-full px-3 py-2.5 text-sm border border-gray-200 dark:border-slate-600 rounded-lg bg-white dark:bg-slate-700 text-gray-900 dark:text-white focus:outline-none focus:ring-2 focus:ring-blue-500"
-                                   placeholder="01XXXXXXXXX">
+                                   class="w-full px-3 py-2.5 text-sm border border-gray-200 dark:border-slate-600 rounded-lg bg-white dark:bg-slate-700 text-gray-900 dark:text-white focus:outline-none focus:ring-2 focus:ring-primary-500"
+                                   placeholder="01XXXXXXXXX"
+                                   @input.debounce.700ms="checkFraud($event.target.value)">
+
+                            {{-- Fraud Result Card --}}
+                            <div x-show="fraudResult" x-cloak x-transition class="mt-2 rounded-xl border p-3 text-xs"
+                                 :class="{
+                                     'bg-green-50 border-green-200 dark:bg-green-900/20 dark:border-green-800': fraudResult?.risk === 'low',
+                                     'bg-yellow-50 border-yellow-200 dark:bg-yellow-900/20 dark:border-yellow-800': fraudResult?.risk === 'medium',
+                                     'bg-red-50 border-red-200 dark:bg-red-900/20 dark:border-red-800': fraudResult?.risk === 'high',
+                                     'bg-gray-50 border-gray-200 dark:bg-slate-700 dark:border-slate-600': fraudResult?.risk === 'new',
+                                 }">
+                                {{-- Header --}}
+                                <div class="flex items-center justify-between mb-2">
+                                    <div class="font-semibold">
+                                        <span x-show="fraudResult?.risk === 'low'"    class="text-green-600 dark:text-green-400">✅ Trusted Customer</span>
+                                        <span x-show="fraudResult?.risk === 'medium'" class="text-yellow-600 dark:text-yellow-400">⚠️ Moderate Risk</span>
+                                        <span x-show="fraudResult?.risk === 'high'"   class="text-red-600 dark:text-red-400">🚨 High Risk / Fraud Alert</span>
+                                        <span x-show="fraudResult?.risk === 'new'"    class="text-gray-600 dark:text-slate-300">🆕 New Customer</span>
+                                    </div>
+                                    <span class="font-bold px-2 py-0.5 rounded-full"
+                                          :class="{
+                                              'bg-green-100 text-green-700 dark:bg-green-900/40 dark:text-green-400': fraudResult?.risk === 'low',
+                                              'bg-yellow-100 text-yellow-700 dark:bg-yellow-900/40 dark:text-yellow-400': fraudResult?.risk === 'medium',
+                                              'bg-red-100 text-red-700 dark:bg-red-900/40 dark:text-red-400': fraudResult?.risk === 'high',
+                                              'bg-gray-100 text-gray-600 dark:bg-slate-600 dark:text-slate-300': fraudResult?.risk === 'new',
+                                          }"
+                                          x-text="fraudResult?.success_rate !== null ? fraudResult.success_rate + '% success' : 'No history'">
+                                    </span>
+                                </div>
+                                {{-- Stats --}}
+                                <div x-show="fraudResult?.total > 0" class="grid grid-cols-4 gap-1.5">
+                                    <div class="text-center bg-white/60 dark:bg-slate-800/60 rounded-lg p-1.5">
+                                        <div class="font-bold text-gray-900 dark:text-white text-sm" x-text="fraudResult?.total"></div>
+                                        <div class="text-gray-400" style="font-size:10px">Total</div>
+                                    </div>
+                                    <div class="text-center bg-white/60 dark:bg-slate-800/60 rounded-lg p-1.5">
+                                        <div class="font-bold text-green-600 dark:text-green-400 text-sm" x-text="fraudResult?.delivered"></div>
+                                        <div class="text-gray-400" style="font-size:10px">Delivered</div>
+                                    </div>
+                                    <div class="text-center bg-white/60 dark:bg-slate-800/60 rounded-lg p-1.5">
+                                        <div class="font-bold text-orange-500 text-sm" x-text="fraudResult?.returned"></div>
+                                        <div class="text-gray-400" style="font-size:10px">Returned</div>
+                                    </div>
+                                    <div class="text-center bg-white/60 dark:bg-slate-800/60 rounded-lg p-1.5">
+                                        <div class="font-bold text-red-500 text-sm" x-text="fraudResult?.cancelled"></div>
+                                        <div class="text-gray-400" style="font-size:10px">Cancelled</div>
+                                    </div>
+                                </div>
+                                {{-- Progress Bar --}}
+                                <div x-show="fraudResult?.total > 0" class="mt-2">
+                                    <div class="flex justify-between text-gray-400 mb-1" style="font-size:10px">
+                                        <span>Success Rate</span>
+                                        <span x-text="fraudResult?.success_rate + '%'"></span>
+                                    </div>
+                                    <div class="h-1.5 rounded-full bg-gray-200 dark:bg-slate-600">
+                                        <div class="h-1.5 rounded-full transition-all duration-500"
+                                             :class="{ 'bg-green-500': fraudResult?.risk==='low', 'bg-yellow-400': fraudResult?.risk==='medium', 'bg-red-500': fraudResult?.risk==='high' }"
+                                             :style="'width:' + (fraudResult?.success_rate ?? 0) + '%'"></div>
+                                    </div>
+                                </div>
+                                <div class="mt-2 text-right text-gray-400 dark:text-slate-500" style="font-size:10px">via Steadfast</div>
+                            </div>
+                            {{-- Not connected / rate limited --}}
+                            <div x-show="fraudNotConnected" x-cloak class="mt-1.5 text-xs text-gray-400 dark:text-slate-500" x-text="fraudNotConnectedMsg"></div>
                         </div>
                         <div class="sm:col-span-2">
                             <label class="block text-xs font-medium text-gray-700 dark:text-slate-300 mb-1.5">Shipping Address</label>
                             <textarea name="shipping_address" rows="2"
-                                      class="w-full px-3 py-2.5 text-sm border border-gray-200 dark:border-slate-600 rounded-lg bg-white dark:bg-slate-700 text-gray-900 dark:text-white focus:outline-none focus:ring-2 focus:ring-blue-500 resize-none"
+                                      class="w-full px-3 py-2.5 text-sm border border-gray-200 dark:border-slate-600 rounded-lg bg-white dark:bg-slate-700 text-gray-900 dark:text-white focus:outline-none focus:ring-2 focus:ring-primary-500 resize-none"
                                       placeholder="Full address...">{{ old('shipping_address', isset($order) ? $order->shipping_address : '') }}</textarea>
                         </div>
                         <div>
                             <label class="block text-xs font-medium text-gray-700 dark:text-slate-300 mb-1.5">Area</label>
                             <input type="text" name="shipping_area"
                                    value="{{ old('shipping_area', isset($order) ? $order->shipping_area : '') }}"
-                                   class="w-full px-3 py-2.5 text-sm border border-gray-200 dark:border-slate-600 rounded-lg bg-white dark:bg-slate-700 text-gray-900 dark:text-white focus:outline-none focus:ring-2 focus:ring-blue-500"
+                                   class="w-full px-3 py-2.5 text-sm border border-gray-200 dark:border-slate-600 rounded-lg bg-white dark:bg-slate-700 text-gray-900 dark:text-white focus:outline-none focus:ring-2 focus:ring-primary-500"
                                    placeholder="Mirpur, Gulshan...">
                         </div>
                         <div>
                             <label class="block text-xs font-medium text-gray-700 dark:text-slate-300 mb-1.5">District</label>
                             <input type="text" name="shipping_district"
                                    value="{{ old('shipping_district', isset($order) ? $order->shipping_district : '') }}"
-                                   class="w-full px-3 py-2.5 text-sm border border-gray-200 dark:border-slate-600 rounded-lg bg-white dark:bg-slate-700 text-gray-900 dark:text-white focus:outline-none focus:ring-2 focus:ring-blue-500"
+                                   class="w-full px-3 py-2.5 text-sm border border-gray-200 dark:border-slate-600 rounded-lg bg-white dark:bg-slate-700 text-gray-900 dark:text-white focus:outline-none focus:ring-2 focus:ring-primary-500"
                                    placeholder="Dhaka, Chittagong...">
                         </div>
                     </div>
@@ -104,7 +170,7 @@
                         <input type="text" id="productSearch"
                                placeholder="Search product by name, SKU or barcode..."
                                autocomplete="off"
-                               class="w-full pl-9 pr-3 py-2.5 text-sm border border-gray-200 dark:border-slate-600 rounded-lg bg-white dark:bg-slate-700 text-gray-900 dark:text-white placeholder-gray-400 focus:outline-none focus:ring-2 focus:ring-blue-500"
+                               class="w-full pl-9 pr-3 py-2.5 text-sm border border-gray-200 dark:border-slate-600 rounded-lg bg-white dark:bg-slate-700 text-gray-900 dark:text-white placeholder-gray-400 focus:outline-none focus:ring-2 focus:ring-primary-500"
                                @input="searchProduct($event.target.value)">
 
                         <div x-show="productResults.length > 0" x-cloak
@@ -177,7 +243,7 @@
                     <div class="mt-3">
                         <label class="block text-xs font-medium text-gray-700 dark:text-slate-300 mb-1.5">Order Notes</label>
                         <textarea name="notes" rows="2"
-                                  class="w-full px-3 py-2.5 text-sm border border-gray-200 dark:border-slate-600 rounded-lg bg-white dark:bg-slate-700 text-gray-900 dark:text-white focus:outline-none focus:ring-2 focus:ring-blue-500 resize-none"
+                                  class="w-full px-3 py-2.5 text-sm border border-gray-200 dark:border-slate-600 rounded-lg bg-white dark:bg-slate-700 text-gray-900 dark:text-white focus:outline-none focus:ring-2 focus:ring-primary-500 resize-none"
                                   placeholder="Internal notes...">{{ old('notes', isset($order) ? $order->notes : '') }}</textarea>
                     </div>
                 </div>
@@ -201,7 +267,7 @@
                                 <span class="absolute left-2 top-1/2 -translate-y-1/2 text-gray-400 text-xs">৳</span>
                                 <input type="number" name="discount" x-model.number="discount"
                                        @input="calcTotals()" min="0" step="0.01"
-                                       class="w-full pl-5 pr-2 py-1 text-xs border border-gray-200 dark:border-slate-600 rounded-lg bg-white dark:bg-slate-700 text-gray-900 dark:text-white focus:outline-none focus:ring-1 focus:ring-blue-500 text-right">
+                                       class="w-full pl-5 pr-2 py-1 text-xs border border-gray-200 dark:border-slate-600 rounded-lg bg-white dark:bg-slate-700 text-gray-900 dark:text-white focus:outline-none focus:ring-1 focus:ring-primary-500 text-right">
                             </div>
                         </div>
                         <div class="flex items-center justify-between text-sm">
@@ -210,7 +276,7 @@
                                 <span class="absolute left-2 top-1/2 -translate-y-1/2 text-gray-400 text-xs">৳</span>
                                 <input type="number" name="shipping_charge" x-model.number="shippingCharge"
                                        @input="calcTotals()" min="0" step="0.01"
-                                       class="w-full pl-5 pr-2 py-1 text-xs border border-gray-200 dark:border-slate-600 rounded-lg bg-white dark:bg-slate-700 text-gray-900 dark:text-white focus:outline-none focus:ring-1 focus:ring-blue-500 text-right">
+                                       class="w-full pl-5 pr-2 py-1 text-xs border border-gray-200 dark:border-slate-600 rounded-lg bg-white dark:bg-slate-700 text-gray-900 dark:text-white focus:outline-none focus:ring-1 focus:ring-primary-500 text-right">
                             </div>
                         </div>
                         <div class="border-t border-gray-100 dark:border-slate-700 pt-2.5 flex justify-between">
@@ -227,7 +293,7 @@
                         <div>
                             <label class="block text-xs font-medium text-gray-700 dark:text-slate-300 mb-1.5">Payment Method</label>
                             <select name="payment_method"
-                                    class="w-full px-3 py-2.5 text-sm border border-gray-200 dark:border-slate-600 rounded-lg bg-white dark:bg-slate-700 text-gray-700 dark:text-slate-200 focus:outline-none focus:ring-2 focus:ring-blue-500">
+                                    class="w-full px-3 py-2.5 text-sm border border-gray-200 dark:border-slate-600 rounded-lg bg-white dark:bg-slate-700 text-gray-700 dark:text-slate-200 focus:outline-none focus:ring-2 focus:ring-primary-500">
                                 @php $currentMethod = old('payment_method', isset($order) ? $order->payment_method : 'cash'); @endphp
                                 @foreach(['cash','bkash','nagad','rocket','card','bank','cod','other'] as $method)
                                     <option value="{{ $method }}" {{ $currentMethod === $method ? 'selected' : '' }}>
@@ -242,7 +308,7 @@
                                 <span class="absolute left-3 top-1/2 -translate-y-1/2 text-gray-500 dark:text-slate-400 text-sm">৳</span>
                                 <input type="number" name="paid_amount" x-model.number="paidAmount"
                                        @input="calcDue()" min="0" step="0.01"
-                                       class="w-full pl-7 pr-3 py-2.5 text-sm border border-gray-200 dark:border-slate-600 rounded-lg bg-white dark:bg-slate-700 text-gray-900 dark:text-white focus:outline-none focus:ring-2 focus:ring-blue-500">
+                                       class="w-full pl-7 pr-3 py-2.5 text-sm border border-gray-200 dark:border-slate-600 rounded-lg bg-white dark:bg-slate-700 text-gray-900 dark:text-white focus:outline-none focus:ring-2 focus:ring-primary-500">
                             </div>
                         </div>
                         <div class="flex justify-between items-center p-2.5 bg-gray-50 dark:bg-slate-700/50 rounded-lg">
@@ -253,7 +319,7 @@
                             <input type="hidden" name="due_amount" :value="Math.max(0, dueAmount)">
                         </div>
                         <button type="button" @click="payFull()"
-                                class="w-full text-xs text-blue-600 dark:text-blue-400 py-1.5 border border-blue-200 dark:border-blue-700 rounded-lg hover:bg-blue-50 dark:hover:bg-blue-900/20 transition-colors">
+                                class="w-full text-xs text-primary-600 dark:text-primary-400 py-1.5 border border-primary-200 dark:border-primary-700 rounded-lg hover:bg-primary-50 dark:hover:bg-primary-900/20 transition-colors">
                             Pay Full Amount
                         </button>
                     </div>
@@ -263,7 +329,7 @@
                     <h3 class="text-sm font-semibold text-gray-900 dark:text-white mb-3">Order Status</h3>
                     @php $currentStatus = old('status', isset($order) ? $order->status : 'pending'); @endphp
                     <select name="status"
-                            class="w-full px-3 py-2.5 text-sm border border-gray-200 dark:border-slate-600 rounded-lg bg-white dark:bg-slate-700 text-gray-700 dark:text-slate-200 focus:outline-none focus:ring-2 focus:ring-blue-500">
+                            class="w-full px-3 py-2.5 text-sm border border-gray-200 dark:border-slate-600 rounded-lg bg-white dark:bg-slate-700 text-gray-700 dark:text-slate-200 focus:outline-none focus:ring-2 focus:ring-primary-500">
                         @foreach(['pending','confirmed','processing','shipped','delivered','completed','cancelled'] as $s)
                             <option value="{{ $s }}" {{ $currentStatus === $s ? 'selected' : '' }}>
                                 {{ ucfirst($s) }}
@@ -271,7 +337,7 @@
                         @endforeach
                     </select>
                     <button type="submit"
-                            class="w-full mt-3 bg-blue-600 hover:bg-blue-700 text-white font-medium py-2.5 rounded-lg text-sm transition-colors">
+                            class="w-full mt-3 bg-primary-600 hover:bg-primary-700 text-white font-medium py-2.5 rounded-lg text-sm transition-colors">
                         {{ isset($order) ? 'Update Order' : 'Place Order' }}
                     </button>
                 </div>
@@ -297,6 +363,43 @@ function orderForm() {
         total: 0,
         dueAmount: 0,
         searchTimeout: null,
+
+        // --- Fraud Checker ---
+        fraudLoading: false,
+        fraudResult: null,
+        fraudNotConnected: false,
+        fraudNotConnectedMsg: '⚠️ Steadfast not connected — fraud check unavailable',
+
+        checkFraud(phone) {
+            const cleaned = phone.replace(/\D/g, '');
+            if (cleaned.length < 10) {
+                this.fraudResult = null;
+                this.fraudNotConnected = false;
+                return;
+            }
+            this.fraudLoading = true;
+            this.fraudResult = null;
+            this.fraudNotConnected = false;
+
+            fetch(`{{ route('steadfast.check-phone') }}?phone=${cleaned}`, {
+                headers: { 'X-Requested-With': 'XMLHttpRequest', 'Accept': 'application/json' }
+            })
+            .then(r => r.json())
+            .then(data => {
+                this.fraudLoading = false;
+                if (data.error && data.error.includes('not connected')) {
+                    this.fraudNotConnected = true;
+                    return;
+                }
+                if (data.rate_limited) {
+                    this.fraudNotConnected = true;
+                    this.fraudNotConnectedMsg = '⏳ Daily fraud check limit reached (' + data.limit + '/day). Try tomorrow.';
+                    return;
+                }
+                this.fraudResult = data;
+            })
+            .catch(() => { this.fraudLoading = false; });
+        },
 
         init() { this.calcTotals(); },
 
@@ -357,6 +460,9 @@ function orderForm() {
             document.getElementById('customerPhone').value = c.phone || '';
             document.getElementById('customerSearch').value = '';
             this.customerResults = [];
+            if (c.phone && c.phone.length >= 10) {
+                this.checkFraud(c.phone);
+            }
         },
     }
 }

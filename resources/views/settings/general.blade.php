@@ -1,4 +1,4 @@
-@extends('layouts.app')
+﻿@extends('layouts.app')
 @section('title', 'Profile Settings')
 
 @section('content')
@@ -11,9 +11,8 @@
             ['route'=>'settings.general',        'label'=>'Profile'],
             ['route'=>'settings.business',       'label'=>'Business'],
             ['route'=>'settings.user-management','label'=>'Users'],
-            ['route'=>'settings.subscription',   'label'=>'Subscription'],
             ['route'=>'settings.warehouses',     'label'=>'Warehouses'],
-            ['route'=>'settings.print-templates','label'=>'Print'],
+            ['route'=>'settings.print-templates','label'=>'Print'],['route'=>'settings.account-categories','label'=>'Categories'],
         ] as $tab)
         <a href="{{ route($tab['route']) }}"
            class="flex-shrink-0 px-3 py-2 rounded-lg text-xs font-medium transition-colors whitespace-nowrap
@@ -30,7 +29,7 @@
             <h3 class="text-sm font-semibold text-gray-900 dark:text-white mb-4">Profile Information</h3>
 
             <div class="flex items-center gap-4 mb-4">
-                <div class="w-14 h-14 rounded-full flex items-center justify-center text-white text-xl font-bold flex-shrink-0 bg-blue-500">
+                <div class="w-14 h-14 rounded-full flex items-center justify-center text-white text-xl font-bold flex-shrink-0 bg-primary-500">
                     {{ strtoupper(substr($user->name, 0, 2)) }}
                 </div>
                 <div>
@@ -43,12 +42,12 @@
                 <div>
                     <label class="block text-xs font-medium text-gray-700 dark:text-slate-300 mb-1.5">Full Name <span class="text-red-500">*</span></label>
                     <input type="text" name="name" value="{{ old('name', $user->name) }}" required
-                           class="w-full px-3 py-2.5 text-sm border border-gray-200 dark:border-slate-600 rounded-lg bg-white dark:bg-slate-700 text-gray-900 dark:text-white focus:outline-none focus:ring-2 focus:ring-blue-500">
+                           class="w-full px-3 py-2.5 text-sm border border-gray-200 dark:border-slate-600 rounded-lg bg-white dark:bg-slate-700 text-gray-900 dark:text-white focus:outline-none focus:ring-2 focus:ring-primary-500">
                 </div>
                 <div>
                     <label class="block text-xs font-medium text-gray-700 dark:text-slate-300 mb-1.5">Phone</label>
                     <input type="text" name="phone" value="{{ old('phone', $user->phone) }}"
-                           class="w-full px-3 py-2.5 text-sm border border-gray-200 dark:border-slate-600 rounded-lg bg-white dark:bg-slate-700 text-gray-900 dark:text-white focus:outline-none focus:ring-2 focus:ring-blue-500">
+                           class="w-full px-3 py-2.5 text-sm border border-gray-200 dark:border-slate-600 rounded-lg bg-white dark:bg-slate-700 text-gray-900 dark:text-white focus:outline-none focus:ring-2 focus:ring-primary-500">
                 </div>
                 <div class="sm:col-span-2">
                     <label class="block text-xs font-medium text-gray-700 dark:text-slate-300 mb-1.5">Email Address</label>
@@ -65,19 +64,19 @@
                 <div>
                     <label class="block text-xs font-medium text-gray-700 dark:text-slate-300 mb-1.5">New Password</label>
                     <input type="password" name="password"
-                           class="w-full px-3 py-2.5 text-sm border border-gray-200 dark:border-slate-600 rounded-lg bg-white dark:bg-slate-700 text-gray-900 dark:text-white focus:outline-none focus:ring-2 focus:ring-blue-500"
+                           class="w-full px-3 py-2.5 text-sm border border-gray-200 dark:border-slate-600 rounded-lg bg-white dark:bg-slate-700 text-gray-900 dark:text-white focus:outline-none focus:ring-2 focus:ring-primary-500"
                            placeholder="Leave blank to keep current">
                 </div>
                 <div>
                     <label class="block text-xs font-medium text-gray-700 dark:text-slate-300 mb-1.5">Confirm Password</label>
                     <input type="password" name="password_confirmation"
-                           class="w-full px-3 py-2.5 text-sm border border-gray-200 dark:border-slate-600 rounded-lg bg-white dark:bg-slate-700 text-gray-900 dark:text-white focus:outline-none focus:ring-2 focus:ring-blue-500"
+                           class="w-full px-3 py-2.5 text-sm border border-gray-200 dark:border-slate-600 rounded-lg bg-white dark:bg-slate-700 text-gray-900 dark:text-white focus:outline-none focus:ring-2 focus:ring-primary-500"
                            placeholder="Repeat new password">
                 </div>
             </div>
         </div>
 
-        <button type="submit" class="w-full bg-blue-600 hover:bg-blue-700 text-white font-medium py-3 rounded-xl text-sm transition-colors">
+        <button type="submit" class="w-full bg-primary-600 hover:bg-primary-700 text-white font-medium py-3 rounded-xl text-sm transition-colors">
             Save Profile
         </button>
     </form>

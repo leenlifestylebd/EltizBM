@@ -151,6 +151,83 @@ class SteadfastService
     }
 
     // =============================================
+    // FRAUD / RECIPIENT CHECK
+    // =============================================
+    public function fraudCheck(string $phone): array
+    {
+        try {
+            $response = Http::withHeaders($this->headers())
+                ->get("{$this->baseUrl}/fraud_check/{$phone}");
+
+            // Rate limit hit
+            if ($response->status() === 429) {
+                $body = $response->json();
+                return [
+                    'found'       => false,
+                    'rate_limited'=> true,
+                    'limit'       => $body['limit'] ?? null,
+                    'error'       => 'Daily fraud check limit reached (' . ($body['limit'] ?? '?') . ' searches/day)',
+                ];
+            }
+
+            if (!$response->successful()) {
+                return ['found' => false, 'error' => 'API error: ' . $response->status()];
+            }
+
+            $data = $response->json();
+
+            // Normalise — Steadfast may wrap in 'data' key or return flat
+            if (isset($data['data']) && is_array($data['data'])) {
+                $d = $data['data'];
+            } else {
+                $d = $data;
+            }
+
+            $total     = (int) ($d['total']           ?? $d['total_orders']  ?? 0);
+            $delivered = (int) ($d['delivered']        ?? $d['success']       ?? 0);
+            $returned  = (int) ($d['returned']         ?? $d['return']        ?? 0);
+            $cancelled = (int) ($d['cancelled']        ?? $d['cancel']        ?? 0);
+            $inReview  = (int) ($d['in_review']        ?? 0);
+
+            // Use API-provided rate if available, otherwise calculate
+            $successRate = null;
+            if (isset($d['success_rate'])) {
+                $successRate = round((float) $d['success_rate'], 1);
+            } elseif (isset($d['delivery_percentage'])) {
+                $successRate = round((float) $d['delivery_percentage'], 1);
+            } elseif ($total > 0) {
+                $successRate = round(($delivered / $total) * 100, 1);
+            }
+
+            if ($total === 0) {
+                $risk = 'new';
+            } elseif ($successRate >= 80) {
+                $risk = 'low';
+            } elseif ($successRate >= 50) {
+                $risk = 'medium';
+            } else {
+                $risk = 'high';
+            }
+
+            return [
+                'found'        => true,
+                'phone'        => $phone,
+                'total'        => $total,
+                'delivered'    => $delivered,
+                'returned'     => $returned,
+                'cancelled'    => $cancelled,
+                'in_review'    => $inReview,
+                'success_rate' => $successRate,
+                'risk'         => $risk,
+            ];
+
+        } catch (\Exception $e) {
+            Log::error('Steadfast fraudCheck error', ['phone' => $phone, 'error' => $e->getMessage()]);
+            return ['found' => false, 'error' => $e->getMessage()];
+        }
+    }
+
+    // =============================================
     // GET POLICE STATIONS
     // =============================================
     public function getPoliceStations(): array

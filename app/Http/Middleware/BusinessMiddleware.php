@@ -17,6 +17,8 @@ class BusinessMiddleware
         view()->share('currentUser', $user);
         view()->share('trialDaysLeft', $business->trialDaysLeft());
         view()->share('isOnTrial', $business->isOnTrial());
+        view()->share('themePalette', $business->themePalette());
+        view()->share('themeSettings', $business->theme_settings ?? []);
 
         // Worker/Employee role → only production dashboard
         if ($user->role === 'employee') {

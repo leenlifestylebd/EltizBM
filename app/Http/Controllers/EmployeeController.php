@@ -4,6 +4,7 @@ namespace App\Http\Controllers;
 
 use App\Models\Employee;
 use App\Models\ProductionEntry;
+use App\Models\ProductionLog;
 use App\Models\EmployeePayment;
 use App\Models\Attendance;
 use App\Models\Product;
@@ -33,19 +34,36 @@ class EmployeeController extends Controller
         }
 
         $employees  = $query->paginate(18);
-        $today      = today();
-        $monthStart = now()->startOfMonth();
+        $today      = today()->toDateString();
+        $monthStart = now()->startOfMonth()->toDateString();
+
+        // Replace N+1 loops with 2 batch aggregate queries keyed by employee_id
+        $empIds = $employees->pluck('id')->toArray();
+
+        $productionStats = ProductionEntry::whereIn('employee_id', $empIds)
+            ->whereBetween('entry_date', [$monthStart, $today])
+            ->selectRaw('employee_id,
+                SUM(quantity) as month_qty,
+                SUM(amount) as month_earn,
+                SUM(CASE WHEN entry_date = ? THEN quantity ELSE 0 END) as today_qty', [$today])
+            ->groupBy('employee_id')
+            ->get()
+            ->keyBy('employee_id');
+
+        $paymentStats = EmployeePayment::whereIn('employee_id', $empIds)
+            ->whereBetween('payment_date', [$monthStart, $today])
+            ->selectRaw('employee_id, SUM(amount) as month_paid')
+            ->groupBy('employee_id')
+            ->get()
+            ->keyBy('employee_id');
 
         foreach ($employees as $emp) {
-            $emp->today_production = ProductionEntry::where('employee_id', $emp->id)
-                ->whereDate('entry_date', $today)->sum('quantity');
-            $emp->month_production = ProductionEntry::where('employee_id', $emp->id)
-                ->whereBetween('entry_date', [$monthStart, $today])->sum('quantity');
-            $emp->month_earning    = ProductionEntry::where('employee_id', $emp->id)
-                ->whereBetween('entry_date', [$monthStart, $today])->sum('amount');
-            $emp->month_advance    = EmployeePayment::where('employee_id', $emp->id)
-                ->whereBetween('payment_date', [$monthStart, $today])
-                ->whereIn('type', ['advance', 'deduction'])->sum('amount');
+            $prod = $productionStats->get($emp->id);
+            $pay  = $paymentStats->get($emp->id);
+            $emp->today_production = $prod->today_qty ?? 0;
+            $emp->month_production = $prod->month_qty ?? 0;
+            $emp->month_earning    = $prod->month_earn ?? 0;
+            $emp->month_advance    = $pay->month_paid ?? 0;
             $emp->month_net        = $emp->month_earning - $emp->month_advance;
         }
 
@@ -121,6 +139,19 @@ class EmployeeController extends Controller
             ->with('productionRate')
             ->orderByDesc('entry_date')->paginate(20);
 
+        $recentLogs = ProductionLog::where('employee_id', $employee->id)
+            ->with('product')
+            ->orderByDesc('log_date')->limit(5)->get();
+
+        $productionLogs = ProductionLog::where('employee_id', $employee->id)
+            ->with('product')
+            ->orderByDesc('log_date')->paginate(20);
+
+        $avgQuality = ProductionLog::where('employee_id', $employee->id)->avg('quality_rate') ?? 0;
+
+        $products = Product::where('business_id', auth()->user()->business_id)
+            ->orderBy('name')->get();
+
         $attendanceRecords = Attendance::where('employee_id', $employee->id)
             ->orderByDesc('attendance_date')->paginate(20);
 
@@ -142,6 +173,7 @@ class EmployeeController extends Controller
         return view('employees.show', compact(
             'employee', 'monthProduction', 'monthEarning', 'monthAdvance',
             'monthAttendance', 'recentEntries', 'productionEntries',
+            'recentLogs', 'productionLogs', 'avgQuality', 'products',
             'attendanceRecords', 'last7Days', 'calendarStart', 'daysInMonth', 'attendanceMap'
         ));
     }

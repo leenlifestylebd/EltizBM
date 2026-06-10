@@ -1,4 +1,4 @@
-@extends('layouts.app')
+﻿@extends('layouts.app')
 @section('title', 'Assign Task')
 
 @section('content')
@@ -31,7 +31,7 @@
             <div>
                 <label class="block text-xs font-medium text-gray-700 dark:text-slate-300 mb-1">Worker *</label>
                 <select name="employee_id" required
-                        class="w-full px-3 py-2.5 text-sm border border-gray-200 dark:border-slate-600 rounded-lg bg-white dark:bg-slate-700 text-gray-700 dark:text-slate-200 focus:outline-none focus:ring-2 focus:ring-blue-500">
+                        class="w-full px-3 py-2.5 text-sm border border-gray-200 dark:border-slate-600 rounded-lg bg-white dark:bg-slate-700 text-gray-700 dark:text-slate-200 focus:outline-none focus:ring-2 focus:ring-primary-500">
                     <option value="">Select Worker</option>
                     @foreach($employees as $emp)
                     <option value="{{ $emp->id }}" {{ old('employee_id') == $emp->id ? 'selected' : '' }}>
@@ -45,7 +45,7 @@
             <div>
                 <label class="block text-xs font-medium text-gray-700 dark:text-slate-300 mb-1">Production Rate * <span class="text-gray-400">(amount এখান থেকে calculate হবে)</span></label>
                 <select name="production_rate_id" required @change="fillFromRate($event.target.value)"
-                        class="w-full px-3 py-2.5 text-sm border border-gray-200 dark:border-slate-600 rounded-lg bg-white dark:bg-slate-700 text-gray-700 dark:text-slate-200 focus:outline-none focus:ring-2 focus:ring-blue-500">
+                        class="w-full px-3 py-2.5 text-sm border border-gray-200 dark:border-slate-600 rounded-lg bg-white dark:bg-slate-700 text-gray-700 dark:text-slate-200 focus:outline-none focus:ring-2 focus:ring-primary-500">
                     <option value="">-- Rate Select করুন --</option>
                     @foreach($rates as $rate)
                     <option value="{{ $rate->id }}"
@@ -63,7 +63,7 @@
                 <label class="block text-xs font-medium text-gray-700 dark:text-slate-300 mb-1">Product Name *</label>
                 <input type="text" name="product_name" x-model="productName" value="{{ old('product_name') }}" required
                        placeholder="e.g. Panjabi, Shirt"
-                       class="w-full px-3 py-2.5 text-sm border border-gray-200 dark:border-slate-600 rounded-lg bg-white dark:bg-slate-700 text-gray-900 dark:text-white focus:outline-none focus:ring-2 focus:ring-blue-500">
+                       class="w-full px-3 py-2.5 text-sm border border-gray-200 dark:border-slate-600 rounded-lg bg-white dark:bg-slate-700 text-gray-900 dark:text-white focus:outline-none focus:ring-2 focus:ring-primary-500">
             </div>
 
             {{-- Color + Size --}}
@@ -72,13 +72,13 @@
                     <label class="block text-xs font-medium text-gray-700 dark:text-slate-300 mb-1">Color</label>
                     <input type="text" name="color" x-model="color" value="{{ old('color') }}"
                            placeholder="e.g. White, Black"
-                           class="w-full px-3 py-2.5 text-sm border border-gray-200 dark:border-slate-600 rounded-lg bg-white dark:bg-slate-700 text-gray-900 dark:text-white focus:outline-none focus:ring-2 focus:ring-blue-500">
+                           class="w-full px-3 py-2.5 text-sm border border-gray-200 dark:border-slate-600 rounded-lg bg-white dark:bg-slate-700 text-gray-900 dark:text-white focus:outline-none focus:ring-2 focus:ring-primary-500">
                 </div>
                 <div>
                     <label class="block text-xs font-medium text-gray-700 dark:text-slate-300 mb-1">Size</label>
                     <input type="text" name="size" x-model="size" value="{{ old('size') }}"
                            placeholder="e.g. 50/21, M, L"
-                           class="w-full px-3 py-2.5 text-sm border border-gray-200 dark:border-slate-600 rounded-lg bg-white dark:bg-slate-700 text-gray-900 dark:text-white focus:outline-none focus:ring-2 focus:ring-blue-500">
+                           class="w-full px-3 py-2.5 text-sm border border-gray-200 dark:border-slate-600 rounded-lg bg-white dark:bg-slate-700 text-gray-900 dark:text-white focus:outline-none focus:ring-2 focus:ring-primary-500">
                 </div>
             </div>
 
@@ -86,25 +86,25 @@
             <div>
                 <label class="block text-xs font-medium text-gray-700 dark:text-slate-300 mb-1">Assigned Quantity *</label>
                 <input type="number" name="assigned_quantity" value="{{ old('assigned_quantity') }}" min="1" required
-                       class="w-full px-3 py-2.5 text-sm border border-gray-200 dark:border-slate-600 rounded-lg bg-white dark:bg-slate-700 text-gray-900 dark:text-white focus:outline-none focus:ring-2 focus:ring-blue-500">
+                       class="w-full px-3 py-2.5 text-sm border border-gray-200 dark:border-slate-600 rounded-lg bg-white dark:bg-slate-700 text-gray-900 dark:text-white focus:outline-none focus:ring-2 focus:ring-primary-500">
             </div>
 
             {{-- Deadline --}}
             <div>
                 <label class="block text-xs font-medium text-gray-700 dark:text-slate-300 mb-1">Deadline <span class="text-gray-400">(optional)</span></label>
                 <input type="date" name="deadline" value="{{ old('deadline') }}" min="{{ today()->toDateString() }}"
-                       class="w-full px-3 py-2.5 text-sm border border-gray-200 dark:border-slate-600 rounded-lg bg-white dark:bg-slate-700 text-gray-900 dark:text-white focus:outline-none focus:ring-2 focus:ring-blue-500">
+                       class="w-full px-3 py-2.5 text-sm border border-gray-200 dark:border-slate-600 rounded-lg bg-white dark:bg-slate-700 text-gray-900 dark:text-white focus:outline-none focus:ring-2 focus:ring-primary-500">
             </div>
 
             {{-- Notes --}}
             <div>
                 <label class="block text-xs font-medium text-gray-700 dark:text-slate-300 mb-1">Notes <span class="text-gray-400">(optional)</span></label>
                 <textarea name="notes" rows="2" placeholder="Any special instructions..."
-                          class="w-full px-3 py-2.5 text-sm border border-gray-200 dark:border-slate-600 rounded-lg bg-white dark:bg-slate-700 text-gray-900 dark:text-white focus:outline-none focus:ring-2 focus:ring-blue-500">{{ old('notes') }}</textarea>
+                          class="w-full px-3 py-2.5 text-sm border border-gray-200 dark:border-slate-600 rounded-lg bg-white dark:bg-slate-700 text-gray-900 dark:text-white focus:outline-none focus:ring-2 focus:ring-primary-500">{{ old('notes') }}</textarea>
             </div>
 
             <div class="flex gap-2 pt-1">
-                <button type="submit" class="flex-1 bg-blue-600 text-white font-medium py-2.5 text-sm rounded-lg hover:bg-blue-700">
+                <button type="submit" class="flex-1 bg-primary-600 text-white font-medium py-2.5 text-sm rounded-lg hover:bg-primary-700">
                     Assign Task
                 </button>
                 <a href="{{ route('production.tasks.index') }}"

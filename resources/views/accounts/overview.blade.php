@@ -1,4 +1,4 @@
-@extends('layouts.app')
+﻿@extends('layouts.app')
 @section('title', 'Accounts Overview')
 
 @section('content')
@@ -14,7 +14,7 @@
             + Expense
         </a>
         <a href="{{ route('accounts.income') }}"
-           class="px-3 py-2 text-xs font-medium text-white bg-blue-600 rounded-lg hover:bg-blue-700 transition-colors">
+           class="px-3 py-2 text-xs font-medium text-white bg-primary-600 rounded-lg hover:bg-primary-700 transition-colors">
             + Income
         </a>
     </div>
@@ -25,7 +25,7 @@
     @foreach(['today'=>'Today','week'=>'This Week','month'=>'This Month','year'=>'This Year'] as $key => $label)
     <a href="{{ route('accounts.overview', ['period' => $key]) }}"
        class="flex-shrink-0 px-3 py-1.5 rounded-lg text-xs font-medium transition-colors whitespace-nowrap
-              {{ ($period ?? 'month') === $key ? 'bg-blue-600 text-white' : 'bg-white dark:bg-slate-800 text-gray-600 dark:text-slate-300 border border-gray-200 dark:border-slate-700 hover:bg-gray-50 dark:hover:bg-slate-700' }}">
+              {{ ($period ?? 'month') === $key ? 'bg-primary-600 text-white' : 'bg-white dark:bg-slate-800 text-gray-600 dark:text-slate-300 border border-gray-200 dark:border-slate-700 hover:bg-gray-50 dark:hover:bg-slate-700' }}">
         {{ $label }}
     </a>
     @endforeach
@@ -43,9 +43,9 @@
         <p class="text-xl font-bold text-red-600 dark:text-red-400">৳{{ number_format($summary['expense']) }}</p>
         <p class="text-xs text-gray-400 dark:text-slate-500 mt-0.5">{{ $summary['expense_count'] }} entries</p>
     </div>
-    <div class="bg-white dark:bg-slate-800 rounded-xl p-4 border {{ $summary['profit'] >= 0 ? 'border-blue-100 dark:border-blue-900/30' : 'border-orange-100 dark:border-orange-900/30' }}">
+    <div class="bg-white dark:bg-slate-800 rounded-xl p-4 border {{ $summary['profit'] >= 0 ? 'border-primary-100 dark:border-primary-900/30' : 'border-orange-100 dark:border-orange-900/30' }}">
         <p class="text-xs text-gray-500 dark:text-slate-400 mb-1">Net Profit</p>
-        <p class="text-xl font-bold {{ $summary['profit'] >= 0 ? 'text-blue-600 dark:text-blue-400' : 'text-orange-600 dark:text-orange-400' }}">
+        <p class="text-xl font-bold {{ $summary['profit'] >= 0 ? 'text-primary-600 dark:text-primary-400' : 'text-orange-600 dark:text-orange-400' }}">
             ৳{{ number_format(abs($summary['profit'])) }}
         </p>
         <p class="text-xs mt-0.5 {{ $summary['profit'] >= 0 ? 'text-green-500' : 'text-red-500' }}">
@@ -85,7 +85,7 @@
     @foreach([
         ['route'=>'accounts.income',          'label'=>'Income',    'color'=>'green',  'icon'=>'M5 10l7-7m0 0l7 7m-7-7v18'],
         ['route'=>'accounts.expenses',        'label'=>'Expenses',  'color'=>'red',    'icon'=>'M19 14l-7 7m0 0l-7-7m7 7V3'],
-        ['route'=>'accounts.salary',          'label'=>'Salary',    'color'=>'blue',   'icon'=>'M17 9V7a2 2 0 00-2-2H5a2 2 0 00-2 2v6a2 2 0 002 2h2m2 4h10a2 2 0 002-2v-6a2 2 0 00-2-2H9a2 2 0 00-2 2v6a2 2 0 002 2zm7-5a2 2 0 11-4 0 2 2 0 014 0z'],
+        ['route'=>'accounts.salary',          'label'=>'Salary',    'color'=>'primary',   'icon'=>'M17 9V7a2 2 0 00-2-2H5a2 2 0 00-2 2v6a2 2 0 002 2h2m2 4h10a2 2 0 002-2v-6a2 2 0 00-2-2H9a2 2 0 00-2 2v6a2 2 0 002 2zm7-5a2 2 0 11-4 0 2 2 0 014 0z'],
         ['route'=>'accounts.payment-transfer','label'=>'Transfers', 'color'=>'purple', 'icon'=>'M8 7h12m0 0l-4-4m4 4l-4 4m0 6H4m0 0l4 4m-4-4l4-4'],
     ] as $nav)
     <a href="{{ route($nav['route']) }}"
@@ -104,7 +104,7 @@
 <div class="bg-white dark:bg-slate-800 rounded-xl border border-gray-100 dark:border-slate-700 overflow-hidden">
     <div class="flex items-center justify-between px-4 py-3 border-b border-gray-50 dark:border-slate-700">
         <h3 class="text-sm font-semibold text-gray-900 dark:text-white">Recent Transactions</h3>
-        <a href="{{ route('accounts.income') }}" class="text-xs text-blue-600 dark:text-blue-400 hover:underline">View all</a>
+        <a href="{{ route('accounts.income') }}" class="text-xs text-primary-600 dark:text-primary-400 hover:underline">View all</a>
     </div>
     <div class="divide-y divide-gray-50 dark:divide-slate-700">
         @forelse($recentTransactions as $txn)

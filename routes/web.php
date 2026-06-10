@@ -2,6 +2,7 @@
 
 use Illuminate\Support\Facades\Route;
 use App\Http\Controllers\AuthController;
+use App\Http\Controllers\SocialAuthController;
 use App\Http\Controllers\DashboardController;
 use App\Http\Controllers\OrderController;
 use App\Http\Controllers\ProductController;
@@ -11,17 +12,21 @@ use App\Http\Controllers\AttributeController;
 use App\Http\Controllers\InventoryController;
 use App\Http\Controllers\AccountController;
 use App\Http\Controllers\ReportController;
+use App\Http\Controllers\ReportExportController;
 use App\Http\Controllers\CourierController;
 use App\Http\Controllers\PeopleController;
 use App\Http\Controllers\EmployeeController;
 use App\Http\Controllers\TaskController;
 use App\Http\Controllers\PosController;
 use App\Http\Controllers\SettingsController;
+use App\Http\Controllers\MaterialController;
 use App\Http\Controllers\IntegrationController;
 use App\Http\Controllers\WooCommerceController;
 use App\Http\Controllers\WebOrderController;
 use App\Http\Controllers\SteadfastController;
 use App\Http\Controllers\ProductionTaskController;
+use App\Http\Controllers\BomController;
+use App\Http\Controllers\TailoringController;
 
 // =============================================
 // AUTH ROUTES
@@ -37,7 +42,37 @@ Route::middleware('guest')->group(function () {
     Route::post('/reset-password',        [AuthController::class, 'resetPassword'])->name('password.update');
 });
 
+// ── Google OAuth (no guest middleware — callback must be open) ──
+Route::get('/auth/google',          [SocialAuthController::class, 'redirectToGoogle'])->name('auth.google');
+Route::get('/auth/google/callback', [SocialAuthController::class, 'handleGoogleCallback']);
+
+// ── PWA ──
+Route::get('/offline', fn() => view('pwa.offline'))->name('pwa.offline');
+
 Route::post('/logout', [AuthController::class, 'logout'])->name('logout')->middleware('auth');
+
+// =============================================
+// SUPER ADMIN GATE (secret URL login)
+// =============================================
+Route::get('/sa/{secret}',  [\App\Http\Controllers\SuperAdminGateController::class, 'show'])->name('super-admin.gate');
+Route::post('/sa/{secret}', [\App\Http\Controllers\SuperAdminGateController::class, 'login'])->name('super-admin.gate.login');
+
+// =============================================
+// SUPER ADMIN ROUTES (selected Gmail only)
+// =============================================
+Route::middleware(['auth', 'superadmin'])->prefix('super-admin')->name('super-admin.')->group(function () {
+    Route::get('/',                                      [\App\Http\Controllers\SuperAdminController::class, 'index'])->name('index');
+    Route::get('/businesses',                            [\App\Http\Controllers\SuperAdminController::class, 'businesses'])->name('businesses');
+    Route::post('/businesses',                           [\App\Http\Controllers\SuperAdminController::class, 'storeBusiness'])->name('businesses.store');
+    Route::post('/businesses/{business}/toggle',         [\App\Http\Controllers\SuperAdminController::class, 'toggleBusiness'])->name('businesses.toggle');
+    Route::post('/businesses/{business}/extend-trial',   [\App\Http\Controllers\SuperAdminController::class, 'extendTrial'])->name('businesses.extend-trial');
+    Route::delete('/businesses/{business}',              [\App\Http\Controllers\SuperAdminController::class, 'destroyBusiness'])->name('businesses.destroy');
+    Route::post('/businesses/{business}/reset-data',     [\App\Http\Controllers\SuperAdminController::class, 'resetData'])->name('businesses.reset-data');
+    Route::get('/users',                                 [\App\Http\Controllers\SuperAdminController::class, 'users'])->name('users');
+    Route::post('/users/{user}/approve',                 [\App\Http\Controllers\SuperAdminController::class, 'approveUser'])->name('users.approve');
+    Route::delete('/users/{user}/reject',                [\App\Http\Controllers\SuperAdminController::class, 'rejectUser'])->name('users.reject');
+    Route::post('/users/{user}/reset-password',          [\App\Http\Controllers\SuperAdminController::class, 'resetPassword'])->name('users.reset-password');
+});
 
 // =============================================
 // AUTHENTICATED ROUTES
@@ -58,8 +93,10 @@ Route::middleware(['auth', 'business'])->group(function () {
         Route::put('/{order}',     [OrderController::class, 'update'])->name('update');
         Route::delete('/{order}',  [OrderController::class, 'destroy'])->name('destroy');
         Route::post('/{order}/status', [OrderController::class, 'updateStatus'])->name('status');
-        Route::get('/{order}/invoice', [OrderController::class, 'invoice'])->name('invoice');
-        Route::get('/{order}/print',   [OrderController::class, 'printInvoice'])->name('print');
+        Route::get('/{order}/invoice',          [OrderController::class, 'invoice'])->name('invoice');
+        Route::get('/{order}/invoice/pdf',      [OrderController::class, 'downloadPdf'])->name('invoice.pdf');
+        Route::get('/{order}/invoice/receipt',  [OrderController::class, 'receipt'])->name('receipt');
+        Route::get('/{order}/print',            [OrderController::class, 'printInvoice'])->name('print');
     });
 
     // ---- WEB ORDERS (WooCommerce) ----
@@ -75,13 +112,23 @@ Route::middleware(['auth', 'business'])->group(function () {
         Route::get('/',            [ProductController::class, 'index'])->name('index');
         Route::get('/create',      [ProductController::class, 'create'])->name('create');
         Route::post('/',           [ProductController::class, 'store'])->name('store');
-        Route::get('/export',      [ProductController::class, 'export'])->name('export');
+        Route::get('/export',          [ProductController::class, 'export'])->name('export');
+        Route::get('/import',          [ProductController::class, 'importPage'])->name('import');
+        Route::get('/import/template', [ProductController::class, 'downloadTemplate'])->name('import.template');
+        Route::post('/import',         [ProductController::class, 'importCsv'])->name('import.process');
         Route::get('/sync',        [ProductController::class, 'syncPage'])->name('sync');
         Route::post('/sync',       [ProductController::class, 'doSync'])->name('do-sync');
         Route::get('/{product}',     [ProductController::class, 'show'])->name('show');
         Route::get('/{product}/edit',[ProductController::class, 'edit'])->name('edit');
+        Route::get('/{product}/quick-edit',[ProductController::class, 'quickEdit'])->name('quick-edit');
         Route::put('/{product}',     [ProductController::class, 'update'])->name('update');
         Route::delete('/{product}',  [ProductController::class, 'destroy'])->name('destroy');
+        Route::post('/{product}/generate-barcode', [ProductController::class, 'generateBarcode'])->name('generate-barcode');
+        Route::post('/generate-barcodes-bulk',     [ProductController::class, 'generateBarcodesBulk'])->name('generate-barcodes-bulk');
+        // Bill of Materials
+        Route::post('/{product}/bom',              [BomController::class, 'store'])->name('bom.store');
+        Route::delete('/{product}/bom/{bom}',      [BomController::class, 'destroy'])->name('bom.destroy');
+        Route::patch('/{product}/bom/{bom}/toggle',[BomController::class, 'toggle'])->name('bom.toggle');
     });
 
     Route::resource('categories', CategoryController::class);
@@ -99,7 +146,12 @@ Route::middleware(['auth', 'business'])->group(function () {
     });
 
     Route::prefix('returns')->name('returns.')->group(function () {
-        Route::get('/', [CourierController::class, 'returns'])->name('index');
+        Route::get('/',                                   [\App\Http\Controllers\ReturnController::class, 'index'])->name('index');
+        Route::post('/orders/{order}/request',            [\App\Http\Controllers\ReturnController::class, 'requestReturn'])->name('request');
+        Route::post('/orders/{order}/approve',            [\App\Http\Controllers\ReturnController::class, 'approve'])->name('approve');
+        Route::post('/orders/{order}/receive',            [\App\Http\Controllers\ReturnController::class, 'receive'])->name('receive');
+        Route::post('/orders/{order}/refund',             [\App\Http\Controllers\ReturnController::class, 'refund'])->name('refund');
+        Route::post('/orders/{order}/reject',             [\App\Http\Controllers\ReturnController::class, 'reject'])->name('reject');
     });
 
     // ---- INVENTORY ----
@@ -145,7 +197,12 @@ Route::middleware(['auth', 'business'])->group(function () {
         Route::get('/supplier-due',      [ReportController::class, 'supplierDue'])->name('supplier-due');
         Route::get('/return-refund',     [ReportController::class, 'returnRefund'])->name('return-refund');
         Route::get('/purchase-orders',   [ReportController::class, 'purchaseOrders'])->name('purchase-orders');
-        Route::get('/account-balance',   [ReportController::class, 'accountBalance'])->name('account-balance');
+        Route::get('/account-balance',       [ReportController::class, 'accountBalance'])->name('account-balance');
+        Route::get('/employee-production',   [ReportController::class, 'employeeProduction'])->name('employee-production');
+        Route::get('/sales-channel',         [ReportController::class, 'salesChannel'])->name('sales-channel');
+
+        // Export routes
+        Route::get('/export/{type}', [ReportExportController::class, 'export'])->name('export');
     });
 
     // ---- PEOPLE ----
@@ -186,9 +243,19 @@ Route::middleware(['auth', 'business'])->group(function () {
         Route::post('/rates',          [App\Http\Controllers\ProductionController::class, 'storeRate'])->name('rates.store');
         Route::put('/rates/{rate}',    [App\Http\Controllers\ProductionController::class, 'updateRate'])->name('rates.update');
         Route::delete('/rates/{rate}', [App\Http\Controllers\ProductionController::class, 'destroyRate'])->name('rates.destroy');
-        Route::get('/payroll',         [App\Http\Controllers\ProductionController::class, 'payroll'])->name('payroll');
-        Route::post('/payment',        [App\Http\Controllers\ProductionController::class, 'storePayment'])->name('payment.store');
+        Route::get('/payroll',                           [App\Http\Controllers\ProductionController::class, 'payroll'])->name('payroll');
+        Route::post('/payment',                          [App\Http\Controllers\ProductionController::class, 'storePayment'])->name('payment.store');
+        Route::post('/payroll/{employee}/finalize',      [App\Http\Controllers\ProductionController::class, 'finalizePayroll'])->name('payroll.finalize');
+        Route::post('/payroll/{payrollPeriod}/unfinalize',[App\Http\Controllers\ProductionController::class, 'unfinalizePayroll'])->name('payroll.unfinalize');
         Route::get('/my-dashboard',    [App\Http\Controllers\ProductionController::class, 'workerDashboard'])->name('worker.dashboard');
+
+        // ---- WORKER EFFICIENCY REPORT ----
+        Route::get('/efficiency',  [App\Http\Controllers\ProductionController::class, 'efficiency'])->name('efficiency');
+
+        // ---- WORKER LEDGER ----
+        Route::get('/worker-ledger',                              [App\Http\Controllers\ProductionController::class, 'workerLedger'])->name('worker.ledger');
+        Route::get('/worker-ledger/{employee}',                   [App\Http\Controllers\ProductionController::class, 'workerLedgerDetail'])->name('worker.ledger.detail');
+        Route::get('/worker-ledger/{employee}/export',            [App\Http\Controllers\ProductionController::class, 'workerLedgerExport'])->name('worker.ledger.export');
 
         // ---- PRODUCTION TASKS ----
         Route::get('/tasks',                  [ProductionTaskController::class, 'index'])->name('tasks.index');
@@ -199,6 +266,14 @@ Route::middleware(['auth', 'business'])->group(function () {
         Route::delete('/tasks/{task}',        [ProductionTaskController::class, 'destroy'])->name('tasks.destroy');
         Route::post('/tasks/{task}/submit',   [ProductionTaskController::class, 'submit'])->name('tasks.submit');
         Route::get('/my-tasks',               [ProductionTaskController::class, 'myTasks'])->name('tasks.my');
+    });
+
+    // ---- MATERIALS ----
+    Route::prefix('materials')->name('materials.')->group(function () {
+        Route::get('/',               [MaterialController::class, 'index'])->name('index');
+        Route::post('/',              [MaterialController::class, 'store'])->name('store');
+        Route::delete('/{material}',  [MaterialController::class, 'destroy'])->name('destroy');
+        Route::get('/export',         [MaterialController::class, 'export'])->name('export');
     });
 
     // ---- TASKS ----
@@ -220,7 +295,6 @@ Route::middleware(['auth', 'business'])->group(function () {
         Route::get('/business',       [SettingsController::class, 'business'])->name('business');
         Route::post('/business',      [SettingsController::class, 'updateBusiness'])->name('business.update');
         Route::post('/logo',          [SettingsController::class, 'uploadLogo'])->name('logo.upload');
-        Route::get('/subscription',   [SettingsController::class, 'subscription'])->name('subscription');
         Route::get('/payment-history',[SettingsController::class, 'paymentHistory'])->name('payment-history');
         Route::get('/user-management',[SettingsController::class, 'userManagement'])->name('user-management');
         Route::post('/users',         [SettingsController::class, 'storeUser'])->name('users.store');
@@ -230,19 +304,40 @@ Route::middleware(['auth', 'business'])->group(function () {
         Route::delete('/users/{user}/reject',[SettingsController::class, 'rejectUser'])->name('users.reject');
         Route::get('/statuses',       [SettingsController::class, 'statuses'])->name('statuses');
         Route::post('/statuses',      [SettingsController::class, 'updateStatuses'])->name('statuses.update');
-        Route::get('/warehouses',     [SettingsController::class, 'warehouses'])->name('warehouses');
-        Route::post('/warehouses',    [SettingsController::class, 'storeWarehouse'])->name('warehouses.store');
+        Route::get('/warehouses',                          [SettingsController::class, 'warehouses'])->name('warehouses');
+        Route::post('/warehouses',                         [SettingsController::class, 'storeWarehouse'])->name('warehouses.store');
+        Route::put('/warehouses/{warehouse}',              [SettingsController::class, 'updateWarehouse'])->name('warehouses.update');
+        Route::delete('/warehouses/{warehouse}',           [SettingsController::class, 'destroyWarehouse'])->name('warehouses.destroy');
         Route::get('/tags',           [SettingsController::class, 'tags'])->name('tags');
         Route::post('/tags',          [SettingsController::class, 'storeTag'])->name('tags.store');
         Route::delete('/tags',        [SettingsController::class, 'destroyTag'])->name('tags.destroy');
-        Route::get('/print-templates',[SettingsController::class, 'printTemplates'])->name('print-templates');
-        Route::post('/print-templates',[SettingsController::class, 'updatePrintTemplates'])->name('print-templates.update');
+        Route::get('/print-templates',  [SettingsController::class, 'printTemplates'])->name('print-templates');
+        Route::post('/print-templates', [SettingsController::class, 'updatePrintTemplates'])->name('print-templates.update');
+
+        // Account Categories
+        Route::get('/account-categories',          [SettingsController::class, 'accountCategories'])->name('account-categories');
+        Route::post('/account-categories',         [SettingsController::class, 'storeAccountCategory'])->name('account-categories.store');
+        Route::delete('/account-categories/{cat}', [SettingsController::class, 'destroyAccountCategory'])->name('account-categories.destroy');
+
+        // Theme
+        Route::get('/theme',  [SettingsController::class, 'theme'])->name('theme');
+        Route::post('/theme', [SettingsController::class, 'updateTheme'])->name('theme.update');
+        Route::post('/theme/reset', [SettingsController::class, 'resetTheme'])->name('theme.reset');
     });
 
     // ---- INTEGRATIONS ----
+    // Payment Gateways
+    Route::post('/payment/settings',           [\App\Http\Controllers\PaymentController::class, 'saveSettings'])->name('payment.settings.save');
+    Route::post('/payment/disable',            [\App\Http\Controllers\PaymentController::class, 'disableGateway'])->name('payment.disable');
+    Route::post('/payment/bkash/{order}',      [\App\Http\Controllers\PaymentController::class, 'bkashCreate'])->name('payment.bkash.create');
+    Route::get('/payment/bkash/{order}/callback', [\App\Http\Controllers\PaymentController::class, 'bkashCallback'])->name('payment.bkash.callback');
+    Route::post('/payment/nagad/{order}',      [\App\Http\Controllers\PaymentController::class, 'nagadCreate'])->name('payment.nagad.create');
+    Route::get('/payment/nagad/{order}/callback', [\App\Http\Controllers\PaymentController::class, 'nagadCallback'])->name('payment.nagad.callback');
+
     Route::prefix('integrations')->name('integrations.')->group(function () {
         Route::get('/',                   [IntegrationController::class, 'index'])->name('index');
         Route::get('/woocommerce',        [WooCommerceController::class, 'settings'])->name('woocommerce');
+        Route::get('/payment-gateways',   [IntegrationController::class, 'paymentGateways'])->name('payment-gateways');
         Route::post('/woocommerce',       [WooCommerceController::class, 'saveSettings'])->name('woocommerce.save');
         Route::post('/woocommerce/test',  [WooCommerceController::class, 'testConnection'])->name('woocommerce.test');
         Route::post('/woocommerce/sync',  [WooCommerceController::class, 'syncAll'])->name('woocommerce.sync');
@@ -251,6 +346,22 @@ Route::middleware(['auth', 'business'])->group(function () {
         Route::get('/sms',                [IntegrationController::class, 'sms'])->name('sms');
         Route::post('/sms',               [IntegrationController::class, 'saveSms'])->name('sms.save');
         Route::post('/sms/test',          [IntegrationController::class, 'testSms'])->name('sms.test');
+    });
+
+    // ---- TAILORING ----
+    Route::prefix('tailoring')->name('tailoring.')->group(function () {
+        Route::get('/',                                    [TailoringController::class, 'index'])->name('index');
+        Route::get('/create',                              [TailoringController::class, 'create'])->name('create');
+        Route::post('/',                                   [TailoringController::class, 'store'])->name('store');
+        Route::get('/{tailoring}',                         [TailoringController::class, 'show'])->name('show');
+        Route::get('/{tailoring}/edit',                    [TailoringController::class, 'edit'])->name('edit');
+        Route::put('/{tailoring}',                         [TailoringController::class, 'update'])->name('update');
+        Route::delete('/{tailoring}',                      [TailoringController::class, 'destroy'])->name('destroy');
+        Route::post('/{tailoring}/advance-stage',          [TailoringController::class, 'advanceStage'])->name('advance-stage');
+        Route::post('/{tailoring}/set-stage',              [TailoringController::class, 'setStage'])->name('set-stage');
+        Route::post('/{tailoring}/assign-worker',          [TailoringController::class, 'assignWorker'])->name('assign-worker');
+        Route::post('/{tailoring}/receive-payment',        [TailoringController::class, 'receivePayment'])->name('receive-payment');
+        Route::get('/{tailoring}/slip',                    [TailoringController::class, 'slip'])->name('slip');
     });
 
     // ---- STEADFAST ----
@@ -264,6 +375,7 @@ Route::middleware(['auth', 'business'])->group(function () {
         Route::get('/label/{shipment}',        [SteadfastController::class, 'printLabel'])->name('label');
         Route::post('/labels',                 [SteadfastController::class, 'printLabels'])->name('labels');
         Route::get('/invoice/{shipment}',      [SteadfastController::class, 'printInvoice'])->name('invoice');
+        Route::get('/check-phone',             [SteadfastController::class, 'checkPhone'])->name('check-phone');
     });
 
     // ---- API (AJAX) ----

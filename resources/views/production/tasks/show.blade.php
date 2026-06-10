@@ -1,4 +1,4 @@
-@extends('layouts.app')
+﻿@extends('layouts.app')
 @section('title', 'Task Detail')
 
 @section('content')
@@ -26,7 +26,7 @@
     <div class="bg-white dark:bg-slate-800 rounded-xl border border-gray-100 dark:border-slate-700 p-5">
         <div class="flex items-start justify-between mb-4">
             <div class="flex items-center gap-3">
-                <div class="w-10 h-10 rounded-full bg-blue-600 flex items-center justify-center text-white font-bold text-sm flex-shrink-0">
+                <div class="w-10 h-10 rounded-full bg-primary-600 flex items-center justify-center text-white font-bold text-sm flex-shrink-0">
                     {{ strtoupper(substr($task->employee->name, 0, 2)) }}
                 </div>
                 <div>
@@ -38,7 +38,7 @@
                 $statusColor = match($task->status) {
                     'completed'   => 'bg-green-100 text-green-700 dark:bg-green-900/30 dark:text-green-400',
                     'partial'     => 'bg-yellow-100 text-yellow-700 dark:bg-yellow-900/30 dark:text-yellow-400',
-                    'in_progress' => 'bg-blue-100 text-blue-700 dark:bg-blue-900/30 dark:text-blue-400',
+                    'in_progress' => 'bg-primary-100 text-primary-700 dark:bg-primary-900/30 dark:text-primary-400',
                     'cancelled'   => 'bg-red-100 text-red-700 dark:bg-red-900/30 dark:text-red-400',
                     default       => 'bg-gray-100 text-gray-600 dark:bg-slate-700 dark:text-slate-300',
                 };
@@ -54,7 +54,7 @@
                 {{ $task->product_name }}
             </span>
             @if($task->color)
-            <span class="px-2.5 py-1 bg-blue-50 dark:bg-blue-900/20 text-blue-700 dark:text-blue-300 rounded-lg text-xs font-medium">
+            <span class="px-2.5 py-1 bg-primary-50 dark:bg-primary-900/20 text-primary-700 dark:text-primary-300 rounded-lg text-xs font-medium">
                 {{ $task->color }}
             </span>
             @endif
@@ -72,7 +72,7 @@
                 <span class="font-semibold text-gray-700 dark:text-slate-200">{{ $task->completion_percent }}%</span>
             </div>
             <div class="w-full bg-gray-100 dark:bg-slate-700 rounded-full h-2.5">
-                <div class="bg-blue-500 h-2.5 rounded-full transition-all" style="width: {{ $task->completion_percent }}%"></div>
+                <div class="bg-primary-500 h-2.5 rounded-full transition-all" style="width: {{ $task->completion_percent }}%"></div>
             </div>
         </div>
 
@@ -114,7 +114,7 @@
         @if(!in_array($task->status, ['completed','cancelled']))
         <div class="mt-4 pt-4 border-t border-gray-100 dark:border-slate-700">
             <button @click="editOpen = !editOpen"
-                    class="text-xs text-blue-600 hover:underline">
+                    class="text-xs text-primary-600 hover:underline">
                 <span x-text="editOpen ? 'Hide Edit' : 'Edit Task'"></span>
             </button>
         </div>
@@ -122,7 +122,7 @@
     </div>
 
     {{-- Edit Form (Alpine toggle) --}}
-    <div x-show="editOpen" x-cloak class="bg-white dark:bg-slate-800 rounded-xl border border-blue-200 dark:border-blue-800 p-5">
+    <div x-show="editOpen" x-cloak class="bg-white dark:bg-slate-800 rounded-xl border border-primary-200 dark:border-primary-800 p-5">
         <h3 class="text-sm font-semibold text-gray-900 dark:text-white mb-3">Edit Task</h3>
         <form method="POST" action="{{ route('production.tasks.update', $task) }}" class="space-y-3">
             @csrf
@@ -131,7 +131,7 @@
                 <div>
                     <label class="block text-xs font-medium text-gray-700 dark:text-slate-300 mb-1">Assigned Qty</label>
                     <input type="number" name="assigned_quantity" value="{{ $task->assigned_quantity }}" min="{{ $task->completed_quantity ?: 1 }}"
-                           class="w-full px-3 py-2 text-sm border border-gray-200 dark:border-slate-600 rounded-lg bg-white dark:bg-slate-700 text-gray-900 dark:text-white focus:outline-none focus:ring-2 focus:ring-blue-500">
+                           class="w-full px-3 py-2 text-sm border border-gray-200 dark:border-slate-600 rounded-lg bg-white dark:bg-slate-700 text-gray-900 dark:text-white focus:outline-none focus:ring-2 focus:ring-primary-500">
                 </div>
                 <div>
                     <label class="block text-xs font-medium text-gray-700 dark:text-slate-300 mb-1">Status</label>
@@ -152,7 +152,7 @@
                 <textarea name="notes" rows="2" class="w-full px-3 py-2 text-sm border border-gray-200 dark:border-slate-600 rounded-lg bg-white dark:bg-slate-700 text-gray-900 dark:text-white focus:outline-none">{{ $task->notes }}</textarea>
             </div>
             <div class="flex gap-2">
-                <button type="submit" class="flex-1 bg-blue-600 text-white text-sm font-medium py-2 rounded-lg hover:bg-blue-700">Save Changes</button>
+                <button type="submit" class="flex-1 bg-primary-600 text-white text-sm font-medium py-2 rounded-lg hover:bg-primary-700">Save Changes</button>
                 <button type="button" @click="editOpen = false" class="px-4 py-2 bg-gray-100 dark:bg-slate-700 text-gray-600 text-sm rounded-lg">Cancel</button>
             </div>
         </form>

@@ -19,7 +19,7 @@
         .totals .row { display:flex; justify-content:space-between; font-size:11px; padding:2px 0; }
         .totals .grand { font-size:15px; font-weight:bold; border-top:2px solid #000; margin-top:4px; padding-top:4px; }
         .footer { text-align:center; font-size:10px; color:#888; border-top:1px dashed #ccc; padding-top:10px; margin-top:10px; }
-        .print-btn { margin-bottom:16px; padding:10px 32px; background:#2563eb; color:white; border:none; border-radius:8px; font-size:14px; cursor:pointer; font-family:Arial,sans-serif; }
+        .print-btn { margin-bottom:16px; padding:10px 32px; background:{{ $business->themeColor('600') }}; color:white; border:none; border-radius:8px; font-size:14px; cursor:pointer; font-family:Arial,sans-serif; }
         @media print { body{background:white;padding:0;} .receipt{box-shadow:none;} .print-btn{display:none!important;} }
     </style>
 </head>

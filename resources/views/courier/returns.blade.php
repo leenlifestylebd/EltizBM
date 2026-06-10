@@ -1,4 +1,4 @@
-@extends('layouts.app')
+﻿@extends('layouts.app')
 @section('title', 'Returns')
 @section('content')
 <div class="flex items-center justify-between mb-4">
@@ -9,7 +9,7 @@
         @forelse($shipments as $shipment)
         <div class="flex items-center gap-3 px-4 py-3">
             <div class="flex-1">
-                <a href="{{ route('courier.show', $shipment) }}" class="font-semibold text-sm text-blue-600 dark:text-blue-400">#{{ $shipment->order->order_number }}</a>
+                <a href="{{ route('courier.show', $shipment) }}" class="font-semibold text-sm text-primary-600 dark:text-primary-400">#{{ $shipment->order->order_number }}</a>
                 <p class="text-xs text-gray-500 dark:text-slate-400 mt-0.5">{{ $shipment->order->customer_name }} · {{ $shipment->courier_name }}</p>
             </div>
             <span class="text-xs bg-orange-100 text-orange-700 dark:bg-orange-900/30 dark:text-orange-400 px-2 py-0.5 rounded-full">Returned</span>

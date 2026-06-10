@@ -1,4 +1,4 @@
-@extends('layouts.app')
+﻿@extends('layouts.app')
 @section('title', 'Order #' . $order->order_number)
 
 @section('content')
@@ -18,14 +18,36 @@
         </div>
 
         {{-- Action buttons --}}
-        <div class="flex items-center gap-2">
-            <a href="{{ route('orders.invoice', $order) }}" target="_blank"
-               class="flex items-center gap-1.5 px-3 py-2 text-xs font-medium text-gray-600 dark:text-slate-300 bg-white dark:bg-slate-700 border border-gray-200 dark:border-slate-600 rounded-lg hover:bg-gray-50 transition-colors">
-                <svg class="w-3.5 h-3.5" fill="none" stroke="currentColor" viewBox="0 0 24 24"><path stroke-linecap="round" stroke-linejoin="round" stroke-width="2" d="M17 17h2a2 2 0 002-2v-4a2 2 0 00-2-2H5a2 2 0 00-2 2v4a2 2 0 002 2h2m2 4h6a2 2 0 002-2v-4a2 2 0 00-2-2H9a2 2 0 00-2 2v4a2 2 0 002 2zm8-12V5a2 2 0 00-2-2H9a2 2 0 00-2 2v4h10z"/></svg>
-                <span class="hidden sm:inline">Print</span>
-            </a>
+        <div class="flex items-center gap-2 flex-wrap">
+            {{-- Invoice dropdown --}}
+            <div class="relative" x-data="{ open: false }" @click.outside="open = false">
+                <button @click="open = !open"
+                        class="flex items-center gap-1.5 px-3 py-2 text-xs font-medium text-gray-600 dark:text-slate-300 bg-white dark:bg-slate-700 border border-gray-200 dark:border-slate-600 rounded-lg hover:bg-gray-50 dark:hover:bg-slate-600 transition-colors">
+                    <svg class="w-3.5 h-3.5" fill="none" stroke="currentColor" viewBox="0 0 24 24"><path stroke-linecap="round" stroke-linejoin="round" stroke-width="2" d="M9 12h6m-6 4h6m2 5H7a2 2 0 01-2-2V5a2 2 0 012-2h5.586a1 1 0 01.707.293l5.414 5.414a1 1 0 01.293.707V19a2 2 0 01-2 2z"/></svg>
+                    <span class="hidden sm:inline">Invoice</span>
+                    <svg class="w-3 h-3" fill="none" stroke="currentColor" viewBox="0 0 24 24"><path stroke-linecap="round" stroke-linejoin="round" stroke-width="2" d="M19 9l-7 7-7-7"/></svg>
+                </button>
+                <div x-show="open" x-cloak x-transition
+                     class="absolute right-0 mt-1 w-44 bg-white dark:bg-slate-800 border border-gray-100 dark:border-slate-700 rounded-xl shadow-xl z-20 overflow-hidden">
+                    <a href="{{ route('orders.invoice', $order) }}" target="_blank"
+                       class="flex items-center gap-2.5 px-3.5 py-2.5 text-xs text-gray-700 dark:text-slate-300 hover:bg-gray-50 dark:hover:bg-slate-700 transition-colors">
+                        <svg class="w-3.5 h-3.5 text-gray-500" fill="none" stroke="currentColor" viewBox="0 0 24 24"><path stroke-linecap="round" stroke-linejoin="round" stroke-width="2" d="M15 12a3 3 0 11-6 0 3 3 0 016 0z"/><path stroke-linecap="round" stroke-linejoin="round" stroke-width="2" d="M2.458 12C3.732 7.943 7.523 5 12 5c4.478 0 8.268 2.943 9.542 7-1.274 4.057-5.064 7-9.542 7-4.477 0-8.268-2.943-9.542-7z"/></svg>
+                        View Invoice
+                    </a>
+                    <a href="{{ route('orders.invoice.pdf', $order) }}"
+                       class="flex items-center gap-2.5 px-3.5 py-2.5 text-xs text-gray-700 dark:text-slate-300 hover:bg-gray-50 dark:hover:bg-slate-700 transition-colors">
+                        <svg class="w-3.5 h-3.5 text-red-500" fill="none" stroke="currentColor" viewBox="0 0 24 24"><path stroke-linecap="round" stroke-linejoin="round" stroke-width="2" d="M12 10v6m0 0l-3-3m3 3l3-3m2 8H7a2 2 0 01-2-2V5a2 2 0 012-2h5.586a1 1 0 01.707.293l5.414 5.414a1 1 0 01.293.707V19a2 2 0 01-2 2z"/></svg>
+                        Download PDF
+                    </a>
+                    <a href="{{ route('orders.receipt', $order) }}" target="_blank"
+                       class="flex items-center gap-2.5 px-3.5 py-2.5 text-xs text-gray-700 dark:text-slate-300 hover:bg-gray-50 dark:hover:bg-slate-700 transition-colors">
+                        <svg class="w-3.5 h-3.5 text-primary-500" fill="none" stroke="currentColor" viewBox="0 0 24 24"><path stroke-linecap="round" stroke-linejoin="round" stroke-width="2" d="M9 5H7a2 2 0 00-2 2v12a2 2 0 002 2h10a2 2 0 002-2V7a2 2 0 00-2-2h-2M9 5a2 2 0 002 2h2a2 2 0 002-2M9 5a2 2 0 012-2h2a2 2 0 012 2"/></svg>
+                        Thermal Receipt
+                    </a>
+                </div>
+            </div>
             <a href="{{ route('orders.edit', $order) }}"
-               class="flex items-center gap-1.5 px-3 py-2 text-xs font-medium text-white bg-blue-600 rounded-lg hover:bg-blue-700 transition-colors">
+               class="flex items-center gap-1.5 px-3 py-2 text-xs font-medium text-white bg-primary-600 rounded-lg hover:bg-primary-700 transition-colors">
                 <svg class="w-3.5 h-3.5" fill="none" stroke="currentColor" viewBox="0 0 24 24"><path stroke-linecap="round" stroke-linejoin="round" stroke-width="2" d="M11 5H6a2 2 0 00-2 2v11a2 2 0 002 2h11a2 2 0 002-2v-5m-1.414-9.414a2 2 0 112.828 2.828L11.828 15H9v-2.828l8.586-8.586z"/></svg>
                 Edit
             </a>
@@ -36,8 +58,8 @@
     @php
     $statusColors = [
         'pending'    => ['bg'=>'bg-yellow-50 dark:bg-yellow-900/20','border'=>'border-yellow-200 dark:border-yellow-700','text'=>'text-yellow-700 dark:text-yellow-400','badge'=>'bg-yellow-100 text-yellow-700 dark:bg-yellow-900/30 dark:text-yellow-400'],
-        'confirmed'  => ['bg'=>'bg-blue-50 dark:bg-blue-900/20','border'=>'border-blue-200 dark:border-blue-700','text'=>'text-blue-700 dark:text-blue-400','badge'=>'bg-blue-100 text-blue-700'],
-        'processing' => ['bg'=>'bg-indigo-50 dark:bg-indigo-900/20','border'=>'border-indigo-200 dark:border-indigo-700','text'=>'text-indigo-700 dark:text-indigo-400','badge'=>'bg-indigo-100 text-indigo-700'],
+        'confirmed'  => ['bg'=>'bg-primary-50 dark:bg-primary-900/20','border'=>'border-primary-200 dark:border-primary-700','text'=>'text-primary-700 dark:text-primary-400','badge'=>'bg-primary-100 text-primary-700'],
+        'processing' => ['bg'=>'bg-primary-50 dark:bg-primary-900/20','border'=>'border-primary-200 dark:border-primary-700','text'=>'text-primary-700 dark:text-primary-400','badge'=>'bg-primary-100 text-primary-700'],
         'shipped'    => ['bg'=>'bg-purple-50 dark:bg-purple-900/20','border'=>'border-purple-200 dark:border-purple-700','text'=>'text-purple-700 dark:text-purple-400','badge'=>'bg-purple-100 text-purple-700'],
         'delivered'  => ['bg'=>'bg-green-50 dark:bg-green-900/20','border'=>'border-green-200 dark:border-green-700','text'=>'text-green-700 dark:text-green-400','badge'=>'bg-green-100 text-green-700'],
         'completed'  => ['bg'=>'bg-green-50 dark:bg-green-900/20','border'=>'border-green-200 dark:border-green-700','text'=>'text-green-700 dark:text-green-400','badge'=>'bg-green-100 text-green-700'],
@@ -63,7 +85,7 @@
         <form method="POST" action="{{ route('orders.status', $order) }}" class="flex items-center gap-2">
             @csrf
             <select name="status"
-                    class="text-xs px-2 py-1.5 border border-gray-200 dark:border-slate-600 rounded-lg bg-white dark:bg-slate-700 text-gray-700 dark:text-slate-200 focus:outline-none focus:ring-1 focus:ring-blue-500">
+                    class="text-xs px-2 py-1.5 border border-gray-200 dark:border-slate-600 rounded-lg bg-white dark:bg-slate-700 text-gray-700 dark:text-slate-200 focus:outline-none focus:ring-1 focus:ring-primary-500">
                 @foreach(['pending','confirmed','processing','shipped','delivered','completed','cancelled','returned'] as $s)
                     <option value="{{ $s }}" {{ $order->status === $s ? 'selected' : '' }}>{{ ucfirst($s) }}</option>
                 @endforeach
@@ -160,7 +182,7 @@
                 <div class="px-4 py-3">
                     <div class="flex items-center justify-between mb-1">
                         <span class="text-sm font-medium text-gray-900 dark:text-white">{{ $shipment->courier_name }}</span>
-                        <span class="inline-flex px-2 py-0.5 rounded-full text-xs font-medium bg-blue-100 text-blue-700 dark:bg-blue-900/30 dark:text-blue-400">
+                        <span class="inline-flex px-2 py-0.5 rounded-full text-xs font-medium bg-primary-100 text-primary-700 dark:bg-primary-900/30 dark:text-primary-400">
                             {{ ucfirst($shipment->status) }}
                         </span>
                     </div>
@@ -182,8 +204,8 @@
             <div class="bg-white dark:bg-slate-800 rounded-xl border border-gray-100 dark:border-slate-700 p-4">
                 <h3 class="text-sm font-semibold text-gray-900 dark:text-white mb-3">Customer</h3>
                 <div class="flex items-center gap-3 mb-3">
-                    <div class="w-10 h-10 bg-blue-100 dark:bg-blue-900/30 rounded-full flex items-center justify-center flex-shrink-0">
-                        <span class="text-sm font-bold text-blue-600 dark:text-blue-400">{{ strtoupper(substr($order->customer_name, 0, 1)) }}</span>
+                    <div class="w-10 h-10 bg-primary-100 dark:bg-primary-900/30 rounded-full flex items-center justify-center flex-shrink-0">
+                        <span class="text-sm font-bold text-primary-600 dark:text-primary-400">{{ strtoupper(substr($order->customer_name, 0, 1)) }}</span>
                     </div>
                     <div>
                         <p class="text-sm font-semibold text-gray-900 dark:text-white">{{ $order->customer_name }}</p>
@@ -239,12 +261,51 @@
                         <div class="flex gap-2">
                             <input type="number" name="collect_amount" placeholder="Amount" min="0"
                                    value="{{ $order->due_amount }}"
-                                   class="flex-1 px-2.5 py-2 text-xs border border-gray-200 dark:border-slate-600 rounded-lg bg-white dark:bg-slate-700 text-gray-900 dark:text-white focus:outline-none focus:ring-1 focus:ring-blue-500">
+                                   class="flex-1 px-2.5 py-2 text-xs border border-gray-200 dark:border-slate-600 rounded-lg bg-white dark:bg-slate-700 text-gray-900 dark:text-white focus:outline-none focus:ring-1 focus:ring-primary-500">
                             <button type="submit" class="px-3 py-2 text-xs font-medium bg-green-600 text-white rounded-lg hover:bg-green-700 transition-colors">
                                 Collect
                             </button>
                         </div>
                     </form>
+                    @endif
+
+                    {{-- bKash / Nagad Payment Buttons --}}
+                    @if($order->due_amount > 0)
+                    @php
+                        $bkashGw = \App\Models\PaymentGatewaySetting::forBusiness($order->business_id, 'bkash');
+                        $nagadGw = \App\Models\PaymentGatewaySetting::forBusiness($order->business_id, 'nagad');
+                    @endphp
+                    @if($bkashGw || $nagadGw)
+                    <div class="border-t border-gray-100 dark:border-slate-700 pt-3 mt-3">
+                        <p class="text-xs font-semibold text-gray-500 dark:text-slate-400 mb-2">Online Payment</p>
+                        <div class="space-y-2">
+                        @if($bkashGw)
+                        <form method="POST" action="{{ route('payment.bkash.create', $order) }}">
+                            @csrf
+                            <button type="submit"
+                                    class="w-full flex items-center justify-center gap-2 py-2.5 rounded-xl text-sm font-bold text-white transition-colors"
+                                    style="background: #E2136E;">
+                                <span class="text-base font-black">b</span>
+                                Pay with bKash
+                                <span class="text-xs font-normal opacity-80">৳{{ number_format($order->due_amount) }}</span>
+                            </button>
+                        </form>
+                        @endif
+                        @if($nagadGw)
+                        <form method="POST" action="{{ route('payment.nagad.create', $order) }}">
+                            @csrf
+                            <button type="submit"
+                                    class="w-full flex items-center justify-center gap-2 py-2.5 rounded-xl text-sm font-bold text-white transition-colors"
+                                    style="background: #F05825;">
+                                <span class="text-base font-black">N</span>
+                                Pay with Nagad
+                                <span class="text-xs font-normal opacity-80">৳{{ number_format($order->due_amount) }}</span>
+                            </button>
+                        </form>
+                        @endif
+                        </div>
+                    </div>
+                    @endif
                     @endif
                 </div>
             </div>
@@ -271,7 +332,31 @@
                         <svg class="w-4 h-4 text-gray-500" fill="none" stroke="currentColor" viewBox="0 0 24 24"><path d="M9 17a2 2 0 11-4 0 2 2 0 014 0zM19 17a2 2 0 11-4 0 2 2 0 014 0z"/><path stroke-linecap="round" stroke-linejoin="round" stroke-width="2" d="M13 16V6a1 1 0 00-1-1H4a1 1 0 00-1 1v10a1 1 0 001 1h1m8-1a1 1 0 01-1 1H9m4-1V8a1 1 0 011-1h2.586a1 1 0 01.707.293l3.414 3.414a1 1 0 01.293.707V16a1 1 0 01-1 1h-1m-6-1a1 1 0 001 1h1"/></svg>
                         Create Shipment
                     </a>
-                    @if(!in_array($order->status, ['cancelled','returned']))
+                    @if(in_array($order->status, ['delivered', 'completed']))
+                    <button onclick="document.getElementById('returnModal_{{ $order->id }}').classList.remove('hidden')"
+                            class="flex items-center gap-2 w-full px-3 py-2.5 text-xs font-medium text-orange-600 dark:text-orange-400 bg-orange-50 dark:bg-orange-900/20 rounded-lg hover:bg-orange-100 dark:hover:bg-orange-900/30 transition-colors">
+                        <svg class="w-4 h-4" fill="none" stroke="currentColor" viewBox="0 0 24 24"><path stroke-linecap="round" stroke-linejoin="round" stroke-width="2" d="M16 15v-1a4 4 0 00-4-4H8m0 0l3 3m-3-3l3-3"/></svg>
+                        Request Return
+                    </button>
+                    <div id="returnModal_{{ $order->id }}" class="hidden fixed inset-0 bg-black/50 z-50 flex items-center justify-center p-4">
+                        <div class="bg-white dark:bg-slate-800 rounded-xl w-full max-w-sm p-5 shadow-2xl">
+                            <h3 class="text-sm font-semibold text-gray-900 dark:text-white mb-3">Request Return for #{{ $order->order_number }}</h3>
+                            <form method="POST" action="{{ route('returns.request', $order) }}">
+                                @csrf
+                                <label class="block text-xs font-medium text-gray-700 dark:text-slate-300 mb-1.5">Reason <span class="text-red-500">*</span></label>
+                                <textarea name="reason" rows="3" required placeholder="Describe the reason for return..."
+                                          class="w-full px-3 py-2 text-xs border border-gray-200 dark:border-slate-600 rounded-lg bg-white dark:bg-slate-700 text-gray-900 dark:text-white mb-3 focus:ring-2 focus:ring-orange-500 resize-none"></textarea>
+                                <div class="flex gap-2">
+                                    <button type="submit" class="flex-1 py-2 bg-orange-600 text-white text-xs rounded-lg hover:bg-orange-700">Submit Request</button>
+                                    <button type="button" onclick="document.getElementById('returnModal_{{ $order->id }}').classList.add('hidden')"
+                                            class="flex-1 py-2 bg-gray-100 dark:bg-slate-700 text-gray-600 dark:text-slate-300 text-xs rounded-lg hover:bg-gray-200">Cancel</button>
+                                </div>
+                            </form>
+                        </div>
+                    </div>
+                    @endif
+
+                    @if(!in_array($order->status, ['cancelled','returned','return_requested','return_approved','return_received','refunded']))
                     <form method="POST" action="{{ route('orders.status', $order) }}" onsubmit="return confirm('Cancel this order?')">
                         @csrf
                         <input type="hidden" name="status" value="cancelled">

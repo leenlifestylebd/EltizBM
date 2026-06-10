@@ -1,4 +1,4 @@
-{{-- ===================================================
+﻿{{-- ===================================================
      FILE: resources/views/brands/index.blade.php
      =================================================== --}}
 @extends('layouts.app')
@@ -23,12 +23,12 @@
             <div>
                 <label class="block text-xs font-medium text-gray-700 dark:text-slate-300 mb-1.5">Brand Name <span class="text-red-500">*</span></label>
                 <input type="text" name="name" required
-                       class="w-full px-3 py-2.5 text-sm border border-gray-200 dark:border-slate-600 rounded-lg bg-white dark:bg-slate-700 text-gray-900 dark:text-white focus:outline-none focus:ring-2 focus:ring-blue-500"
+                       class="w-full px-3 py-2.5 text-sm border border-gray-200 dark:border-slate-600 rounded-lg bg-white dark:bg-slate-700 text-gray-900 dark:text-white focus:outline-none focus:ring-2 focus:ring-primary-500"
                        placeholder="e.g. Samsung">
             </div>
             <div>
                 <label class="block text-xs font-medium text-gray-700 dark:text-slate-300 mb-1.5">Logo</label>
-                <label class="flex items-center gap-2 px-3 py-2.5 border border-dashed border-gray-200 dark:border-slate-600 rounded-lg cursor-pointer hover:border-blue-400 transition-colors">
+                <label class="flex items-center gap-2 px-3 py-2.5 border border-dashed border-gray-200 dark:border-slate-600 rounded-lg cursor-pointer hover:border-primary-400 transition-colors">
                     <svg class="w-4 h-4 text-gray-400" fill="none" stroke="currentColor" viewBox="0 0 24 24">
                         <path stroke-linecap="round" stroke-linejoin="round" stroke-width="2" d="M4 16l4.586-4.586a2 2 0 012.828 0L16 16m-2-2l1.586-1.586a2 2 0 012.828 0L20 14"/>
                     </svg>
@@ -36,7 +36,7 @@
                     <input type="file" name="logo" accept="image/*" class="hidden">
                 </label>
             </div>
-            <button type="submit" class="w-full bg-blue-600 hover:bg-blue-700 text-white font-medium py-2.5 text-sm rounded-lg transition-colors">Add Brand</button>
+            <button type="submit" class="w-full bg-primary-600 hover:bg-primary-700 text-white font-medium py-2.5 text-sm rounded-lg transition-colors">Add Brand</button>
         </form>
     </div>
 

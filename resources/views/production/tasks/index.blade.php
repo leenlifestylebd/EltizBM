@@ -1,4 +1,4 @@
-@extends('layouts.app')
+﻿@extends('layouts.app')
 @section('title', 'Task Assignment')
 
 @section('content')
@@ -9,7 +9,7 @@
         <p class="text-xs text-gray-500 dark:text-slate-400 mt-0.5">Assign and track worker tasks</p>
     </div>
     <a href="{{ route('production.tasks.create') }}"
-       class="flex items-center gap-1.5 px-3 py-2 text-xs font-medium text-white bg-blue-600 rounded-lg hover:bg-blue-700 transition-colors">
+       class="flex items-center gap-1.5 px-3 py-2 text-xs font-medium text-white bg-primary-600 rounded-lg hover:bg-primary-700 transition-colors">
         + Assign Task
     </a>
 </div>
@@ -20,9 +20,9 @@
         <p class="text-xs text-gray-500 dark:text-slate-400 mb-1">Total Tasks</p>
         <p class="text-xl font-bold text-gray-900 dark:text-white">{{ $stats['total'] }}</p>
     </div>
-    <div class="bg-white dark:bg-slate-800 rounded-xl p-3 border border-blue-100 dark:border-blue-900/30">
+    <div class="bg-white dark:bg-slate-800 rounded-xl p-3 border border-primary-100 dark:border-primary-900/30">
         <p class="text-xs text-gray-500 dark:text-slate-400 mb-1">Assigned</p>
-        <p class="text-xl font-bold text-blue-600 dark:text-blue-400">{{ $stats['assigned'] }}</p>
+        <p class="text-xl font-bold text-primary-600 dark:text-primary-400">{{ $stats['assigned'] }}</p>
     </div>
     <div class="bg-white dark:bg-slate-800 rounded-xl p-3 border border-yellow-100 dark:border-yellow-900/30">
         <p class="text-xs text-gray-500 dark:text-slate-400 mb-1">Partial</p>
@@ -67,7 +67,7 @@
             <input type="date" name="to" value="{{ request('to') }}"
                    class="px-3 py-2 text-xs border border-gray-200 dark:border-slate-600 rounded-lg bg-white dark:bg-slate-700 text-gray-900 dark:text-white focus:outline-none">
         </div>
-        <button type="submit" class="px-3 py-2 bg-blue-600 text-white text-xs rounded-lg hover:bg-blue-700">Filter</button>
+        <button type="submit" class="px-3 py-2 bg-primary-600 text-white text-xs rounded-lg hover:bg-primary-700">Filter</button>
         @if(request()->hasAny(['employee_id','status','from','to']))
         <a href="{{ route('production.tasks.index') }}" class="px-3 py-2 bg-gray-100 dark:bg-slate-700 text-gray-600 dark:text-slate-300 text-xs rounded-lg hover:bg-gray-200">Clear</a>
         @endif
@@ -98,7 +98,7 @@
                     $statusColor = match($task->status) {
                         'completed'   => 'bg-green-100 text-green-700 dark:bg-green-900/30 dark:text-green-400',
                         'partial'     => 'bg-yellow-100 text-yellow-700 dark:bg-yellow-900/30 dark:text-yellow-400',
-                        'in_progress' => 'bg-blue-100 text-blue-700 dark:bg-blue-900/30 dark:text-blue-400',
+                        'in_progress' => 'bg-primary-100 text-primary-700 dark:bg-primary-900/30 dark:text-primary-400',
                         'cancelled'   => 'bg-red-100 text-red-700 dark:bg-red-900/30 dark:text-red-400',
                         default       => 'bg-gray-100 text-gray-600 dark:bg-slate-700 dark:text-slate-300',
                     };
@@ -120,7 +120,7 @@
                     <td class="px-4 py-3">
                         <div class="flex items-center gap-2">
                             <div class="flex-1 bg-gray-100 dark:bg-slate-700 rounded-full h-1.5 min-w-16">
-                                <div class="bg-blue-500 h-1.5 rounded-full" style="width: {{ $pct }}%"></div>
+                                <div class="bg-primary-500 h-1.5 rounded-full" style="width: {{ $pct }}%"></div>
                             </div>
                             <span class="text-xs text-gray-500 w-8">{{ $pct }}%</span>
                         </div>
@@ -137,7 +137,7 @@
                     <td class="px-4 py-3 text-center">
                         <div class="flex items-center justify-center gap-1.5">
                             <a href="{{ route('production.tasks.show', $task) }}"
-                               class="px-2.5 py-1 text-xs text-blue-600 border border-blue-200 rounded-lg hover:bg-blue-50 dark:hover:bg-blue-900/20">
+                               class="px-2.5 py-1 text-xs text-primary-600 border border-primary-200 rounded-lg hover:bg-primary-50 dark:hover:bg-primary-900/20">
                                 View
                             </a>
                             <form method="POST" action="{{ route('production.tasks.destroy', $task) }}"
@@ -166,7 +166,7 @@
         $statusColor = match($task->status) {
             'completed'   => 'bg-green-100 text-green-700',
             'partial'     => 'bg-yellow-100 text-yellow-700',
-            'in_progress' => 'bg-blue-100 text-blue-700',
+            'in_progress' => 'bg-primary-100 text-primary-700',
             'cancelled'   => 'bg-red-100 text-red-700',
             default       => 'bg-gray-100 text-gray-600',
         };
@@ -187,14 +187,14 @@
                 <span>{{ $pct }}%</span>
             </div>
             <div class="w-full bg-gray-100 dark:bg-slate-700 rounded-full h-1.5">
-                <div class="bg-blue-500 h-1.5 rounded-full" style="width: {{ $pct }}%"></div>
+                <div class="bg-primary-500 h-1.5 rounded-full" style="width: {{ $pct }}%"></div>
             </div>
         </div>
         <div class="flex items-center justify-between">
             <span class="text-xs text-gray-500">Pending: <strong class="{{ $task->pending_quantity > 0 ? 'text-orange-600' : 'text-green-600' }}">{{ $task->pending_quantity }}</strong></span>
             <div class="flex gap-1.5">
                 <a href="{{ route('production.tasks.show', $task) }}"
-                   class="px-2.5 py-1 text-xs text-blue-600 border border-blue-200 rounded-lg">View</a>
+                   class="px-2.5 py-1 text-xs text-primary-600 border border-primary-200 rounded-lg">View</a>
                 <form method="POST" action="{{ route('production.tasks.destroy', $task) }}"
                       onsubmit="return confirm('Delete করবেন?')">
                     @csrf @method('DELETE')

@@ -1,4 +1,4 @@
-{{-- FILE: resources/views/pos/partials/cart-footer.blade.php --}}
+﻿{{-- FILE: resources/views/pos/partials/cart-footer.blade.php --}}
 
 {{-- Totals --}}
 <div class="space-y-1.5">
@@ -15,7 +15,7 @@
         <div class="flex items-center gap-1">
             <span class="text-gray-400">৳</span>
             <input type="number" x-model.number="extraDiscount" @input="calcTotals()"
-                   min="0" class="w-16 text-xs px-1.5 py-1 border border-gray-200 dark:border-slate-600 rounded bg-white dark:bg-slate-700 text-gray-900 dark:text-white focus:outline-none focus:ring-1 focus:ring-blue-500 text-right">
+                   min="0" class="w-16 text-xs px-1.5 py-1 border border-gray-200 dark:border-slate-600 rounded bg-white dark:bg-slate-700 text-gray-900 dark:text-white focus:outline-none focus:ring-1 focus:ring-primary-500 text-right">
         </div>
     </div>
     <div class="flex justify-between font-bold text-base text-gray-900 dark:text-white border-t border-gray-100 dark:border-slate-700 pt-2">
@@ -35,7 +35,7 @@
         ['value'=>'other', 'label'=>'Other'],
     ] as $pm)
     <button type="button" @click="paymentMethod = '{{ $pm['value'] }}'"
-            :class="paymentMethod === '{{ $pm['value'] }}' ? 'bg-blue-600 text-white' : 'bg-gray-50 dark:bg-slate-700 text-gray-600 dark:text-slate-300 border border-gray-200 dark:border-slate-600'"
+            :class="paymentMethod === '{{ $pm['value'] }}' ? 'bg-primary-600 text-white' : 'bg-gray-50 dark:bg-slate-700 text-gray-600 dark:text-slate-300 border border-gray-200 dark:border-slate-600'"
             class="py-2 rounded-lg text-xs font-medium transition-colors text-center">
         {{ $pm['label'] }}
     </button>
@@ -47,7 +47,7 @@
     <div class="relative">
         <span class="absolute left-3 top-1/2 -translate-y-1/2 text-gray-500 text-sm">৳</span>
         <input type="number" x-model.number="cashReceived"
-               class="w-full pl-7 pr-3 py-2.5 text-base font-bold border border-gray-200 dark:border-slate-600 rounded-xl bg-white dark:bg-slate-700 text-gray-900 dark:text-white focus:outline-none focus:ring-2 focus:ring-blue-500 text-right"
+               class="w-full pl-7 pr-3 py-2.5 text-base font-bold border border-gray-200 dark:border-slate-600 rounded-xl bg-white dark:bg-slate-700 text-gray-900 dark:text-white focus:outline-none focus:ring-2 focus:ring-primary-500 text-right"
                :placeholder="total">
     </div>
     <div x-show="cashReceived >= total && cashReceived > 0"
@@ -72,5 +72,5 @@
 {{-- Hold / Recent Sales links --}}
 <div class="flex justify-between text-xs text-gray-400 dark:text-slate-500">
     <button @click="clearCart()" x-show="cart.length > 0" class="hover:text-red-500 transition-colors">🗑 Clear cart</button>
-    <a href="{{ route('orders.index') }}?source=pos" class="hover:text-blue-600 transition-colors">📋 Recent sales</a>
+    <a href="{{ route('orders.index') }}?source=pos" class="hover:text-primary-600 transition-colors">📋 Recent sales</a>
 </div>

@@ -1,4 +1,4 @@
-@extends('layouts.app')
+﻿@extends('layouts.app')
 @section('title', 'Subscription')
 
 @section('content')
@@ -6,13 +6,13 @@
 <div class="max-w-3xl mx-auto">
 
     <div class="flex gap-1 mb-5 bg-gray-100 dark:bg-slate-700 p-1 rounded-xl overflow-x-auto scrollbar-hide">
-        @foreach([['route'=>'settings.general','label'=>'Profile'],['route'=>'settings.business','label'=>'Business'],['route'=>'settings.user-management','label'=>'Users'],['route'=>'settings.subscription','label'=>'Subscription'],['route'=>'settings.warehouses','label'=>'Warehouses'],['route'=>'settings.print-templates','label'=>'Print']] as $tab)
+        @foreach([['route'=>'settings.general','label'=>'Profile'],['route'=>'settings.business','label'=>'Business'],['route'=>'settings.user-management','label'=>'Users'],['route'=>'settings.subscription','label'=>'Subscription'],['route'=>'settings.warehouses','label'=>'Warehouses'],['route'=>'settings.print-templates','label'=>'Print'],['route'=>'settings.account-categories','label'=>'Categories']] as $tab)
         <a href="{{ route($tab['route']) }}" class="flex-shrink-0 px-3 py-2 rounded-lg text-xs font-medium transition-colors whitespace-nowrap {{ request()->routeIs($tab['route']) ? 'bg-white dark:bg-slate-800 text-gray-900 dark:text-white shadow-sm' : 'text-gray-500 dark:text-slate-400 hover:text-gray-700 dark:hover:text-slate-300' }}">{{ $tab['label'] }}</a>
         @endforeach
     </div>
 
     {{-- Current Plan --}}
-    <div class="bg-gradient-to-r from-blue-500 to-blue-700 rounded-2xl p-6 text-white mb-4">
+    <div class="bg-gradient-to-r from-primary-500 to-primary-700 rounded-2xl p-6 text-white mb-4">
         <div class="flex items-start justify-between">
             <div>
                 <div class="flex items-center gap-2 mb-1">
@@ -20,13 +20,13 @@
                     <span class="font-bold text-lg">{{ ucfirst($business->plan) }} Plan</span>
                 </div>
                 @if($business->isOnTrial())
-                    <p class="text-blue-100 text-sm">⏰ {{ $business->trialDaysLeft() }} days left in trial</p>
+                    <p class="text-primary-100 text-sm">⏰ {{ $business->trialDaysLeft() }} days left in trial</p>
                 @else
-                    <p class="text-blue-100 text-sm">Active subscription</p>
+                    <p class="text-primary-100 text-sm">Active subscription</p>
                 @endif
             </div>
             <div class="text-right">
-                <p class="text-blue-100 text-xs">Business ID</p>
+                <p class="text-primary-100 text-xs">Business ID</p>
                 <p class="font-mono font-bold">BIZ-{{ str_pad($business->id,6,'0',STR_PAD_LEFT) }}</p>
             </div>
         </div>
@@ -36,12 +36,12 @@
     <div class="grid grid-cols-1 sm:grid-cols-3 gap-4 mb-4">
         @foreach([
             ['name'=>'Basic','price'=>'Free','period'=>'14-day trial','features'=>['500 orders/month','100 products','2 users','Basic reports','POS included'],'current'=>$business->plan==='basic','color'=>'gray'],
-            ['name'=>'Pro','price'=>'৳999','period'=>'/month','features'=>['Unlimited orders','Unlimited products','10 users','All reports','WooCommerce sync','SMS notifications'],'current'=>$business->plan==='pro','color'=>'blue','popular'=>true],
+            ['name'=>'Pro','price'=>'৳999','period'=>'/month','features'=>['Unlimited orders','Unlimited products','10 users','All reports','WooCommerce sync','SMS notifications'],'current'=>$business->plan==='pro','color'=>'primary','popular'=>true],
             ['name'=>'Business','price'=>'৳2499','period'=>'/month','features'=>['Everything in Pro','Unlimited users','API access','Priority support','Custom domain','White label'],'current'=>$business->plan==='business','color'=>'purple'],
         ] as $plan)
-        <div class="bg-white dark:bg-slate-800 rounded-xl border {{ isset($plan['popular']) ? 'border-blue-400 dark:border-blue-500 shadow-md' : 'border-gray-100 dark:border-slate-700' }} p-4 relative">
+        <div class="bg-white dark:bg-slate-800 rounded-xl border {{ isset($plan['popular']) ? 'border-primary-400 dark:border-primary-500 shadow-md' : 'border-gray-100 dark:border-slate-700' }} p-4 relative">
             @if(isset($plan['popular']))
-                <span class="absolute -top-3 left-1/2 -translate-x-1/2 bg-blue-600 text-white text-xs font-medium px-3 py-0.5 rounded-full">Most Popular</span>
+                <span class="absolute -top-3 left-1/2 -translate-x-1/2 bg-primary-600 text-white text-xs font-medium px-3 py-0.5 rounded-full">Most Popular</span>
             @endif
             @if($plan['current'])
                 <span class="absolute top-3 right-3 bg-green-100 text-green-700 dark:bg-green-900/30 dark:text-green-400 text-xs font-medium px-2 py-0.5 rounded-full">Current</span>

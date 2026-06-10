@@ -1,4 +1,4 @@
-@extends('layouts.app')
+﻿@extends('layouts.app')
 @section('title', 'Salary')
 
 @section('content')
@@ -11,8 +11,8 @@
 <div class="flex items-center gap-2 mb-4">
     <form method="GET" class="flex items-center gap-2">
         <input type="month" name="month" value="{{ $month }}"
-               class="text-sm px-3 py-2 border border-gray-200 dark:border-slate-600 rounded-lg bg-white dark:bg-slate-700 text-gray-700 dark:text-slate-200 focus:outline-none focus:ring-2 focus:ring-blue-500">
-        <button type="submit" class="px-3 py-2 bg-blue-600 text-white rounded-lg hover:bg-blue-700 text-sm transition-colors">View</button>
+               class="text-sm px-3 py-2 border border-gray-200 dark:border-slate-600 rounded-lg bg-white dark:bg-slate-700 text-gray-700 dark:text-slate-200 focus:outline-none focus:ring-2 focus:ring-primary-500">
+        <button type="submit" class="px-3 py-2 bg-primary-600 text-white rounded-lg hover:bg-primary-700 text-sm transition-colors">View</button>
     </form>
     <span class="text-sm text-gray-500 dark:text-slate-400">
         Total payable: <strong class="text-gray-900 dark:text-white">৳{{ number_format($employees->sum('salary')) }}</strong>
@@ -45,7 +45,7 @@
                     <td class="px-4 py-3">
                         <div class="flex items-center gap-2">
                             <div class="w-8 h-8 rounded-full flex items-center justify-center text-white text-xs font-bold
-                                {{ ['bg-blue-500','bg-purple-500','bg-green-500','bg-orange-500'][crc32($emp->name) % 4] }}">
+                                {{ ['bg-primary-500','bg-purple-500','bg-green-500','bg-orange-500'][crc32($emp->name) % 4] }}">
                                 {{ strtoupper(substr($emp->name, 0, 2)) }}
                             </div>
                             <div>
@@ -73,7 +73,7 @@
                             <input type="hidden" name="month" value="{{ $month }}">
                             <input type="hidden" name="title" value="Salary - {{ $emp->name }} ({{ \Carbon\Carbon::parse($month)->format('M Y') }})">
                             <button type="submit"
-                                    class="px-3 py-1.5 text-xs font-medium bg-blue-600 text-white rounded-lg hover:bg-blue-700 transition-colors">
+                                    class="px-3 py-1.5 text-xs font-medium bg-primary-600 text-white rounded-lg hover:bg-primary-700 transition-colors">
                                 Pay Salary
                             </button>
                         </form>
@@ -111,7 +111,7 @@
                     <input type="hidden" name="amount" value="{{ $payable }}">
                     <input type="hidden" name="month" value="{{ $month }}">
                     <input type="hidden" name="title" value="Salary - {{ $emp->name }} ({{ \Carbon\Carbon::parse($month)->format('M Y') }})">
-                    <button type="submit" class="px-3 py-1.5 text-xs bg-blue-600 text-white rounded-lg hover:bg-blue-700 transition-colors">Pay</button>
+                    <button type="submit" class="px-3 py-1.5 text-xs bg-primary-600 text-white rounded-lg hover:bg-primary-700 transition-colors">Pay</button>
                 </form>
                 @endif
             </div>
