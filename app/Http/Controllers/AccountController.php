@@ -146,6 +146,12 @@ class AccountController extends Controller
     {
         abort_unless(auth()->user()->isAdmin(), 403);
         abort_if($transaction->business_id !== auth()->user()->business_id, 403);
+        $this->logActivity('deleted', $transaction, [
+            'type'   => $transaction->type,
+            'title'  => $transaction->title,
+            'amount' => $transaction->amount,
+            'date'   => (string) $transaction->transaction_date,
+        ]);
         $transaction->delete();
         return back()->with('success', 'Transaction deleted.');
     }

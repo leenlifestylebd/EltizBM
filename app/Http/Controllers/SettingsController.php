@@ -247,8 +247,15 @@ class SettingsController extends Controller
 
     public function destroyUser(User $user)
     {
+        abort_unless(auth()->user()->isAdmin(), 403);
         abort_if($user->business_id !== auth()->user()->business_id, 403);
         abort_if($user->id === auth()->id(), 403, 'Cannot delete yourself');
+
+        $this->logActivity('deleted', $user, [
+            'name'  => $user->name,
+            'email' => $user->email,
+            'role'  => $user->role,
+        ]);
 
         $user->delete();
         return back()->with('success', 'User removed!');

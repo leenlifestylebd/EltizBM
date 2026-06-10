@@ -315,11 +315,16 @@ class OrderController extends Controller
     {
         $this->authorize($order);
 
-        // Restore stock
-        foreach ($order->items as $item) {
-            Product::where('id', $item->product_id)
-                ->where('track_stock', true)
-                ->increment('stock', $item->quantity);
+        $this->logActivity('deleted', $order, [
+            'order_number' => $order->order_number,
+            'total'        => $order->total,
+            'status'       => $order->status,
+        ]);
+
+        // Restore stock (scoped + logged) only for orders that still hold stock —
+        // cancelled/returned orders already had their stock restored.
+        if (!in_array($order->status, ['cancelled', 'returned', 'refunded'])) {
+            app(\App\Services\StockService::class)->restoreForOrder($order);
         }
 
         $order->delete();
