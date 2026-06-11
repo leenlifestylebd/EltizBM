@@ -60,15 +60,18 @@ class ProductionTaskController extends Controller
 
     public function store(Request $request)
     {
+        $bizId = auth()->user()->business_id;
+
         $request->validate([
-            'employee_id'        => 'required|exists:employees,id',
-            'production_rate_id' => 'required|exists:production_rates,id',
+            'employee_id'        => ['required', \Illuminate\Validation\Rule::exists('employees', 'id')->where('business_id', $bizId)],
+            // Rate is optional — assign work even before a pay rate is set up. Without a
+            // rate the worker's submission simply earns 0 until a rate is added.
+            'production_rate_id' => ['nullable', \Illuminate\Validation\Rule::exists('production_rates', 'id')->where('business_id', $bizId)],
             'product_name'       => 'required|string|max:255',
             'assigned_quantity'  => 'required|integer|min:1',
             'deadline'           => 'nullable|date|after_or_equal:today',
         ]);
 
-        $bizId    = auth()->user()->business_id;
         $employee = Employee::where('business_id', $bizId)->findOrFail($request->employee_id);
 
         ProductionTask::create([

@@ -43,10 +43,10 @@
 
             {{-- Production Rate (optional auto-fill) --}}
             <div>
-                <label class="block text-xs font-medium text-gray-700 dark:text-slate-300 mb-1">Production Rate * <span class="text-gray-400">(amount এখান থেকে calculate হবে)</span></label>
-                <select name="production_rate_id" required @change="fillFromRate($event.target.value)"
+                <label class="block text-xs font-medium text-gray-700 dark:text-slate-300 mb-1">Production Rate <span class="text-gray-400">(optional — থাকলে amount auto হবে)</span></label>
+                <select name="production_rate_id" @change="fillFromRate($event.target.value)"
                         class="w-full px-3 py-2.5 text-sm border border-gray-200 dark:border-slate-600 rounded-lg bg-white dark:bg-slate-700 text-gray-700 dark:text-slate-200 focus:outline-none focus:ring-2 focus:ring-primary-500">
-                    <option value="">-- Rate Select করুন --</option>
+                    <option value="">-- Rate ছাড়াই assign করুন --</option>
                     @foreach($rates as $rate)
                     <option value="{{ $rate->id }}"
                             data-product="{{ $rate->product_name }}"
@@ -56,6 +56,9 @@
                     </option>
                     @endforeach
                 </select>
+                @if($rates->isEmpty())
+                <p class="text-xs text-amber-600 dark:text-amber-400 mt-1">কোনো rate নেই — <a href="{{ route('production.rates') }}" class="underline">এখানে যোগ করুন</a> অথবা rate ছাড়াই assign করুন (পরে rate দিলে earning হিসাব হবে)।</p>
+                @endif
             </div>
 
             {{-- Product Name --}}
