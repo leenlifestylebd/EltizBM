@@ -505,9 +505,10 @@ class ProductionController extends Controller
                 ->first();
 
             if (!$employee) {
-                auth()->logout();
-                return redirect()->route('login')
-                    ->withErrors(['email' => 'No employee profile linked. Contact admin.']);
+                // Don't bounce them back to login in a loop — show a calm, clear page.
+                return response()->view('production.not-linked', [
+                    'userName' => auth()->user()->name,
+                ]);
             }
         }
 

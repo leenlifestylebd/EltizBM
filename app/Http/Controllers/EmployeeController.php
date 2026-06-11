@@ -110,6 +110,72 @@ class EmployeeController extends Controller
         return redirect()->route('employees.index')->with('success', 'Employee added!');
     }
 
+    // =============================================
+    // ONE-CLICK LOGIN ACCESS (create + link a worker user, set a PIN)
+    // =============================================
+    public function enableLogin(Request $request, Employee $employee)
+    {
+        $this->authorize($employee);
+
+        $request->validate([
+            'pin' => 'required|digits_between:4,6',
+        ]);
+
+        $bizId = auth()->user()->business_id;
+
+        // Reuse the already-linked user, or one matching the employee's phone, else create.
+        $user = $employee->user
+            ?? ($employee->phone
+                ? User::where('business_id', $bizId)->where('phone', $employee->phone)->first()
+                : null);
+
+        if (!$user) {
+            // A login record is required to have an email; workers never type it — they
+            // sign in with phone + PIN — so we synthesise a unique placeholder.
+            $slug  = $employee->business->slug ?? ('biz' . $bizId);
+            $email = 'emp' . $employee->id . '.' . ($employee->phone ?: \Illuminate\Support\Str::random(5)) . '@' . $slug . '.worker';
+
+            $user = User::create([
+                'business_id' => $bizId,
+                'name'        => $employee->name,
+                'email'       => strtolower($email),
+                'phone'       => $employee->phone,
+                'role'        => 'employee',
+                'password'    => \Illuminate\Support\Facades\Hash::make($request->pin),
+                'is_active'   => true,
+                'is_approved' => 1,
+                'approved_by' => auth()->id(),
+                'approved_at' => now(),
+            ]);
+        } else {
+            $user->update([
+                'role'      => 'employee',
+                'phone'     => $employee->phone ?: $user->phone,
+                'password'  => \Illuminate\Support\Facades\Hash::make($request->pin),
+                'is_active' => true,
+                'is_approved' => 1,
+            ]);
+        }
+
+        $employee->update(['user_id' => $user->id]);
+
+        return back()->with('success', $employee->name . ' can now log in with phone ' . ($employee->phone ?: '—') . ' and the PIN you set.');
+    }
+
+    public function resetPin(Request $request, Employee $employee)
+    {
+        $this->authorize($employee);
+        $request->validate(['pin' => 'required|digits_between:4,6']);
+
+        abort_if(!$employee->user_id, 422, 'This employee has no login yet.');
+
+        User::where('id', $employee->user_id)
+            ->where('business_id', auth()->user()->business_id)
+            ->update(['password' => \Illuminate\Support\Facades\Hash::make($request->pin), 'is_active' => true]);
+
+        return back()->with('success', 'PIN updated for ' . $employee->name . '.');
+    }
+
     public function show(Employee $employee)
     {
         $this->authorize($employee);

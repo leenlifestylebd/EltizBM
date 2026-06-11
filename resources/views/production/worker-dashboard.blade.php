@@ -83,12 +83,21 @@
         <div class="col-span-2 bg-gradient-to-br from-purple-50 to-violet-50 dark:from-purple-900/20 dark:to-violet-900/20 rounded-xl p-3.5 border border-purple-100 dark:border-purple-900/40">
             <div class="flex items-center justify-between">
                 <div>
-                    <p class="text-xs text-gray-500 dark:text-slate-400 mb-1">{{ $netPayable >= 0 ? 'পাওনা (নেট)' : 'অতিরিক্ত দেওয়া হয়েছে' }}</p>
+                    <p class="text-xs text-gray-500 dark:text-slate-400 mb-1">{{ $netPayable >= 0 ? 'এখন পাওনা (নেট)' : 'অতিরিক্ত নেওয়া হয়েছে' }}</p>
                     <p class="text-2xl font-bold {{ $netPayable >= 0 ? 'text-purple-600 dark:text-purple-400' : 'text-orange-600' }}">৳{{ number_format(abs($netPayable)) }}</p>
+                    @if($netPayable < 0)
+                        <p class="text-xs text-orange-500 mt-0.5">পরের মাসে কাটা যাবে</p>
+                    @endif
                 </div>
                 <div class="text-right">
-                    <p class="text-xs text-gray-400">আয় - অগ্রিম</p>
-                    <p class="text-xs text-gray-500">৳{{ number_format($totalEarning) }} - ৳{{ number_format($totalAdvance) }}</p>
+                    @if(abs($openingBalance ?? 0) >= 1)
+                        <p class="text-xs text-gray-400">আগের জের</p>
+                        <p class="text-xs {{ $openingBalance >= 0 ? 'text-green-600' : 'text-orange-500' }}">
+                            {{ $openingBalance < 0 ? '−' : '' }}৳{{ number_format(abs($openingBalance)) }}
+                        </p>
+                    @endif
+                    <p class="text-xs text-gray-400 mt-1">এ মাসের আয়</p>
+                    <p class="text-xs text-green-600">৳{{ number_format($totalEarning) }}</p>
                 </div>
             </div>
         </div>

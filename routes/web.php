@@ -34,6 +34,8 @@ use App\Http\Controllers\TailoringController;
 Route::middleware('guest')->group(function () {
     Route::get('/login',    [AuthController::class, 'showLogin'])->name('login');
     Route::post('/login',   [AuthController::class, 'login'])->middleware('throttle:8,1');
+    Route::get('/worker-login',  [AuthController::class, 'showWorkerLogin'])->name('worker.login');
+    Route::post('/worker-login', [AuthController::class, 'workerLogin'])->middleware('throttle:10,1');
     Route::get('/register', [AuthController::class, 'showRegister'])->name('register');
     Route::post('/register',[AuthController::class, 'register'])->middleware('throttle:5,1');
     Route::get('/forgot-password', [AuthController::class, 'showForgotPassword'])->name('password.request');
@@ -229,6 +231,8 @@ Route::middleware(['auth', 'business'])->group(function () {
         Route::post('/',                      [EmployeeController::class, 'store'])->name('store');
         Route::get('/{employee}',             [EmployeeController::class, 'show'])->name('show');
         Route::get('/{employee}/edit',        [EmployeeController::class, 'edit'])->name('edit');
+        Route::post('/{employee}/enable-login',[EmployeeController::class, 'enableLogin'])->name('enable-login');
+        Route::post('/{employee}/reset-pin',   [EmployeeController::class, 'resetPin'])->name('reset-pin');
         Route::put('/{employee}',             [EmployeeController::class, 'update'])->name('update');
         Route::get('/{employee}/attendance',  [EmployeeController::class, 'attendance'])->name('attendance');
         Route::post('/{employee}/attendance', [EmployeeController::class, 'storeAttendance'])->name('attendance.store');

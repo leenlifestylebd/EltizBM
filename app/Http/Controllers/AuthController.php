@@ -58,6 +58,48 @@ class AuthController extends Controller
         ])->onlyInput('email');
     }
 
+    // =============================================
+    // WORKER LOGIN (phone + PIN) — low-hassle for factory workers
+    // =============================================
+    public function showWorkerLogin()
+    {
+        return view('auth.worker-login');
+    }
+
+    public function workerLogin(Request $request)
+    {
+        $request->validate([
+            'phone' => 'required|string|max:20',
+            'pin'   => 'required|string|max:6',
+        ]);
+
+        // Throttle by phone+IP to stop PIN guessing.
+        $key = 'worker-login:' . $request->phone . '|' . $request->ip();
+        if (\Illuminate\Support\Facades\RateLimiter::tooManyAttempts($key, 5)) {
+            $secs = \Illuminate\Support\Facades\RateLimiter::availableIn($key);
+            return back()->withErrors(['phone' => "Too many attempts. Try again in {$secs}s."])->onlyInput('phone');
+        }
+
+        $user = User::where('role', 'employee')
+            ->where('phone', $request->phone)
+            ->where('is_active', true)
+            ->where('is_approved', 1)
+            ->orderByDesc('id')
+            ->first();
+
+        if (!$user || !Hash::check($request->pin, $user->password)) {
+            \Illuminate\Support\Facades\RateLimiter::hit($key, 60);
+            return back()->withErrors(['phone' => 'Wrong phone or PIN.'])->onlyInput('phone');
+        }
+
+        \Illuminate\Support\Facades\RateLimiter::clear($key);
+        Auth::login($user, true);
+        $request->session()->regenerate();
+        $user->update(['last_login_at' => now()]);
+
+        return redirect()->route('production.worker.dashboard');
+    }
+
     public function showRegister()
     {
         return view('auth.register');
