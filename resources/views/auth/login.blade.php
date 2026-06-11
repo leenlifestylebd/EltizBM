@@ -169,10 +169,14 @@
                 </button>
             </form>
 
-            <div class="mt-6 pt-6 border-t border-gray-100 text-center">
+            <div class="mt-6 pt-6 border-t border-gray-100 text-center space-y-2">
                 <p class="text-sm text-gray-400">
                     No account yet?
                     <a href="{{ route('register') }}" class="text-gray-900 font-semibold hover:underline underline-offset-2">Create one</a>
+                </p>
+                <p class="text-sm text-gray-400">
+                    Factory worker?
+                    <a href="{{ route('worker.login') }}" class="text-indigo-600 font-semibold hover:underline underline-offset-2">Login with phone + PIN</a>
                 </p>
             </div>
         </div>
