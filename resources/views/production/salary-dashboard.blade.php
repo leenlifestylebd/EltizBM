@@ -66,10 +66,13 @@
             <p class="text-xl font-bold {{ $netPayable > 0 ? 'text-orange-600 dark:text-orange-400' : ($netPayable < 0 ? 'text-green-600 dark:text-green-400' : 'text-gray-900 dark:text-white') }}">
                 ৳{{ number_format(abs($netPayable), 0) }}
             </p>
-            <p class="text-xs text-gray-400 dark:text-slate-500 mt-1">
-                @if($netPayable > 0) Due to employee
-                @elseif($netPayable < 0) Overpaid
-                @else Settled
+            <p class="text-xs mt-1">
+                @if($netPayable > 0)
+                    <span class="text-orange-500">Due to employee</span>
+                @elseif($netPayable < 0)
+                    <span class="text-green-600 dark:text-green-400">Overpaid — carries to next month</span>
+                @else
+                    <span class="text-gray-400">Settled</span>
                 @endif
             </p>
         </div>
@@ -237,12 +240,22 @@
             <div class="mt-3 bg-white dark:bg-slate-800 rounded-xl border border-gray-100 dark:border-slate-700 p-4">
                 <p class="text-xs font-semibold text-gray-700 dark:text-slate-300 mb-3">This Month Summary</p>
                 <div class="space-y-2">
+                    @if($openingBalance != 0)
+                    <div class="flex justify-between text-xs">
+                        <span class="text-gray-500 dark:text-slate-400">
+                            {{ $openingBalance > 0 ? 'Carried In (owed from before)' : 'Carried In (overpaid before)' }}
+                        </span>
+                        <span class="font-medium {{ $openingBalance > 0 ? 'text-orange-600 dark:text-orange-400' : 'text-green-600 dark:text-green-400' }}">
+                            {{ $openingBalance > 0 ? '+' : '-' }} ৳{{ number_format(abs($openingBalance), 0) }}
+                        </span>
+                    </div>
+                    @endif
                     <div class="flex justify-between text-xs">
                         <span class="text-gray-500 dark:text-slate-400">Monthly Salary</span>
                         <span class="font-medium text-gray-900 dark:text-white">৳{{ number_format($employee->salary, 0) }}</span>
                     </div>
                     <div class="flex justify-between text-xs">
-                        <span class="text-gray-500 dark:text-slate-400">Paid</span>
+                        <span class="text-gray-500 dark:text-slate-400">Paid This Month</span>
                         <span class="font-medium text-green-600 dark:text-green-400">- ৳{{ number_format($totalPaid, 0) }}</span>
                     </div>
                     @if($totalDeducted > 0)

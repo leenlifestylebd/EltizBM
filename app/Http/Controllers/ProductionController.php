@@ -527,11 +527,11 @@ class ProductionController extends Controller
                 ->orderByDesc('attendance_date')
                 ->get();
 
-            $daysInMonth  = Carbon::parse($from)->daysInMonth;
-            $daysPresent  = $attendance->whereIn('status', ['present', 'late'])->count();
-            $daysAbsent   = $attendance->where('status', 'absent')->count();
-            $daysHalfDay  = $attendance->where('status', 'half_day')->count();
-            $daysHoliday  = $attendance->where('status', 'holiday')->count();
+            $daysInMonth   = Carbon::parse($from)->daysInMonth;
+            $daysPresent   = $attendance->whereIn('status', ['present', 'late'])->count();
+            $daysAbsent    = $attendance->where('status', 'absent')->count();
+            $daysHalfDay   = $attendance->where('status', 'half_day')->count();
+            $daysHoliday   = $attendance->where('status', 'holiday')->count();
             $daysNotMarked = $daysInMonth - $attendance->count();
 
             $payments = EmployeePayment::where('employee_id', $employee->id)
@@ -539,11 +539,36 @@ class ProductionController extends Controller
                 ->orderByDesc('payment_date')
                 ->get();
 
-            $totalPaid    = $payments->whereIn('type', ['salary', 'advance', 'bonus'])->sum('amount');
-            $totalDeducted = $payments->where('type', 'deduction')->sum('amount');
-            $netPayable   = $employee->salary - $totalPaid + $totalDeducted;
+            $totalPaid     = (float)$payments->whereIn('type', ['salary', 'advance', 'bonus'])->sum('amount');
+            $totalDeducted = (float)$payments->where('type', 'deduction')->sum('amount');
 
-            $calendarMap = $attendance->keyBy(fn($a) => Carbon::parse($a->attendance_date)->format('Y-m-d'));
+            // Opening balance: salary owed for all months before this one minus payments already made.
+            // Positive = employee is still owed from prior months. Negative = was overpaid.
+            $joiningDate = $employee->joining_date
+                ? Carbon::parse($employee->joining_date)->startOfMonth()
+                : null;
+            $periodStartMonth = Carbon::parse($monthStart);
+
+            if ($joiningDate && $joiningDate->lt($periodStartMonth)) {
+                $monthsBeforePeriod  = (int)$joiningDate->diffInMonths($periodStartMonth);
+                $salaryOwedBefore    = $monthsBeforePeriod * (float)$employee->salary;
+            } else {
+                $salaryOwedBefore = 0;
+            }
+
+            $paidBefore     = (float)EmployeePayment::where('employee_id', $employee->id)
+                ->where('payment_date', '<', $monthStart)
+                ->whereIn('type', ['salary', 'advance', 'bonus'])->sum('amount');
+            $deductedBefore = (float)EmployeePayment::where('employee_id', $employee->id)
+                ->where('payment_date', '<', $monthStart)
+                ->where('type', 'deduction')->sum('amount');
+
+            $openingBalance = $salaryOwedBefore - $paidBefore + $deductedBefore;
+            // openingBalance: + employee is owed carry-in, − was overpaid (reduces this month's due)
+
+            $netPayable = $openingBalance + (float)$employee->salary - $totalPaid + $totalDeducted;
+
+            $calendarMap   = $attendance->keyBy(fn($a) => Carbon::parse($a->attendance_date)->format('Y-m-d'));
             $calendarStart = Carbon::parse($monthStart)->dayOfWeek;
 
             $allMonths = EmployeePayment::where('employee_id', $employee->id)
@@ -558,7 +583,7 @@ class ProductionController extends Controller
                 'from', 'to', 'monthStart', 'monthEnd',
                 'attendance', 'daysInMonth', 'daysPresent', 'daysAbsent',
                 'daysHalfDay', 'daysHoliday', 'daysNotMarked',
-                'payments', 'totalPaid', 'totalDeducted', 'netPayable',
+                'payments', 'totalPaid', 'totalDeducted', 'netPayable', 'openingBalance',
                 'calendarMap', 'calendarStart', 'allMonths'
             ));
         }
@@ -776,14 +801,14 @@ class ProductionController extends Controller
             $e->productionRate?->product_name ?? 'Manual',
             $e->productionRate?->color ?? '',
             $e->productionRate?->size  ?? '',
-        ])))->map(fn($g) => (object) [
+        ])))->map(fn($g) => [
             'product_name' => $g->first()->productionRate?->product_name ?? 'Manual Entry',
             'color'        => $g->first()->productionRate?->color ?? '—',
             'size'         => $g->first()->productionRate?->size  ?? '—',
-            'avg_rate'     => $g->first()->productionRate?->rate  ?? 0,
-            'total_qty'    => $g->sum('quantity'),
-            'total_amount' => $g->sum('amount'),
-        ])->sortByDesc('total_amount')->values();
+            'rate'         => $g->first()->productionRate?->rate  ?? 0,
+            'qty'          => $g->sum('quantity'),
+            'amount'       => $g->sum('amount'),
+        ])->sortByDesc('amount')->values();
 
         // Month list for picker
         $months = collect();
@@ -834,14 +859,14 @@ class ProductionController extends Controller
                 $e->productionRate?->product_name ?? 'Manual',
                 $e->productionRate?->color ?? '',
                 $e->productionRate?->size  ?? '',
-            ])))->map(fn($g) => (object) [
+            ])))->map(fn($g) => [
                 'product_name' => $g->first()->productionRate?->product_name ?? 'Manual Entry',
                 'color'        => $g->first()->productionRate?->color ?? '—',
                 'size'         => $g->first()->productionRate?->size  ?? '—',
-                'avg_rate'     => $g->first()->productionRate?->rate  ?? 0,
-                'total_qty'    => $g->sum('quantity'),
-                'total_amount' => $g->sum('amount'),
-            ])->sortByDesc('total_amount')->values();
+                'rate'         => $g->first()->productionRate?->rate  ?? 0,
+                'qty'          => $g->sum('quantity'),
+                'amount'       => $g->sum('amount'),
+            ])->values();
 
             $pdf = Pdf::loadView('production.worker-ledger-pdf', compact(
                 'employee', 'entries', 'payments', 'productBreakdown',
