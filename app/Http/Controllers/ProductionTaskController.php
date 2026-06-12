@@ -221,23 +221,27 @@ class ProductionTaskController extends Controller
 
         $request->validate([
             'submitted_quantity' => ['required', 'integer', 'min:1', "max:{$remaining}"],
+            'rate_used'          => ['nullable', 'numeric', 'min:0'],
         ]);
+
+        // Determine effective rate: use override if provided, else fall back to task rate
+        $defaultRate  = $task->production_rate_id
+                            ? ProductionRate::find($task->production_rate_id)?->rate ?? 0
+                            : 0;
+        $rateUsed     = $request->filled('rate_used') ? (float) $request->rate_used : $defaultRate;
+        $amount       = $request->submitted_quantity * $rateUsed;
 
         TaskSubmission::create([
             'business_id'        => $task->business_id,
             'production_task_id' => $task->id,
             'employee_id'        => $task->employee_id,
             'submitted_quantity' => $request->submitted_quantity,
+            'rate_used'          => $rateUsed > 0 ? $rateUsed : null,
+            'amount'             => $amount > 0 ? $amount : null,
             'quality_note'       => $request->quality_note,
             'submitted_at'       => today()->toDateString(),
             'notes'              => $request->notes,
         ]);
-
-        // Calculate amount from production rate and create income entry
-        $rate   = $task->production_rate_id
-                    ? ProductionRate::find($task->production_rate_id)?->rate ?? 0
-                    : 0;
-        $amount = $request->submitted_quantity * $rate;
 
         ProductionEntry::create([
             'business_id'       => $task->business_id,
@@ -276,7 +280,7 @@ class ProductionTaskController extends Controller
         $tasks = ProductionTask::where('business_id', $bizId)
             ->where('employee_id', $employee->id)
             ->whereNotIn('status', ['cancelled'])
-            ->with('submissions')
+            ->with(['submissions', 'productionRate'])
             ->orderByDesc('assigned_at')
             ->get();
 

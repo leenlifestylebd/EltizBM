@@ -22,15 +22,19 @@
 
 {{-- Submit Modal --}}
 <div x-data="{
-    show: false, taskId: null, taskName: '', taskColor: '', taskSize: '', maxQty: 1, qty: 1,
+    show: false, taskId: null, taskName: '', taskColor: '', taskSize: '',
+    maxQty: 1, qty: 1, defaultRate: 0, rateUsed: 0,
+    get earning() { return (this.qty * this.rateUsed).toLocaleString('en-BD', {maximumFractionDigits:0}); },
     open(detail) {
-        this.taskId = detail.taskId;
-        this.taskName = detail.taskName;
-        this.taskColor = detail.taskColor;
-        this.taskSize = detail.taskSize;
-        this.maxQty = detail.max;
-        this.qty = 1;
-        this.show = true;
+        this.taskId      = detail.taskId;
+        this.taskName    = detail.taskName;
+        this.taskColor   = detail.taskColor;
+        this.taskSize    = detail.taskSize;
+        this.maxQty      = detail.max;
+        this.qty         = 1;
+        this.defaultRate = detail.rate || 0;
+        this.rateUsed    = detail.rate || 0;
+        this.show        = true;
     }
 }" @open-submit-modal.window="open($event.detail)" x-cloak>
 
@@ -39,7 +43,7 @@
         <div class="relative bg-white dark:bg-slate-800 rounded-2xl p-5 w-full max-w-sm shadow-2xl">
             <button @click="show = false" class="absolute top-3 right-3 text-gray-400 hover:text-gray-600 dark:hover:text-slate-300">✕</button>
 
-            <h3 class="text-sm font-bold text-gray-900 dark:text-white mb-3">জমা দিন</h3>
+            <h3 class="text-sm font-bold text-gray-900 dark:text-white mb-1">কাজ জমা দিন</h3>
             <p class="text-sm font-medium text-gray-700 dark:text-slate-300" x-text="taskName"></p>
             <p class="text-xs text-primary-500 mb-4" x-show="taskColor || taskSize">
                 <span x-text="[taskColor, taskSize].filter(Boolean).join(' · ')"></span>
@@ -47,16 +51,53 @@
 
             <form method="POST" :action="'{{ url('production/tasks') }}/' + taskId + '/submit'">
                 @csrf
+
+                {{-- Quantity --}}
                 <div class="mb-3">
-                    <label class="block text-xs font-medium text-gray-700 dark:text-slate-300 mb-1">পরিমাণ (সর্বোচ্চ <span x-text="maxQty"></span>)</label>
-                    <input type="number" name="submitted_quantity" x-model.number="qty" :max="maxQty" min="1" required
+                    <label class="block text-xs font-medium text-gray-700 dark:text-slate-300 mb-1">
+                        পরিমাণ (সর্বোচ্চ <span x-text="maxQty"></span> পিস)
+                    </label>
+                    <input type="number" name="submitted_quantity" x-model.number="qty"
+                           :max="maxQty" min="1" required
                            class="w-full px-3 py-2 text-sm border border-gray-200 dark:border-slate-600 rounded-lg bg-white dark:bg-slate-700 text-gray-900 dark:text-white">
                 </div>
+
+                {{-- Rate Override --}}
                 <div class="mb-3">
+                    <label class="block text-xs font-medium text-gray-700 dark:text-slate-300 mb-1">
+                        প্রতি পিস রেট (৳)
+                        <span x-show="defaultRate > 0" class="text-gray-400 font-normal">
+                            — assigned: ৳<span x-text="defaultRate"></span>
+                        </span>
+                    </label>
+                    <input type="number" name="rate_used" x-model.number="rateUsed"
+                           min="0" step="0.01"
+                           placeholder="0 = no earning"
+                           class="w-full px-3 py-2 text-sm border border-gray-200 dark:border-slate-600 rounded-lg bg-white dark:bg-slate-700 text-gray-900 dark:text-white focus:outline-none focus:ring-2 focus:ring-primary-500">
+                    <p x-show="defaultRate > 0 && rateUsed != defaultRate"
+                       class="text-xs text-amber-600 dark:text-amber-400 mt-1">
+                        ⚠️ Assigned rate ৳<span x-text="defaultRate"></span> থেকে আলাদা
+                    </p>
+                </div>
+
+                {{-- Earning Preview --}}
+                <div x-show="rateUsed > 0"
+                     class="mb-3 flex items-center justify-between bg-green-50 dark:bg-green-900/20 rounded-lg px-3 py-2">
+                    <span class="text-xs text-gray-500 dark:text-slate-400">
+                        <span x-text="qty"></span> পিস × ৳<span x-text="rateUsed"></span>
+                    </span>
+                    <span class="text-sm font-bold text-green-600 dark:text-green-400">
+                        = ৳<span x-text="earning"></span>
+                    </span>
+                </div>
+
+                {{-- Quality note --}}
+                <div class="mb-4">
                     <label class="block text-xs font-medium text-gray-700 dark:text-slate-300 mb-1">মান নোট (ঐচ্ছিক)</label>
                     <input type="text" name="quality_note" placeholder="যেমন: ভালো মান"
                            class="w-full px-3 py-2 text-sm border border-gray-200 dark:border-slate-600 rounded-lg bg-white dark:bg-slate-700 text-gray-900 dark:text-white">
                 </div>
+
                 <button type="submit" class="w-full py-2.5 bg-primary-600 hover:bg-primary-700 text-white text-sm font-semibold rounded-xl transition-colors">
                     জমা দিন
                 </button>
@@ -148,16 +189,19 @@
     @endif
 
     @if($isPending && $task->status !== 'cancelled')
+    @php $taskRate = $task->productionRate?->rate ?? 0; @endphp
     <button
         @click="$dispatch('open-submit-modal', {
             taskId: {{ $task->id }},
             taskName: '{{ addslashes($task->product_name) }}',
             taskColor: '{{ addslashes($task->color ?? '') }}',
             taskSize: '{{ addslashes($task->size ?? '') }}',
-            max: {{ $task->pending_quantity }}
+            max: {{ $task->pending_quantity }},
+            rate: {{ $taskRate }}
         })"
         class="w-full py-2 bg-primary-600 hover:bg-primary-700 text-white text-xs font-semibold rounded-lg transition-colors">
         কাজ জমা দিন (বাকি {{ $task->pending_quantity }} পিস)
+        @if($taskRate > 0)<span class="opacity-75 text-xs"> · ৳{{ number_format($taskRate) }}/পিস</span>@endif
     </button>
     @elseif($task->status === 'completed')
     <div class="text-center py-1.5 text-xs text-green-600 dark:text-green-400 font-semibold">
