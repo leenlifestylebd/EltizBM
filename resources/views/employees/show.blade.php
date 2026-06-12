@@ -95,18 +95,19 @@
     </div>
 
     {{-- Tabs --}}
+    @php
+        $tabs = $employee->type === 'salary'
+            ? [['key'=>'overview','label'=>'Overview'],['key'=>'payments','label'=>'Payments'],['key'=>'attendance','label'=>'Attendance']]
+            : [['key'=>'overview','label'=>'Overview'],['key'=>'production','label'=>'Production'],['key'=>'attendance','label'=>'Attendance']];
+    @endphp
     <div class="flex gap-1 mb-4 bg-gray-100 dark:bg-slate-700 p-1 rounded-xl">
-        @if($employee->type === 'salary')
-            @foreach([['key'=>'overview','label'=>'Overview'],['key'=>'payments','label'=>'Payments'],['key'=>'attendance','label'=>'Attendance']] as $t)
-        @else
-            @foreach([['key'=>'overview','label'=>'Overview'],['key'=>'production','label'=>'Production'],['key'=>'attendance','label'=>'Attendance']] as $t)
-        @endif
-            <button @click="tab = '{{ $t['key'] }}'"
-                    class="flex-1 py-2 text-xs font-medium rounded-lg transition-colors"
-                    :class="tab === '{{ $t['key'] }}' ? 'bg-white dark:bg-slate-800 text-gray-900 dark:text-white shadow-sm' : 'text-gray-500 dark:text-slate-400 hover:text-gray-700 dark:hover:text-slate-300'">
-                {{ $t['label'] }}
-            </button>
-            @endforeach
+        @foreach($tabs as $t)
+        <button @click="tab = '{{ $t['key'] }}'"
+                class="flex-1 py-2 text-xs font-medium rounded-lg transition-colors"
+                :class="tab === '{{ $t['key'] }}' ? 'bg-white dark:bg-slate-800 text-gray-900 dark:text-white shadow-sm' : 'text-gray-500 dark:text-slate-400 hover:text-gray-700 dark:hover:text-slate-300'">
+            {{ $t['label'] }}
+        </button>
+        @endforeach
     </div>
 
     {{-- Tab: Overview --}}
