@@ -9,6 +9,7 @@ use App\Models\PayrollPeriod;
 use App\Models\ProductionRate;
 use App\Models\ProductionEntry;
 use App\Models\EmployeePayment;
+use App\Models\Attendance;
 use App\Models\ProductionTask;
 use App\Models\Transaction;
 use Barryvdh\DomPDF\Facade\Pdf;
@@ -515,6 +516,52 @@ class ProductionController extends Controller
 
         $from = $request->from ?? today()->startOfMonth()->toDateString();
         $to   = $request->to   ?? today()->toDateString();
+
+        // Salary employees get a separate professional dashboard
+        if ($employee->type === 'salary') {
+            $monthStart = Carbon::parse($from)->startOfMonth()->toDateString();
+            $monthEnd   = Carbon::parse($from)->endOfMonth()->toDateString();
+
+            $attendance = Attendance::where('employee_id', $employee->id)
+                ->whereBetween('attendance_date', [$monthStart, $monthEnd])
+                ->orderByDesc('attendance_date')
+                ->get();
+
+            $daysInMonth  = Carbon::parse($from)->daysInMonth;
+            $daysPresent  = $attendance->whereIn('status', ['present', 'late'])->count();
+            $daysAbsent   = $attendance->where('status', 'absent')->count();
+            $daysHalfDay  = $attendance->where('status', 'half_day')->count();
+            $daysHoliday  = $attendance->where('status', 'holiday')->count();
+            $daysNotMarked = $daysInMonth - $attendance->count();
+
+            $payments = EmployeePayment::where('employee_id', $employee->id)
+                ->whereBetween('payment_date', [$monthStart, $monthEnd])
+                ->orderByDesc('payment_date')
+                ->get();
+
+            $totalPaid    = $payments->whereIn('type', ['salary', 'advance', 'bonus'])->sum('amount');
+            $totalDeducted = $payments->where('type', 'deduction')->sum('amount');
+            $netPayable   = $employee->salary - $totalPaid + $totalDeducted;
+
+            $calendarMap = $attendance->keyBy(fn($a) => Carbon::parse($a->attendance_date)->format('Y-m-d'));
+            $calendarStart = Carbon::parse($monthStart)->dayOfWeek;
+
+            $allMonths = EmployeePayment::where('employee_id', $employee->id)
+                ->selectRaw('DATE_FORMAT(payment_date, "%Y-%m") as month')
+                ->groupBy('month')
+                ->orderByDesc('month')
+                ->limit(12)
+                ->pluck('month');
+
+            return view('production.salary-dashboard', compact(
+                'employee', 'allEmployees',
+                'from', 'to', 'monthStart', 'monthEnd',
+                'attendance', 'daysInMonth', 'daysPresent', 'daysAbsent',
+                'daysHalfDay', 'daysHoliday', 'daysNotMarked',
+                'payments', 'totalPaid', 'totalDeducted', 'netPayable',
+                'calendarMap', 'calendarStart', 'allMonths'
+            ));
+        }
 
         $rates = ProductionRate::where('business_id', $bizId)
             ->where('is_active', true)
