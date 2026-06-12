@@ -94,6 +94,8 @@ class EmployeeController extends Controller
             'salary' => 'nullable|numeric|min:0',
         ]);
 
+        $isProduction = ($request->type ?? 'salary') === 'production';
+
         Employee::create([
             'business_id'  => auth()->user()->business_id,
             'user_id'      => $request->user_id ?: null,
@@ -102,7 +104,8 @@ class EmployeeController extends Controller
             'email'        => $request->email,
             'designation'  => $request->designation,
             'department'   => $request->department,
-            'salary'       => $request->salary ?? 0,
+            'type'         => $request->type ?? 'salary',
+            'salary'       => $isProduction ? 0 : ($request->salary ?? 0),
             'joining_date' => $request->joining_date,
             'status'       => $request->status ?? 'active',
         ]);
@@ -257,6 +260,8 @@ class EmployeeController extends Controller
         $this->authorize($employee);
         $request->validate(['name' => 'required|string|max:100']);
 
+        $isProduction = ($request->type ?? $employee->type) === 'production';
+
         $employee->update([
             'user_id'      => $request->user_id ?: null,
             'name'         => $request->name,
@@ -264,7 +269,8 @@ class EmployeeController extends Controller
             'email'        => $request->email,
             'designation'  => $request->designation,
             'department'   => $request->department,
-            'salary'       => $request->salary ?? 0,
+            'type'         => $request->type ?? $employee->type,
+            'salary'       => $isProduction ? 0 : ($request->salary ?? 0),
             'joining_date' => $request->joining_date,
             'status'       => $request->status,
         ]);

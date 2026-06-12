@@ -47,7 +47,8 @@
             </div>
 
             {{-- Job Info --}}
-            <div class="bg-white dark:bg-slate-800 rounded-xl border border-gray-100 dark:border-slate-700 p-4">
+            <div class="bg-white dark:bg-slate-800 rounded-xl border border-gray-100 dark:border-slate-700 p-4"
+                 x-data="{ empType: '{{ old('type', isset($employee) ? $employee->type : 'salary') }}' }">
                 <h3 class="text-sm font-semibold text-gray-900 dark:text-white mb-4">Job Information</h3>
                 <div class="grid grid-cols-1 sm:grid-cols-2 gap-3">
                     <div>
@@ -62,11 +63,12 @@
                                class="w-full px-3 py-2.5 text-sm border border-gray-200 dark:border-slate-600 rounded-lg bg-white dark:bg-slate-700 text-gray-900 dark:text-white focus:outline-none focus:ring-2 focus:ring-primary-500"
                                placeholder="e.g. Production, Packing, Sales">
                     </div>
-                    <div>
+                    <div x-show="empType === 'salary'" x-cloak>
                         <label class="block text-xs font-medium text-gray-700 dark:text-slate-300 mb-1.5">Monthly Salary (৳)</label>
                         <div class="relative">
                             <span class="absolute left-3 top-1/2 -translate-y-1/2 text-gray-400 text-sm">৳</span>
-                            <input type="number" name="salary" value="{{ old('salary', isset($employee) ? $employee->salary : '') }}" min="0" step="0.01"
+                            <input type="number" name="salary" :disabled="empType !== 'salary'"
+                                   value="{{ old('salary', isset($employee) ? $employee->salary : '') }}" min="0" step="0.01"
                                    class="w-full pl-7 pr-3 py-2.5 text-sm border border-gray-200 dark:border-slate-600 rounded-lg bg-white dark:bg-slate-700 text-gray-900 dark:text-white focus:outline-none focus:ring-2 focus:ring-primary-500"
                                    placeholder="0.00">
                         </div>
@@ -78,7 +80,7 @@
                     </div>
                     <div>
                         <label class="block text-xs font-medium text-gray-700 dark:text-slate-300 mb-1.5">Employee Type</label>
-                        <select name="type" class="w-full px-3 py-2.5 text-sm border border-gray-200 dark:border-slate-600 rounded-lg bg-white dark:bg-slate-700 text-gray-700 dark:text-slate-200 focus:outline-none focus:ring-2 focus:ring-primary-500">
+                        <select name="type" x-model="empType" class="w-full px-3 py-2.5 text-sm border border-gray-200 dark:border-slate-600 rounded-lg bg-white dark:bg-slate-700 text-gray-700 dark:text-slate-200 focus:outline-none focus:ring-2 focus:ring-primary-500">
                             @php $currentType = old('type', isset($employee) ? $employee->type : 'salary'); @endphp
                             <option value="salary"     {{ $currentType === 'salary'     ? 'selected':'' }}>💰 Fixed Salary</option>
                             <option value="production" {{ $currentType === 'production' ? 'selected':'' }}>🏭 Production Based</option>
