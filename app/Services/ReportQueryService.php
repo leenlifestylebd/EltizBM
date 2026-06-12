@@ -8,6 +8,7 @@ use App\Models\Employee;
 use App\Models\Order;
 use App\Models\OrderItem;
 use App\Models\Product;
+use App\Models\EmployeePayment;
 use App\Models\ProductionEntry;
 use App\Models\Transaction;
 use Carbon\Carbon;
@@ -343,8 +344,20 @@ class ReportQueryService
 
         $entries = $query->orderBy('entry_date', 'desc')->get();
 
-        $summaryByEmployee = $entries->groupBy('employee_id')->map(function ($group) {
-            $emp      = $group->first()->employee;
+        // Payments for the same period (grouped by employee)
+        $payQuery = EmployeePayment::where('business_id', $bizId)
+            ->whereBetween('payment_date', [$from, $to]);
+        if ($empId) {
+            $payQuery->where('employee_id', $empId);
+        }
+        $paymentsByEmployee = $payQuery->get()->groupBy('employee_id');
+
+        $summaryByEmployee = $entries->groupBy('employee_id')->map(function ($group) use ($paymentsByEmployee) {
+            $emp        = $group->first()->employee;
+            $totalAmt   = (float) $group->sum('amount');
+            $totalPaid  = (float) ($paymentsByEmployee->get($emp?->id ?? 0, collect())->sum('amount'));
+            $balance    = $totalAmt - $totalPaid; // >0 = due to worker, <0 = overpaid
+
             $products = $group->groupBy(fn($e) => implode('|', array_filter([
                 $e->productionRate?->product_name ?? 'Manual Entry',
                 $e->productionRate?->color ?? '',
@@ -361,7 +374,9 @@ class ReportQueryService
             return [
                 'employee'     => $emp,
                 'total_qty'    => $group->sum('quantity'),
-                'total_amount' => $group->sum('amount'),
+                'total_amount' => $totalAmt,
+                'total_paid'   => $totalPaid,
+                'balance'      => $balance,
                 'entry_count'  => $group->count(),
                 'products'     => $products,
                 'entries'      => $group->sortByDesc('entry_date')->values(),
@@ -369,9 +384,11 @@ class ReportQueryService
         })->sortByDesc('total_amount')->values();
 
         $totalQty    = $entries->sum('quantity');
-        $totalAmount = $entries->sum('amount');
+        $totalAmount = (float) $entries->sum('amount');
+        $totalPaid   = (float) $payQuery->sum('amount');
+        $totalBalance = $totalAmount - $totalPaid;
 
-        return compact('entries', 'summaryByEmployee', 'employees', 'totalQty', 'totalAmount');
+        return compact('entries', 'summaryByEmployee', 'employees', 'totalQty', 'totalAmount', 'totalPaid', 'totalBalance');
     }
 
     // =============================================
