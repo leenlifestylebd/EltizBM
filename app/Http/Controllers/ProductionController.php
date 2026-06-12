@@ -41,6 +41,7 @@ class ProductionController extends Controller
             'size'         => $request->size,
             'rate'         => $request->rate,
             'unit'         => $request->unit ?? 'piece',
+            'stage'        => $request->stage ?? 'sewing',
             'is_active'    => true,
         ]);
 
@@ -50,7 +51,7 @@ class ProductionController extends Controller
     public function updateRate(Request $request, ProductionRate $rate)
     {
         abort_if($rate->business_id !== auth()->user()->business_id, 403);
-        $rate->update($request->only(['product_name', 'variant_name', 'color', 'size', 'rate', 'unit', 'is_active']));
+        $rate->update($request->only(['product_name', 'variant_name', 'color', 'size', 'rate', 'unit', 'stage', 'is_active']));
         return back()->with('success', 'Rate updated!');
     }
 

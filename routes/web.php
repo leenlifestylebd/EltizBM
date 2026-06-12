@@ -270,7 +270,8 @@ Route::middleware(['auth', 'business'])->group(function () {
         Route::get('/tasks/{task}',           [ProductionTaskController::class, 'show'])->name('tasks.show');
         Route::put('/tasks/{task}',           [ProductionTaskController::class, 'update'])->name('tasks.update');
         Route::delete('/tasks/{task}',        [ProductionTaskController::class, 'destroy'])->name('tasks.destroy');
-        Route::post('/tasks/{task}/submit',   [ProductionTaskController::class, 'submit'])->name('tasks.submit');
+        Route::post('/tasks/{task}/submit',        [ProductionTaskController::class, 'submit'])->name('tasks.submit');
+        Route::post('/tasks/{task}/forward-to-iron', [ProductionTaskController::class, 'forwardToIron'])->name('tasks.forward');
         Route::get('/my-tasks',               [ProductionTaskController::class, 'myTasks'])->name('tasks.my');
     });
 

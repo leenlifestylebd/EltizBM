@@ -90,7 +90,24 @@
 <div class="bg-white dark:bg-slate-800 rounded-xl border border-gray-100 dark:border-slate-700 p-4 mb-3">
     <div class="flex items-start justify-between gap-3 mb-3">
         <div class="flex-1">
-            <p class="text-sm font-bold text-gray-900 dark:text-white">{{ $task->product_name }}</p>
+            @php
+                $stageLabelBn = match($task->stage ?? 'sewing') {
+                    'ironing' => 'ইস্ত্রি',
+                    'folding' => 'ভাঁজ',
+                    'packing' => 'প্যাকিং',
+                    default   => 'সেলাই',
+                };
+                $stageBadgeBn = match($task->stage ?? 'sewing') {
+                    'ironing' => 'bg-orange-100 text-orange-700 dark:bg-orange-900/30 dark:text-orange-400',
+                    'folding' => 'bg-purple-100 text-purple-700 dark:bg-purple-900/30 dark:text-purple-400',
+                    'packing' => 'bg-teal-100 text-teal-700 dark:bg-teal-900/30 dark:text-teal-400',
+                    default   => 'bg-primary-100 text-primary-700 dark:bg-primary-900/30 dark:text-primary-400',
+                };
+            @endphp
+            <div class="flex items-center gap-1.5 mb-0.5">
+                <span class="px-1.5 py-0.5 text-xs rounded font-medium {{ $stageBadgeBn }}">{{ $stageLabelBn }}</span>
+                <p class="text-sm font-bold text-gray-900 dark:text-white">{{ $task->product_name }}</p>
+            </div>
             <div class="flex flex-wrap gap-1.5 mt-1">
                 @if($task->color)
                 <span class="px-2 py-0.5 text-xs bg-gray-100 dark:bg-slate-700 text-gray-600 dark:text-slate-300 rounded-full">{{ $task->color }}</span>
