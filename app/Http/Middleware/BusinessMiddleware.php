@@ -27,6 +27,7 @@ class BusinessMiddleware
                 'production.store',
                 'production.tasks.submit',
                 'production.tasks.my',
+                'production.notifications.read',
                 'logout',
             ];
             if (!in_array($request->route()->getName(), $allowed)) {

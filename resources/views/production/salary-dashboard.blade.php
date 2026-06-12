@@ -35,6 +35,7 @@
                 @endforeach
             </select>
             @endif
+            @include('production.partials.notification-bell')
         </div>
     </div>
 
