@@ -428,6 +428,15 @@ class ProductionController extends Controller
             ->groupBy('employee_id')
             ->pluck('total', 'employee_id');
 
+        // Deductions reduce what was effectively paid, so they add back to net payable
+        // (same formula as EmployeeController::index and EmployeeController::show)
+        $salaryDeductions = \App\Models\EmployeePayment::where('business_id', $bizId)
+            ->whereBetween('payment_date', [$fromDate, $toDate])
+            ->where('type', 'deduction')
+            ->selectRaw('employee_id, SUM(amount) as total')
+            ->groupBy('employee_id')
+            ->pluck('total', 'employee_id');
+
         $attendanceCounts = Attendance::whereHas('employee', fn($q) => $q->where('business_id', $bizId))
             ->whereBetween('attendance_date', [$fromDate, $toDate])
             ->whereIn('status', ['present', 'late'])
@@ -436,15 +445,16 @@ class ProductionController extends Controller
             ->pluck('cnt', 'employee_id');
 
         // Per-employee stats
-        $employeeStats = $employees->map(function ($emp) use ($allTasks, $earnings, $advances, $salaryPaid, $attendanceCounts) {
+        $employeeStats = $employees->map(function ($emp) use ($allTasks, $earnings, $advances, $salaryPaid, $salaryDeductions, $attendanceCounts) {
             $tasks    = $allTasks->where('employee_id', $emp->id);
             $earning  = $earnings[$emp->id] ?? null;
             $advance  = $advances[$emp->id] ?? 0;
             $totalAmt = $earning['total_amount'] ?? 0;
 
             if ($emp->type === 'salary' && (float)$emp->salary > 0) {
-                $paid    = (float)($salaryPaid[$emp->id] ?? 0);
-                $present = (int)($attendanceCounts[$emp->id] ?? 0);
+                $paid     = (float)($salaryPaid[$emp->id] ?? 0);
+                $deducted = (float)($salaryDeductions[$emp->id] ?? 0);
+                $present  = (int)($attendanceCounts[$emp->id] ?? 0);
                 // Task stats still shown for salary employees (they may have tasks too)
                 return [
                     'employee'       => $emp,
@@ -452,7 +462,7 @@ class ProductionController extends Controller
                     'monthly_salary' => (float)$emp->salary,
                     'present_days'   => $present,
                     'total_paid'     => $paid,
-                    'net_payable'    => (float)$emp->salary - $paid,
+                    'net_payable'    => (float)$emp->salary - $paid + $deducted,
                     'total_tasks'    => $tasks->count(),
                     'assigned'       => $tasks->where('status', 'assigned')->count(),
                     'in_progress'    => $tasks->where('status', 'in_progress')->count(),
