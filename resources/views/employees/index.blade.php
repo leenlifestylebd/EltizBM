@@ -17,17 +17,6 @@
     </a>
 </div>
 
-@if(session('success'))
-<div class="mb-4 p-3 bg-green-50 dark:bg-green-900/20 border border-green-200 dark:border-green-800 rounded-xl text-xs text-green-700 dark:text-green-400">
-    {{ session('success') }}
-</div>
-@endif
-@if(session('error'))
-<div class="mb-4 p-3 bg-red-50 dark:bg-red-900/20 border border-red-200 dark:border-red-800 rounded-xl text-xs text-red-700 dark:text-red-400">
-    {{ session('error') }}
-</div>
-@endif
-
 {{-- Stats --}}
 <div class="grid grid-cols-3 gap-3 mb-4">
     <div class="bg-white dark:bg-slate-800 rounded-xl p-3 border border-gray-100 dark:border-slate-700 text-center">
@@ -87,6 +76,30 @@
             </span>
         </div>
 
+        @if($emp->type === 'salary' && (float)$emp->salary > 0)
+        {{-- Salary employee card --}}
+        <div class="grid grid-cols-2 gap-2 mb-3">
+            <div class="bg-indigo-50 dark:bg-indigo-900/20 rounded-lg p-2 text-center">
+                <p class="text-sm font-bold text-indigo-600 dark:text-indigo-400">৳{{ number_format($emp->salary) }}</p>
+                <p class="text-xs text-gray-400 dark:text-slate-500">Monthly Salary</p>
+            </div>
+            <div class="bg-green-50 dark:bg-green-900/20 rounded-lg p-2 text-center">
+                <p class="text-sm font-bold text-green-600 dark:text-green-400">{{ $emp->days_present }}</p>
+                <p class="text-xs text-gray-400 dark:text-slate-500">Days Present</p>
+            </div>
+            <div class="bg-blue-50 dark:bg-blue-900/20 rounded-lg p-2 text-center">
+                <p class="text-sm font-bold text-blue-600 dark:text-blue-400">৳{{ number_format($emp->month_advance) }}</p>
+                <p class="text-xs text-gray-400 dark:text-slate-500">Paid This Month</p>
+            </div>
+            <div class="bg-{{ $emp->month_net >= 0 ? 'orange' : 'green' }}-50 dark:bg-{{ $emp->month_net >= 0 ? 'orange' : 'green' }}-900/20 rounded-lg p-2 text-center">
+                <p class="text-sm font-bold text-{{ $emp->month_net >= 0 ? 'orange' : 'green' }}-600 dark:text-{{ $emp->month_net >= 0 ? 'orange' : 'green' }}-400">
+                    ৳{{ number_format(abs($emp->month_net)) }}
+                </p>
+                <p class="text-xs text-gray-400 dark:text-slate-500">{{ $emp->month_net >= 0 ? 'Net Payable' : 'Overpaid' }}</p>
+            </div>
+        </div>
+        @else
+        {{-- Production employee card --}}
         <div class="grid grid-cols-2 gap-2 mb-3">
             <div class="bg-gray-50 dark:bg-slate-700/50 rounded-lg p-2 text-center">
                 <p class="text-sm font-bold text-gray-900 dark:text-white">{{ $emp->today_production }}</p>
@@ -112,6 +125,7 @@
                 ৳{{ number_format(abs($emp->month_net)) }}{{ $emp->month_net < 0 ? ' (Overpaid)' : '' }}
             </span>
         </div>
+        @endif
 
         <div class="flex items-center justify-between text-xs text-gray-500 dark:text-slate-400 mb-3">
             @if($emp->phone)
@@ -136,24 +150,10 @@
                class="flex-1 py-1.5 text-center text-xs font-medium text-purple-600 dark:text-purple-400 bg-purple-50 dark:bg-purple-900/20 rounded-lg hover:bg-purple-100 dark:hover:bg-purple-900/30 transition-colors">
                 Attendance
             </a>
-            <button type="button"
-                    @click="$dispatch('open-login', { id: {{ $emp->id }}, name: @js($emp->name), has: {{ $emp->user_id ? 'true' : 'false' }}, phone: @js($emp->phone) })"
-                    title="{{ $emp->user_id ? 'Reset login PIN' : 'Enable login' }}"
-                    class="px-2.5 py-1.5 text-xs font-medium rounded-lg transition-colors {{ $emp->user_id ? 'text-green-600 dark:text-green-400 bg-green-50 dark:bg-green-900/20 hover:bg-green-100' : 'text-indigo-600 dark:text-indigo-400 bg-indigo-50 dark:bg-indigo-900/20 hover:bg-indigo-100' }}">
-                <svg class="w-3.5 h-3.5" fill="none" stroke="currentColor" viewBox="0 0 24 24"><path stroke-linecap="round" stroke-linejoin="round" stroke-width="2" d="M15 7a2 2 0 012 2m4 0a6 6 0 01-7.743 5.743L11 17H9v2H7v2H4a1 1 0 01-1-1v-2.586a1 1 0 01.293-.707l5.964-5.964A6 6 0 1121 9z"/></svg>
-            </button>
             <a href="{{ route('employees.edit', $emp) }}"
                class="px-2.5 py-1.5 text-xs font-medium text-gray-500 dark:text-slate-400 bg-gray-100 dark:bg-slate-700 rounded-lg hover:bg-gray-200 dark:hover:bg-slate-600 transition-colors">
                 <svg class="w-3.5 h-3.5" fill="none" stroke="currentColor" viewBox="0 0 24 24"><path stroke-linecap="round" stroke-linejoin="round" stroke-width="2" d="M11 5H6a2 2 0 00-2 2v11a2 2 0 002 2h11a2 2 0 002-2v-5m-1.414-9.414a2 2 0 112.828 2.828L11.828 15H9v-2.828l8.586-8.586z"/></svg>
             </a>
-            <form method="POST" action="{{ route('employees.destroy', $emp) }}"
-                  onsubmit="return confirm('{{ addslashes($emp->name) }} কে delete করবেন?\n\nPayroll ও production history সংরক্ষিত থাকবে।\nActive task থাকলে delete হবে না।')">
-                @csrf @method('DELETE')
-                <button type="submit"
-                        class="px-2.5 py-1.5 text-xs font-medium text-red-500 dark:text-red-400 bg-red-50 dark:bg-red-900/20 rounded-lg hover:bg-red-100 dark:hover:bg-red-900/30 transition-colors">
-                    <svg class="w-3.5 h-3.5" fill="none" stroke="currentColor" viewBox="0 0 24 24"><path stroke-linecap="round" stroke-linejoin="round" stroke-width="2" d="M19 7l-.867 12.142A2 2 0 0116.138 21H7.862a2 2 0 01-1.995-1.858L5 7m5 4v6m4-6v6m1-10V4a1 1 0 00-1-1h-4a1 1 0 00-1 1v3M4 7h16"/></svg>
-                </button>
-            </form>
         </div>
     </div>
     @empty
@@ -168,36 +168,5 @@
 @if($employees->hasPages())
 <div class="mt-4">{{ $employees->withQueryString()->links() }}</div>
 @endif
-
-{{-- Enable / Reset worker login (phone + PIN) --}}
-<div x-data="{ open: false, emp: { id: null, name: '', has: false, phone: '' } }"
-     @open-login.window="emp = $event.detail; open = true">
-    <div x-show="open" x-cloak class="fixed inset-0 bg-black/50 z-50 flex items-end sm:items-center justify-center p-4">
-        <div @click.outside="open = false" class="bg-white dark:bg-slate-800 rounded-2xl w-full max-w-sm">
-            <div class="flex items-center justify-between px-5 py-4 border-b border-gray-100 dark:border-slate-700">
-                <h3 class="text-sm font-semibold text-gray-900 dark:text-white">
-                    <span x-text="emp.has ? 'Reset PIN' : 'Enable login'"></span> — <span x-text="emp.name"></span>
-                </h3>
-                <button @click="open = false" class="p-1 text-gray-400 hover:text-gray-600 text-xl leading-none">×</button>
-            </div>
-            <form method="POST" :action="`{{ url('employees') }}/${emp.id}/enable-login`" class="p-5 space-y-4">
-                @csrf
-                <div class="text-xs text-gray-500 dark:text-slate-400">
-                    Worker logs in at <span class="font-medium text-gray-700 dark:text-slate-200">/worker-login</span>
-                    with phone <span class="font-medium" x-text="emp.phone || '(no phone set — add one first)'"></span> and this PIN.
-                </div>
-                <div>
-                    <label class="block text-xs font-semibold text-gray-500 uppercase tracking-wider mb-1.5">Set a 4–6 digit PIN</label>
-                    <input type="text" name="pin" inputmode="numeric" maxlength="6" required pattern="\d{4,6}"
-                           placeholder="e.g. 1234"
-                           class="w-full px-4 py-2.5 text-lg text-center tracking-[0.3em] bg-gray-50 dark:bg-slate-700 border border-gray-200 dark:border-slate-600 rounded-xl text-gray-900 dark:text-white focus:outline-none focus:ring-2 focus:ring-indigo-500">
-                </div>
-                <button type="submit" class="w-full bg-indigo-600 hover:bg-indigo-700 text-white font-semibold py-2.5 rounded-xl text-sm transition-colors">
-                    <span x-text="emp.has ? 'Update PIN' : 'Enable login'"></span>
-                </button>
-            </form>
-        </div>
-    </div>
-</div>
 
 @endsection

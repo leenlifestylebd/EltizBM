@@ -37,7 +37,7 @@ class EmployeeController extends Controller
         $today      = today()->toDateString();
         $monthStart = now()->startOfMonth()->toDateString();
 
-        // Replace N+1 loops with 2 batch aggregate queries keyed by employee_id
+        // Replace N+1 loops with batch aggregate queries keyed by employee_id
         $empIds = $employees->pluck('id')->toArray();
 
         $productionStats = ProductionEntry::whereIn('employee_id', $empIds)
@@ -52,7 +52,17 @@ class EmployeeController extends Controller
 
         $paymentStats = EmployeePayment::whereIn('employee_id', $empIds)
             ->whereBetween('payment_date', [$monthStart, $today])
-            ->selectRaw('employee_id, SUM(amount) as month_paid')
+            ->selectRaw('employee_id,
+                SUM(CASE WHEN type IN (\'salary\',\'advance\',\'bonus\') THEN amount ELSE 0 END) as month_paid,
+                SUM(CASE WHEN type = \'deduction\' THEN amount ELSE 0 END) as month_deducted')
+            ->groupBy('employee_id')
+            ->get()
+            ->keyBy('employee_id');
+
+        $attendanceStats = Attendance::whereIn('employee_id', $empIds)
+            ->whereBetween('attendance_date', [$monthStart, $today])
+            ->whereIn('status', ['present', 'late'])
+            ->selectRaw('employee_id, COUNT(*) as days_present')
             ->groupBy('employee_id')
             ->get()
             ->keyBy('employee_id');
@@ -60,11 +70,20 @@ class EmployeeController extends Controller
         foreach ($employees as $emp) {
             $prod = $productionStats->get($emp->id);
             $pay  = $paymentStats->get($emp->id);
+            $att  = $attendanceStats->get($emp->id);
+
             $emp->today_production = $prod->today_qty ?? 0;
             $emp->month_production = $prod->month_qty ?? 0;
             $emp->month_earning    = $prod->month_earn ?? 0;
-            $emp->month_advance    = $pay->month_paid ?? 0;
-            $emp->month_net        = $emp->month_earning - $emp->month_advance;
+            $emp->month_advance    = (float)($pay->month_paid ?? 0);
+            $emp->month_deducted   = (float)($pay->month_deducted ?? 0);
+            $emp->days_present     = $att->days_present ?? 0;
+
+            if ($emp->type === 'salary' && (float)$emp->salary > 0) {
+                $emp->month_net = (float)$emp->salary - $emp->month_advance + $emp->month_deducted;
+            } else {
+                $emp->month_net = $emp->month_earning - $emp->month_advance;
+            }
         }
 
         $stats = [
