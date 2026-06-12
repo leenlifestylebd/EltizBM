@@ -1,4 +1,4 @@
-﻿@extends('layouts.app')
+@extends('layouts.app')
 @section('title', 'Assign Task')
 
 @section('content')
@@ -22,14 +22,42 @@
 </div>
 @endif
 
+@if($sourceTask)
+<div class="mb-4 p-3 bg-orange-50 dark:bg-orange-900/20 border border-orange-200 dark:border-orange-800 rounded-xl flex items-start gap-2">
+    <span class="text-orange-500 text-base">🔥</span>
+    <div class="text-xs text-orange-700 dark:text-orange-300">
+        <strong>Forwarding from Sewing Task #{{ $sourceTask->id }}</strong> —
+        {{ $sourceTask->product_name }}{{ $sourceTask->color ? ', '.$sourceTask->color : '' }}{{ $sourceTask->size ? ', sz '.$sourceTask->size : '' }}.
+        Forwardable: <strong>{{ $sourceTask->forwardable_quantity }} pieces</strong>
+        ({{ $sourceTask->completed_quantity }} completed, {{ $sourceTask->forwardedQuantity() }} already forwarded).
+    </div>
+</div>
+@endif
+
 <div class="max-w-lg mx-auto" x-data="taskCreate()">
     <div class="bg-white dark:bg-slate-800 rounded-xl border border-gray-100 dark:border-slate-700 p-5">
         <form method="POST" action="{{ route('production.tasks.store') }}" class="space-y-4">
             @csrf
 
+            @if($sourceTask)
+            <input type="hidden" name="source_task_id" value="{{ $sourceTask->id }}">
+            @endif
+
+            {{-- Stage --}}
+            <div>
+                <label class="block text-xs font-medium text-gray-700 dark:text-slate-300 mb-1">Stage <span class="text-red-500">*</span></label>
+                <select name="stage" x-model="stage"
+                        class="w-full px-3 py-2.5 text-sm border border-gray-200 dark:border-slate-600 rounded-lg bg-white dark:bg-slate-700 text-gray-700 dark:text-slate-200 focus:outline-none focus:ring-2 focus:ring-primary-500">
+                    <option value="sewing">Sewing (সেলাই)</option>
+                    <option value="ironing">Ironing (ইস্ত্রি)</option>
+                    <option value="folding">Folding (ভাঁজ)</option>
+                    <option value="packing">Packing (প্যাকিং)</option>
+                </select>
+            </div>
+
             {{-- Worker --}}
             <div>
-                <label class="block text-xs font-medium text-gray-700 dark:text-slate-300 mb-1">Worker *</label>
+                <label class="block text-xs font-medium text-gray-700 dark:text-slate-300 mb-1">Worker <span class="text-red-500">*</span></label>
                 <select name="employee_id" required
                         class="w-full px-3 py-2.5 text-sm border border-gray-200 dark:border-slate-600 rounded-lg bg-white dark:bg-slate-700 text-gray-700 dark:text-slate-200 focus:outline-none focus:ring-2 focus:ring-primary-500">
                     <option value="">Select Worker</option>
@@ -41,30 +69,35 @@
                 </select>
             </div>
 
-            {{-- Production Rate (optional auto-fill) --}}
+            {{-- Production Rate (filtered by stage) --}}
             <div>
-                <label class="block text-xs font-medium text-gray-700 dark:text-slate-300 mb-1">Production Rate <span class="text-gray-400">(optional — থাকলে amount auto হবে)</span></label>
+                <label class="block text-xs font-medium text-gray-700 dark:text-slate-300 mb-1">
+                    Production Rate <span class="text-gray-400">(optional — থাকলে amount auto হবে)</span>
+                </label>
                 <select name="production_rate_id" @change="fillFromRate($event.target.value)"
                         class="w-full px-3 py-2.5 text-sm border border-gray-200 dark:border-slate-600 rounded-lg bg-white dark:bg-slate-700 text-gray-700 dark:text-slate-200 focus:outline-none focus:ring-2 focus:ring-primary-500">
                     <option value="">-- Rate ছাড়াই assign করুন --</option>
-                    @foreach($rates as $rate)
-                    <option value="{{ $rate->id }}"
-                            data-product="{{ $rate->product_name }}"
-                            data-color="{{ $rate->color }}"
-                            data-size="{{ $rate->size }}">
-                        {{ $rate->product_name }}{{ $rate->size ? ' ['.$rate->size.']' : '' }}{{ $rate->color ? ' ('.$rate->color.')' : '' }} — ৳{{ number_format($rate->rate) }}/{{ $rate->unit }}
-                    </option>
-                    @endforeach
+                    <template x-for="rate in filteredRates" :key="rate.id">
+                        <option :value="rate.id"
+                                :data-product="rate.product_name"
+                                :data-color="rate.color"
+                                :data-size="rate.size"
+                                x-text="rate.product_name + (rate.size ? ' ['+rate.size+']' : '') + (rate.color ? ' ('+rate.color+')' : '') + (rate.variant_name ? ' — '+rate.variant_name : '') + ' — ৳' + rate.rate + '/' + rate.unit">
+                        </option>
+                    </template>
                 </select>
-                @if($rates->isEmpty())
-                <p class="text-xs text-amber-600 dark:text-amber-400 mt-1">কোনো rate নেই — <a href="{{ route('production.rates') }}" class="underline">এখানে যোগ করুন</a> অথবা rate ছাড়াই assign করুন (পরে rate দিলে earning হিসাব হবে)।</p>
-                @endif
+                <p x-show="filteredRates.length === 0" class="text-xs text-amber-600 dark:text-amber-400 mt-1">
+                    এই stage-এ কোনো rate নেই —
+                    <a href="{{ route('production.rates') }}" class="underline">এখানে যোগ করুন</a>
+                    অথবা rate ছাড়াই assign করুন।
+                </p>
             </div>
 
             {{-- Product Name --}}
             <div>
-                <label class="block text-xs font-medium text-gray-700 dark:text-slate-300 mb-1">Product Name *</label>
-                <input type="text" name="product_name" x-model="productName" value="{{ old('product_name') }}" required
+                <label class="block text-xs font-medium text-gray-700 dark:text-slate-300 mb-1">Product Name <span class="text-red-500">*</span></label>
+                <input type="text" name="product_name" x-model="productName"
+                       value="{{ old('product_name', $sourceTask?->product_name) }}" required
                        placeholder="e.g. Panjabi, Shirt"
                        class="w-full px-3 py-2.5 text-sm border border-gray-200 dark:border-slate-600 rounded-lg bg-white dark:bg-slate-700 text-gray-900 dark:text-white focus:outline-none focus:ring-2 focus:ring-primary-500">
             </div>
@@ -73,13 +106,15 @@
             <div class="grid grid-cols-2 gap-3">
                 <div>
                     <label class="block text-xs font-medium text-gray-700 dark:text-slate-300 mb-1">Color</label>
-                    <input type="text" name="color" x-model="color" value="{{ old('color') }}"
+                    <input type="text" name="color" x-model="color"
+                           value="{{ old('color', $sourceTask?->color) }}"
                            placeholder="e.g. White, Black"
                            class="w-full px-3 py-2.5 text-sm border border-gray-200 dark:border-slate-600 rounded-lg bg-white dark:bg-slate-700 text-gray-900 dark:text-white focus:outline-none focus:ring-2 focus:ring-primary-500">
                 </div>
                 <div>
                     <label class="block text-xs font-medium text-gray-700 dark:text-slate-300 mb-1">Size</label>
-                    <input type="text" name="size" x-model="size" value="{{ old('size') }}"
+                    <input type="text" name="size" x-model="size"
+                           value="{{ old('size', $sourceTask?->size) }}"
                            placeholder="e.g. 50/21, M, L"
                            class="w-full px-3 py-2.5 text-sm border border-gray-200 dark:border-slate-600 rounded-lg bg-white dark:bg-slate-700 text-gray-900 dark:text-white focus:outline-none focus:ring-2 focus:ring-primary-500">
                 </div>
@@ -87,8 +122,17 @@
 
             {{-- Quantity --}}
             <div>
-                <label class="block text-xs font-medium text-gray-700 dark:text-slate-300 mb-1">Assigned Quantity *</label>
-                <input type="number" name="assigned_quantity" value="{{ old('assigned_quantity') }}" min="1" required
+                <label class="block text-xs font-medium text-gray-700 dark:text-slate-300 mb-1">
+                    Assigned Quantity <span class="text-red-500">*</span>
+                    @if($sourceTask)
+                    <span class="text-gray-400">(max {{ $sourceTask->forwardable_quantity }})</span>
+                    @endif
+                </label>
+                <input type="number" name="assigned_quantity"
+                       value="{{ old('assigned_quantity') }}"
+                       min="1"
+                       @if($sourceTask) max="{{ $sourceTask->forwardable_quantity }}" @endif
+                       required
                        class="w-full px-3 py-2.5 text-sm border border-gray-200 dark:border-slate-600 rounded-lg bg-white dark:bg-slate-700 text-gray-900 dark:text-white focus:outline-none focus:ring-2 focus:ring-primary-500">
             </div>
 
@@ -124,14 +168,20 @@
 @push('scripts')
 <script>
 function taskCreate() {
-    const rates = @json($rates);
+    const allRates = @json($rates);
     return {
-        productName: '{{ old('product_name') }}',
-        color: '{{ old('color') }}',
-        size: '{{ old('size') }}',
+        stage: '{{ old('stage', $sourceTask ? 'ironing' : 'sewing') }}',
+        productName: '{{ old('product_name', $sourceTask?->product_name) }}',
+        color: '{{ old('color', $sourceTask?->color) }}',
+        size: '{{ old('size', $sourceTask?->size) }}',
+
+        get filteredRates() {
+            return allRates.filter(r => (r.stage || 'sewing') === this.stage);
+        },
+
         fillFromRate(rateId) {
             if (!rateId) return;
-            const rate = rates.find(r => r.id == rateId);
+            const rate = allRates.find(r => r.id == rateId);
             if (rate) {
                 this.productName = rate.product_name || '';
                 this.color       = rate.color || '';

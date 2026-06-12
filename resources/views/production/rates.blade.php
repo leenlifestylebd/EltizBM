@@ -21,6 +21,7 @@
             <thead>
                 <tr class="bg-gray-50 dark:bg-slate-700/50 border-b border-gray-100 dark:border-slate-700">
                     <th class="text-left px-4 py-3 text-xs font-medium text-gray-500">Product</th>
+                    <th class="text-left px-4 py-3 text-xs font-medium text-gray-500">Stage</th>
                     <th class="text-left px-4 py-3 text-xs font-medium text-gray-500">Variant</th>
                     <th class="text-left px-4 py-3 text-xs font-medium text-gray-500">Color</th>
                     <th class="text-left px-4 py-3 text-xs font-medium text-gray-500">Size</th>
@@ -32,8 +33,21 @@
             </thead>
             <tbody class="divide-y divide-gray-50 dark:divide-slate-700">
                 @forelse($rates as $rate)
+                @php
+                    $stageBadge = match($rate->stage ?? 'sewing') {
+                        'ironing' => 'bg-orange-100 text-orange-700 dark:bg-orange-900/30 dark:text-orange-400',
+                        'folding' => 'bg-purple-100 text-purple-700 dark:bg-purple-900/30 dark:text-purple-400',
+                        'packing' => 'bg-teal-100 text-teal-700 dark:bg-teal-900/30 dark:text-teal-400',
+                        default   => 'bg-primary-100 text-primary-700 dark:bg-primary-900/30 dark:text-primary-400',
+                    };
+                @endphp
                 <tr class="hover:bg-gray-50 dark:hover:bg-slate-700/30 transition-colors group">
                     <td class="px-4 py-3 font-medium text-gray-900 dark:text-white">{{ $rate->product_name }}</td>
+                    <td class="px-4 py-3">
+                        <span class="px-2 py-0.5 rounded-full text-xs font-medium {{ $stageBadge }}">
+                            {{ ucfirst($rate->stage ?? 'sewing') }}
+                        </span>
+                    </td>
                     <td class="px-4 py-3 text-gray-600 dark:text-slate-300">{{ $rate->variant_name ?? '—' }}</td>
                     <td class="px-4 py-3 text-gray-600 dark:text-slate-300">{{ $rate->color ?? '—' }}</td>
                     <td class="px-4 py-3 text-gray-600 dark:text-slate-300">{{ $rate->size ?? '—' }}</td>
@@ -56,7 +70,7 @@
                     </td>
                 </tr>
                 @empty
-                <tr><td colspan="8" class="px-4 py-12 text-center text-sm text-gray-400">No rates yet. Add your first rate!</td></tr>
+                <tr><td colspan="9" class="px-4 py-12 text-center text-sm text-gray-400">No rates yet. Add your first rate!</td></tr>
                 @endforelse
             </tbody>
         </table>
@@ -73,6 +87,15 @@
         <form method="POST" action="{{ route('production.rates.store') }}" class="p-5 space-y-3">
             @csrf
             <div class="grid grid-cols-2 gap-3">
+                <div class="col-span-2">
+                    <label class="block text-xs font-medium text-gray-700 dark:text-slate-300 mb-1.5">Stage <span class="text-red-500">*</span></label>
+                    <select name="stage" class="w-full px-3 py-2.5 text-sm border border-gray-200 dark:border-slate-600 rounded-lg bg-white dark:bg-slate-700 text-gray-700 dark:text-slate-200 focus:outline-none focus:ring-2 focus:ring-primary-500">
+                        <option value="sewing">Sewing (সেলাই)</option>
+                        <option value="ironing">Ironing (ইস্ত্রি)</option>
+                        <option value="folding">Folding (ভাঁজ)</option>
+                        <option value="packing">Packing (প্যাকিং)</option>
+                    </select>
+                </div>
                 <div class="col-span-2">
                     <label class="block text-xs font-medium text-gray-700 dark:text-slate-300 mb-1.5">Product Name <span class="text-red-500">*</span></label>
                     <input type="text" name="product_name" required

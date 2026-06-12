@@ -48,6 +48,17 @@
             </select>
         </div>
         <div>
+            <label class="block text-xs text-gray-500 mb-1">Stage</label>
+            <select name="stage" onchange="this.form.submit()"
+                    class="px-3 py-2 text-xs border border-gray-200 dark:border-slate-600 rounded-lg bg-white dark:bg-slate-700 text-gray-700 dark:text-slate-200 focus:outline-none">
+                <option value="">All Stages</option>
+                <option value="sewing"  {{ request('stage') === 'sewing'  ? 'selected' : '' }}>Sewing</option>
+                <option value="ironing" {{ request('stage') === 'ironing' ? 'selected' : '' }}>Ironing</option>
+                <option value="folding" {{ request('stage') === 'folding' ? 'selected' : '' }}>Folding</option>
+                <option value="packing" {{ request('stage') === 'packing' ? 'selected' : '' }}>Packing</option>
+            </select>
+        </div>
+        <div>
             <label class="block text-xs text-gray-500 mb-1">Status</label>
             <select name="status" onchange="this.form.submit()"
                     class="px-3 py-2 text-xs border border-gray-200 dark:border-slate-600 rounded-lg bg-white dark:bg-slate-700 text-gray-700 dark:text-slate-200 focus:outline-none">
@@ -81,6 +92,7 @@
             <thead>
                 <tr class="bg-gray-50 dark:bg-slate-700/50 border-b border-gray-100 dark:border-slate-700">
                     <th class="text-left px-4 py-3 text-xs font-medium text-gray-500">Worker</th>
+                    <th class="text-left px-4 py-3 text-xs font-medium text-gray-500">Stage</th>
                     <th class="text-left px-4 py-3 text-xs font-medium text-gray-500">Product</th>
                     <th class="text-center px-4 py-3 text-xs font-medium text-gray-500">Assigned</th>
                     <th class="text-center px-4 py-3 text-xs font-medium text-gray-500">Done</th>
@@ -102,11 +114,22 @@
                         'cancelled'   => 'bg-red-100 text-red-700 dark:bg-red-900/30 dark:text-red-400',
                         default       => 'bg-gray-100 text-gray-600 dark:bg-slate-700 dark:text-slate-300',
                     };
+                    $stageBadge = match($task->stage ?? 'sewing') {
+                        'ironing' => 'bg-orange-100 text-orange-700 dark:bg-orange-900/30 dark:text-orange-400',
+                        'folding' => 'bg-purple-100 text-purple-700 dark:bg-purple-900/30 dark:text-purple-400',
+                        'packing' => 'bg-teal-100 text-teal-700 dark:bg-teal-900/30 dark:text-teal-400',
+                        default   => 'bg-primary-100 text-primary-700 dark:bg-primary-900/30 dark:text-primary-400',
+                    };
                 @endphp
                 <tr class="hover:bg-gray-50 dark:hover:bg-slate-700/30">
                     <td class="px-4 py-3">
                         <p class="text-sm font-medium text-gray-900 dark:text-white">{{ $task->employee->name }}</p>
                         <p class="text-xs text-gray-400">{{ $task->assigned_at->format('d M') }}</p>
+                    </td>
+                    <td class="px-4 py-3">
+                        <span class="px-2 py-0.5 rounded-full text-xs font-medium {{ $stageBadge }}">
+                            {{ ucfirst($task->stage ?? 'sewing') }}
+                        </span>
                     </td>
                     <td class="px-4 py-3">
                         <p class="text-sm text-gray-900 dark:text-white">{{ $task->product_name }}</p>
@@ -135,11 +158,17 @@
                         @if($task->isOverdue()) <span class="block text-red-500">Overdue</span> @endif
                     </td>
                     <td class="px-4 py-3 text-center">
-                        <div class="flex items-center justify-center gap-1.5">
+                        <div class="flex items-center justify-center gap-1.5 flex-wrap">
                             <a href="{{ route('production.tasks.show', $task) }}"
                                class="px-2.5 py-1 text-xs text-primary-600 border border-primary-200 rounded-lg hover:bg-primary-50 dark:hover:bg-primary-900/20">
                                 View
                             </a>
+                            @if(($task->stage ?? 'sewing') === 'sewing' && $task->forwardable_quantity > 0)
+                            <a href="{{ route('production.tasks.show', $task) }}#forward"
+                               class="px-2.5 py-1 text-xs text-orange-600 border border-orange-200 rounded-lg hover:bg-orange-50 dark:hover:bg-orange-900/20">
+                                🔥 Iron
+                            </a>
+                            @endif
                             <form method="POST" action="{{ route('production.tasks.destroy', $task) }}"
                                   onsubmit="return confirm('এই task টি delete করবেন?')">
                                 @csrf @method('DELETE')
@@ -151,7 +180,7 @@
                     </td>
                 </tr>
                 @empty
-                <tr><td colspan="9" class="px-4 py-12 text-center text-sm text-gray-400">No tasks found</td></tr>
+                <tr><td colspan="10" class="px-4 py-12 text-center text-sm text-gray-400">No tasks found</td></tr>
                 @endforelse
             </tbody>
         </table>
@@ -170,12 +199,21 @@
             'cancelled'   => 'bg-red-100 text-red-700',
             default       => 'bg-gray-100 text-gray-600',
         };
+        $stageBadgeMobile = match($task->stage ?? 'sewing') {
+            'ironing' => 'bg-orange-100 text-orange-700',
+            'folding' => 'bg-purple-100 text-purple-700',
+            'packing' => 'bg-teal-100 text-teal-700',
+            default   => 'bg-primary-100 text-primary-700',
+        };
     @endphp
     <div class="bg-white dark:bg-slate-800 rounded-xl border border-gray-100 dark:border-slate-700 p-3">
         <div class="flex items-start justify-between mb-2">
             <div class="flex-1">
                 <p class="text-sm font-semibold text-gray-900 dark:text-white">{{ $task->employee->name }}</p>
-                <p class="text-xs text-gray-500">{{ $task->product_name }}{{ $task->color ? ' · '.$task->color : '' }}{{ $task->size ? ' · '.$task->size : '' }}</p>
+                <div class="flex items-center gap-1.5 mt-0.5">
+                    <span class="px-1.5 py-0.5 rounded text-xs font-medium {{ $stageBadgeMobile }}">{{ ucfirst($task->stage ?? 'sewing') }}</span>
+                    <span class="text-xs text-gray-500">{{ $task->product_name }}{{ $task->color ? ' · '.$task->color : '' }}{{ $task->size ? ' · '.$task->size : '' }}</span>
+                </div>
             </div>
             <span class="px-2 py-0.5 rounded-full text-xs font-medium {{ $statusColor }}">
                 {{ ucfirst(str_replace('_',' ',$task->status)) }}
@@ -192,7 +230,11 @@
         </div>
         <div class="flex items-center justify-between">
             <span class="text-xs text-gray-500">Pending: <strong class="{{ $task->pending_quantity > 0 ? 'text-orange-600' : 'text-green-600' }}">{{ $task->pending_quantity }}</strong></span>
-            <div class="flex gap-1.5">
+            <div class="flex gap-1.5 flex-wrap justify-end">
+                @if(($task->stage ?? 'sewing') === 'sewing' && $task->forwardable_quantity > 0)
+                <a href="{{ route('production.tasks.show', $task) }}#forward"
+                   class="px-2.5 py-1 text-xs text-orange-600 border border-orange-200 rounded-lg">🔥 Iron</a>
+                @endif
                 <a href="{{ route('production.tasks.show', $task) }}"
                    class="px-2.5 py-1 text-xs text-primary-600 border border-primary-200 rounded-lg">View</a>
                 <form method="POST" action="{{ route('production.tasks.destroy', $task) }}"

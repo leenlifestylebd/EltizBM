@@ -8,7 +8,14 @@ class ProductionRate extends Model
 {
     protected $fillable = [
         'business_id', 'product_name', 'variant_name',
-        'color', 'size', 'rate', 'unit', 'is_active',
+        'color', 'size', 'rate', 'unit', 'is_active', 'stage',
+    ];
+
+    public const STAGES = [
+        'sewing'  => 'Sewing',
+        'ironing' => 'Ironing',
+        'folding' => 'Folding',
+        'packing' => 'Packing',
     ];
 
     public function business() { return $this->belongsTo(Business::class); }

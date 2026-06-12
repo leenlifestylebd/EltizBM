@@ -20,7 +20,7 @@
 </div>
 @endif
 
-<div class="max-w-2xl mx-auto space-y-4" x-data="{ editOpen: false }">
+<div class="max-w-2xl mx-auto space-y-4" x-data="{ editOpen: false, forwardOpen: {{ request()->is('*#forward') || session('openForward') ? 'true' : 'false' }} }">
 
     {{-- Task Header Card --}}
     <div class="bg-white dark:bg-slate-800 rounded-xl border border-gray-100 dark:border-slate-700 p-5">
@@ -42,10 +42,21 @@
                     'cancelled'   => 'bg-red-100 text-red-700 dark:bg-red-900/30 dark:text-red-400',
                     default       => 'bg-gray-100 text-gray-600 dark:bg-slate-700 dark:text-slate-300',
                 };
+                $stageBadge = match($task->stage ?? 'sewing') {
+                    'ironing' => 'bg-orange-100 text-orange-700 dark:bg-orange-900/30 dark:text-orange-400',
+                    'folding' => 'bg-purple-100 text-purple-700 dark:bg-purple-900/30 dark:text-purple-400',
+                    'packing' => 'bg-teal-100 text-teal-700 dark:bg-teal-900/30 dark:text-teal-400',
+                    default   => 'bg-primary-100 text-primary-700 dark:bg-primary-900/30 dark:text-primary-400',
+                };
             @endphp
-            <span class="px-3 py-1 rounded-full text-xs font-medium {{ $statusColor }}">
-                {{ ucfirst(str_replace('_',' ',$task->status)) }}
-            </span>
+            <div class="flex items-center gap-2 flex-wrap justify-end">
+                <span class="px-3 py-1 rounded-full text-xs font-medium {{ $stageBadge }}">
+                    {{ ucfirst($task->stage ?? 'sewing') }}
+                </span>
+                <span class="px-3 py-1 rounded-full text-xs font-medium {{ $statusColor }}">
+                    {{ ucfirst(str_replace('_',' ',$task->status)) }}
+                </span>
+            </div>
         </div>
 
         {{-- Product info --}}
@@ -107,6 +118,32 @@
         @if($task->notes)
         <div class="mt-3 p-2.5 bg-gray-50 dark:bg-slate-700/50 rounded-lg">
             <p class="text-xs text-gray-600 dark:text-slate-300">{{ $task->notes }}</p>
+        </div>
+        @endif
+
+        {{-- Source task link --}}
+        @if($task->source_task_id && $task->sourceTask)
+        <div class="mt-3 p-2.5 bg-orange-50 dark:bg-orange-900/20 rounded-lg flex items-center gap-2">
+            <span class="text-orange-500">🔥</span>
+            <p class="text-xs text-orange-700 dark:text-orange-300">
+                Forwarded from <a href="{{ route('production.tasks.show', $task->source_task_id) }}" class="font-semibold underline">Sewing Task #{{ $task->source_task_id }}</a>
+                ({{ $task->sourceTask->employee->name }})
+            </p>
+        </div>
+        @endif
+
+        {{-- Forward to Iron button --}}
+        @if(($task->stage ?? 'sewing') === 'sewing' && $task->forwardable_quantity > 0)
+        <div class="mt-4 pt-4 border-t border-gray-100 dark:border-slate-700" id="forward">
+            <button @click="forwardOpen = !forwardOpen"
+                    class="flex items-center gap-1.5 px-3 py-2 text-xs font-medium text-orange-600 border border-orange-300 rounded-lg hover:bg-orange-50 dark:hover:bg-orange-900/20">
+                🔥 Forward to Iron
+                <span class="bg-orange-100 dark:bg-orange-900/40 text-orange-700 dark:text-orange-300 px-1.5 py-0.5 rounded-full text-xs font-bold">{{ $task->forwardable_quantity }} pcs</span>
+            </button>
+        </div>
+        @elseif(($task->stage ?? 'sewing') === 'sewing' && $task->completed_quantity > 0)
+        <div class="mt-3">
+            <p class="text-xs text-gray-400">✓ All {{ $task->completed_quantity }} completed pieces already forwarded to iron.</p>
         </div>
         @endif
 
@@ -188,6 +225,124 @@
         </div>
         @endif
     </div>
+
+    {{-- Forward to Iron Modal --}}
+    @if(($task->stage ?? 'sewing') === 'sewing' && $ironEmployees->isNotEmpty())
+    <div x-show="forwardOpen" x-cloak
+         class="bg-white dark:bg-slate-800 rounded-xl border border-orange-200 dark:border-orange-800 p-5">
+        <h3 class="text-sm font-semibold text-orange-700 dark:text-orange-400 mb-4 flex items-center gap-1.5">
+            🔥 Assign Iron Task
+            <span class="text-xs font-normal text-gray-500">(forwardable: {{ $task->forwardable_quantity }} pcs)</span>
+        </h3>
+        <form method="POST" action="{{ route('production.tasks.forward', $task) }}" class="space-y-3">
+            @csrf
+
+            {{-- Iron Worker --}}
+            <div>
+                <label class="block text-xs font-medium text-gray-700 dark:text-slate-300 mb-1">Iron Worker <span class="text-red-500">*</span></label>
+                <select name="employee_id" required
+                        class="w-full px-3 py-2 text-sm border border-gray-200 dark:border-slate-600 rounded-lg bg-white dark:bg-slate-700 text-gray-700 dark:text-slate-200 focus:outline-none focus:ring-2 focus:ring-orange-400">
+                    <option value="">Select Iron Worker</option>
+                    @foreach($ironEmployees as $emp)
+                    <option value="{{ $emp->id }}">{{ $emp->name }}{{ $emp->designation ? ' — '.$emp->designation : '' }}</option>
+                    @endforeach
+                </select>
+            </div>
+
+            {{-- Iron Rate --}}
+            <div>
+                <label class="block text-xs font-medium text-gray-700 dark:text-slate-300 mb-1">
+                    Iron Rate <span class="text-gray-400">(optional)</span>
+                </label>
+                <select name="production_rate_id"
+                        class="w-full px-3 py-2 text-sm border border-gray-200 dark:border-slate-600 rounded-lg bg-white dark:bg-slate-700 text-gray-700 dark:text-slate-200 focus:outline-none focus:ring-2 focus:ring-orange-400">
+                    <option value="">-- Rate ছাড়াই assign করুন --</option>
+                    @foreach($ironRates as $rate)
+                    <option value="{{ $rate->id }}">
+                        {{ $rate->product_name }}{{ $rate->variant_name ? ' — '.$rate->variant_name : '' }}{{ $rate->color ? ' ('.$rate->color.')' : '' }} — ৳{{ number_format($rate->rate) }}/{{ $rate->unit }}
+                    </option>
+                    @endforeach
+                </select>
+                @if($ironRates->isEmpty())
+                <p class="text-xs text-amber-600 dark:text-amber-400 mt-1">
+                    Ironing rate নেই — <a href="{{ route('production.rates') }}" class="underline">এখানে যোগ করুন</a>।
+                    Rate ছাড়াও assign করা যাবে।
+                </p>
+                @endif
+            </div>
+
+            {{-- Quantity --}}
+            <div>
+                <label class="block text-xs font-medium text-gray-700 dark:text-slate-300 mb-1">
+                    Pieces to forward <span class="text-red-500">*</span>
+                    <span class="text-gray-400">(max {{ $task->forwardable_quantity }})</span>
+                </label>
+                <input type="number" name="quantity"
+                       value="{{ $task->forwardable_quantity }}"
+                       min="1" max="{{ $task->forwardable_quantity }}" required
+                       class="w-full px-3 py-2 text-sm border border-gray-200 dark:border-slate-600 rounded-lg bg-white dark:bg-slate-700 text-gray-900 dark:text-white focus:outline-none focus:ring-2 focus:ring-orange-400">
+            </div>
+
+            {{-- Notes --}}
+            <div>
+                <label class="block text-xs font-medium text-gray-700 dark:text-slate-300 mb-1">Notes <span class="text-gray-400">(optional)</span></label>
+                <input type="text" name="notes" placeholder="Any instructions for iron man..."
+                       class="w-full px-3 py-2 text-sm border border-gray-200 dark:border-slate-600 rounded-lg bg-white dark:bg-slate-700 text-gray-900 dark:text-white focus:outline-none focus:ring-2 focus:ring-orange-400">
+            </div>
+
+            <div class="flex gap-2">
+                <button type="submit"
+                        class="flex-1 bg-orange-500 hover:bg-orange-600 text-white text-sm font-medium py-2 rounded-lg transition-colors">
+                    🔥 Assign Iron Task
+                </button>
+                <button type="button" @click="forwardOpen = false"
+                        class="px-4 py-2 bg-gray-100 dark:bg-slate-700 text-gray-600 text-sm rounded-lg">
+                    Cancel
+                </button>
+            </div>
+        </form>
+    </div>
+    @endif
+
+    {{-- Forwarded Iron Tasks --}}
+    @if(($task->stage ?? 'sewing') === 'sewing' && $task->forwardedTasks->isNotEmpty())
+    <div class="bg-white dark:bg-slate-800 rounded-xl border border-gray-100 dark:border-slate-700 overflow-hidden">
+        <div class="px-4 py-3 border-b border-gray-100 dark:border-slate-700 flex items-center justify-between">
+            <h3 class="text-sm font-semibold text-gray-900 dark:text-white flex items-center gap-1.5">
+                🔥 Iron Tasks
+            </h3>
+            <span class="text-xs text-gray-500">{{ $task->forwardedTasks->count() }} task(s)</span>
+        </div>
+        <div class="divide-y divide-gray-50 dark:divide-slate-700">
+            @foreach($task->forwardedTasks as $ironTask)
+            @php
+                $ironStatus = match($ironTask->status) {
+                    'completed' => 'bg-green-100 text-green-700',
+                    'partial'   => 'bg-yellow-100 text-yellow-700',
+                    'cancelled' => 'bg-red-100 text-red-700',
+                    default     => 'bg-gray-100 text-gray-600',
+                };
+            @endphp
+            <div class="px-4 py-3 flex items-center justify-between gap-3">
+                <div class="flex-1 min-w-0">
+                    <p class="text-sm font-medium text-gray-900 dark:text-white">{{ $ironTask->employee->name }}</p>
+                    <p class="text-xs text-gray-500">
+                        {{ $ironTask->completed_quantity }}/{{ $ironTask->assigned_quantity }} pcs
+                        · {{ $ironTask->assigned_at->format('d M') }}
+                    </p>
+                </div>
+                <div class="flex items-center gap-2">
+                    <span class="px-2 py-0.5 rounded-full text-xs font-medium {{ $ironStatus }}">
+                        {{ ucfirst(str_replace('_',' ',$ironTask->status)) }}
+                    </span>
+                    <a href="{{ route('production.tasks.show', $ironTask) }}"
+                       class="text-xs text-primary-600 hover:underline">View</a>
+                </div>
+            </div>
+            @endforeach
+        </div>
+    </div>
+    @endif
 
     {{-- Cancel Task --}}
     @if(!in_array($task->status, ['completed','cancelled']))
