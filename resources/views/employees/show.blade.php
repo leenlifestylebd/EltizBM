@@ -55,7 +55,7 @@
 
     {{-- Stats Cards --}}
     <div class="grid grid-cols-2 sm:grid-cols-4 gap-3 mb-4">
-        @if($employee->type === 'salary')
+        @if($employee->type === 'salary' && (float)$employee->salary > 0)
         <div class="bg-white dark:bg-slate-800 rounded-xl border border-indigo-100 dark:border-indigo-900/30 p-3 text-center">
             <p class="text-xl font-bold text-indigo-600 dark:text-indigo-400">৳{{ number_format($employee->salary, 0) }}</p>
             <p class="text-xs text-gray-500 dark:text-slate-400">Monthly Salary</p>
@@ -96,7 +96,7 @@
 
     {{-- Tabs --}}
     @php
-        $tabs = $employee->type === 'salary'
+        $tabs = $employee->type === 'salary' && (float)$employee->salary > 0
             ? [['key'=>'overview','label'=>'Overview'],['key'=>'payments','label'=>'Payments'],['key'=>'attendance','label'=>'Attendance']]
             : [['key'=>'overview','label'=>'Overview'],['key'=>'production','label'=>'Production'],['key'=>'attendance','label'=>'Attendance']];
     @endphp
@@ -112,7 +112,7 @@
 
     {{-- Tab: Overview --}}
     <div x-show="tab === 'overview'">
-        @if($employee->type === 'salary')
+        @if($employee->type === 'salary' && (float)$employee->salary > 0)
         {{-- Salary employee overview --}}
         <div class="bg-white dark:bg-slate-800 rounded-xl border border-gray-100 dark:border-slate-700 p-4 mb-4">
             <h3 class="text-sm font-semibold text-gray-900 dark:text-white mb-3">This Month Summary</h3>
@@ -212,7 +212,7 @@
     </div>
 
     {{-- Tab: Payments (salary employees only) --}}
-    @if($employee->type === 'salary')
+    @if($employee->type === 'salary' && (float)$employee->salary > 0)
     <div x-show="tab === 'payments'" x-cloak>
         <div class="bg-white dark:bg-slate-800 rounded-xl border border-gray-100 dark:border-slate-700 overflow-hidden">
             <div class="px-4 py-3 border-b border-gray-50 dark:border-slate-700 flex items-center justify-between">
