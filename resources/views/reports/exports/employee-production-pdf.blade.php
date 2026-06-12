@@ -1,4 +1,4 @@
-﻿@php
+@php
     $pc   = isset($biz) ? $biz->themeColor('600') : '#2563eb';
     $p50  = isset($biz) ? $biz->themeColor('50')  : '#eff6ff';
     $p100 = isset($biz) ? $biz->themeColor('100') : '#dbeafe';
@@ -40,45 +40,74 @@
     </div>
   </div>
 
-  {{-- Per-employee breakdown --}}
+  {{-- Per-employee entries --}}
   @foreach($summaryByEmployee as $summary)
   @php $emp = $summary['employee']; @endphp
   <div style="margin-bottom: 20px;">
-    {{-- Employee name bar --}}
-    <div style="background:{{ $p800 }}; color:#fff; padding:8px 12px; border-radius:4px 4px 0 0; margin-bottom:0;">
-      <span style="font-size:12px; font-weight:700;">{{ $emp?->name ?? 'Unknown Employee' }}</span>
-      <span style="font-size:10px; margin-left:12px; opacity:0.8;">{{ $emp?->designation ?? '' }}</span>
-      <span style="float:right; font-size:12px; font-weight:700;">&#2547;{{ number_format($summary['total_amount']) }} &nbsp;|&nbsp; {{ number_format($summary['total_qty']) }} pcs</span>
-    </div>
-    <table style="border-radius: 0 0 4px 4px; overflow:hidden;">
+
+    {{-- Employee header bar --}}
+    <table style="margin-bottom:0; border-radius:4px 4px 0 0; overflow:hidden;">
       <thead>
         <tr>
-          <th>Product</th>
-          <th class="center">Color</th>
-          <th class="center">Size</th>
-          <th class="center">Quantity</th>
-          <th class="center">Entries</th>
-          <th class="right">Earnings (&#2547;)</th>
+          <th style="text-align:left; font-size:12px; background:{{ $p800 }};">
+            {{ $emp?->name ?? 'Unknown Employee' }}
+            @if($emp?->designation)
+              <span style="font-weight:400; opacity:0.8; font-size:10px; margin-left:8px;">{{ $emp->designation }}</span>
+            @endif
+          </th>
+          <th class="center" style="background:{{ $p800 }}; white-space:nowrap; font-size:10px; font-weight:400; opacity:0.9;">
+            {{ number_format($summary['total_qty']) }} pcs &nbsp;&bull;&nbsp; {{ $summary['entry_count'] }} entries
+          </th>
+          <th class="right" style="background:{{ $p800 }}; white-space:nowrap; font-size:12px;">
+            &#2547;{{ number_format($summary['total_amount']) }}
+          </th>
+        </tr>
+      </thead>
+    </table>
+
+    {{-- All entries table --}}
+    <table style="margin-top:0; border-radius:0 0 4px 4px; overflow:hidden;">
+      <thead>
+        <tr style="background:#475569;">
+          <th style="background:#475569; width:15%;">Date</th>
+          <th style="background:#475569; width:42%;">Product</th>
+          <th class="center" style="background:#475569; width:13%;">Color</th>
+          <th class="center" style="background:#475569; width:10%;">Size</th>
+          <th class="center" style="background:#475569; width:10%;">Qty</th>
+          <th class="right" style="background:#475569; width:10%;">Amount (&#2547;)</th>
         </tr>
       </thead>
       <tbody>
-        @foreach($summary['products'] as $prod)
+        @foreach($summary['entries'] as $entry)
+        @php
+            $entryQty    = (int)   ($entry->quantity ?? 0);
+            $entryAmount = (float) ($entry->amount   ?? 0);
+            $productName = $entry->productionRate?->product_name ?? 'Manual Entry';
+            $entryColor  = $entry->productionRate?->color ?? '—';
+            $entrySize   = $entry->productionRate?->size  ?? '—';
+        @endphp
         <tr>
-          <td class="bold">{{ $prod['product_name'] }}</td>
-          <td class="center">{{ $prod['color'] }}</td>
-          <td class="center">{{ $prod['size'] }}</td>
-          <td class="center bold">{{ number_format($prod['quantity']) }}</td>
-          <td class="center">{{ $prod['entry_count'] }}</td>
-          <td class="right bold" style="color:{{ $pc }};">{{ number_format($prod['amount']) }}</td>
+          <td style="white-space:nowrap;">
+            {{ $entry->entry_date ? $entry->entry_date->format('d M Y') : '—' }}
+          </td>
+          <td>
+            <div style="font-weight:600; font-size:10px;">{{ $productName }}</div>
+            @if($entry->notes)
+            <div style="font-size:9px; color:#64748b; margin-top:1px;">{{ $entry->notes }}</div>
+            @endif
+          </td>
+          <td class="center">{{ $entryColor }}</td>
+          <td class="center">{{ $entrySize }}</td>
+          <td class="center bold">{{ number_format($entryQty) }}</td>
+          <td class="right bold" style="color:{{ $pc }};">{{ number_format($entryAmount) }}</td>
         </tr>
         @endforeach
       </tbody>
       <tfoot>
         <tr>
-          <td colspan="3">Total</td>
-          <td class="center">{{ number_format($summary['total_qty']) }}</td>
-          <td class="center">{{ $summary['products']->sum('entry_count') }}</td>
-          <td class="right">{{ number_format($summary['total_amount']) }}</td>
+          <td colspan="4" style="font-weight:700;">Total</td>
+          <td class="center" style="font-weight:700;">{{ number_format($summary['total_qty']) }}</td>
+          <td class="right" style="font-weight:700;">&#2547;{{ number_format($summary['total_amount']) }}</td>
         </tr>
       </tfoot>
     </table>
@@ -86,17 +115,16 @@
   @endforeach
 
   {{-- Grand total --}}
-  <div style="background:#1e293b; color:#fff; padding:12px 16px; border-radius:6px; display:flex; justify-content:space-between; align-items:center; margin-top:8px;">
-    <div>
-      <div style="font-size:12px; font-weight:700;">Grand Total — All Employees</div>
-      <div style="font-size:10px; opacity:0.7; margin-top:2px;">{{ $summaryByEmployee->count() }} employees · {{ number_format($totalQty) }} pieces</div>
-    </div>
-    <div style="font-size:18px; font-weight:700;">&#2547;{{ number_format($totalAmount) }}</div>
-  </div>
+  <table style="margin-top:8px;">
+    <tfoot>
+      <tr>
+        <td style="font-size:12px;">Grand Total &mdash; All Employees</td>
+        <td class="center">{{ $summaryByEmployee->count() }} employees</td>
+        <td class="center">{{ number_format($totalQty) }} pcs</td>
+        <td class="right" style="font-size:14px;">&#2547;{{ number_format($totalAmount) }}</td>
+      </tr>
+    </tfoot>
+  </table>
 
-  {{-- Footer --}}
-  <div class="footer">
-    Employee Production Report &bull; {{ \Carbon\Carbon::parse($from)->format('d M Y') }} to {{ \Carbon\Carbon::parse($to)->format('d M Y') }}
-  </div>
 </div>
 @endsection
