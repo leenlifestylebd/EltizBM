@@ -335,21 +335,6 @@ class ReportExportController extends Controller
         ini_set('memory_limit', '256M');
         set_time_limit(120);
 
-        try {
-            return $this->doEmployeeProductionExport($request, $format);
-        } catch (\Throwable $e) {
-            \Log::error('Employee production export failed: '.$e->getMessage(), [
-                'file' => $e->getFile(), 'line' => $e->getLine(),
-            ]);
-            return response(
-                "Export Error: ".$e->getMessage()."\n\nFile: ".$e->getFile()." line ".$e->getLine()."\n\nTrace:\n".$e->getTraceAsString(),
-                200
-            )->header('Content-Type', 'text/plain; charset=utf-8');
-        }
-    }
-
-    private function doEmployeeProductionExport(Request $request, string $format)
-    {
         $bizId = auth()->user()->business_id;
         $from  = $request->from     ?? now()->startOfMonth()->format('Y-m-d');
         $to    = $request->to       ?? now()->endOfMonth()->format('Y-m-d');
