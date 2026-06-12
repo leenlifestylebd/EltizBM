@@ -729,14 +729,14 @@ class ProductionController extends Controller
             $e->productionRate?->product_name ?? 'Manual',
             $e->productionRate?->color ?? '',
             $e->productionRate?->size  ?? '',
-        ])))->map(fn($g) => [
+        ])))->map(fn($g) => (object) [
             'product_name' => $g->first()->productionRate?->product_name ?? 'Manual Entry',
             'color'        => $g->first()->productionRate?->color ?? '—',
             'size'         => $g->first()->productionRate?->size  ?? '—',
-            'rate'         => $g->first()->productionRate?->rate  ?? 0,
-            'qty'          => $g->sum('quantity'),
-            'amount'       => $g->sum('amount'),
-        ])->sortByDesc('amount')->values();
+            'avg_rate'     => $g->first()->productionRate?->rate  ?? 0,
+            'total_qty'    => $g->sum('quantity'),
+            'total_amount' => $g->sum('amount'),
+        ])->sortByDesc('total_amount')->values();
 
         // Month list for picker
         $months = collect();
@@ -787,14 +787,14 @@ class ProductionController extends Controller
                 $e->productionRate?->product_name ?? 'Manual',
                 $e->productionRate?->color ?? '',
                 $e->productionRate?->size  ?? '',
-            ])))->map(fn($g) => [
+            ])))->map(fn($g) => (object) [
                 'product_name' => $g->first()->productionRate?->product_name ?? 'Manual Entry',
                 'color'        => $g->first()->productionRate?->color ?? '—',
                 'size'         => $g->first()->productionRate?->size  ?? '—',
-                'rate'         => $g->first()->productionRate?->rate  ?? 0,
-                'qty'          => $g->sum('quantity'),
-                'amount'       => $g->sum('amount'),
-            ])->values();
+                'avg_rate'     => $g->first()->productionRate?->rate  ?? 0,
+                'total_qty'    => $g->sum('quantity'),
+                'total_amount' => $g->sum('amount'),
+            ])->sortByDesc('total_amount')->values();
 
             $pdf = Pdf::loadView('production.worker-ledger-pdf', compact(
                 'employee', 'entries', 'payments', 'productBreakdown',
