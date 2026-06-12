@@ -442,9 +442,10 @@ class ProductionController extends Controller
             $advance  = $advances[$emp->id] ?? 0;
             $totalAmt = $earning['total_amount'] ?? 0;
 
-            if ($emp->type === 'salary') {
+            if ($emp->type === 'salary' && (float)$emp->salary > 0) {
                 $paid    = (float)($salaryPaid[$emp->id] ?? 0);
                 $present = (int)($attendanceCounts[$emp->id] ?? 0);
+                // Task stats still shown for salary employees (they may have tasks too)
                 return [
                     'employee'       => $emp,
                     'type'           => 'salary',
@@ -452,12 +453,17 @@ class ProductionController extends Controller
                     'present_days'   => $present,
                     'total_paid'     => $paid,
                     'net_payable'    => (float)$emp->salary - $paid,
-                    // production fields zeroed so totals aren't skewed
-                    'total_tasks'    => 0, 'assigned' => 0, 'in_progress' => 0,
-                    'partial'        => 0, 'completed' => 0,
-                    'total_assigned' => 0, 'total_done' => 0, 'total_pending' => 0,
+                    'total_tasks'    => $tasks->count(),
+                    'assigned'       => $tasks->where('status', 'assigned')->count(),
+                    'in_progress'    => $tasks->where('status', 'in_progress')->count(),
+                    'partial'        => $tasks->where('status', 'partial')->count(),
+                    'completed'      => $tasks->where('status', 'completed')->count(),
+                    'total_assigned' => $tasks->sum('assigned_quantity'),
+                    'total_done'     => $tasks->sum('completed_quantity'),
+                    'total_pending'  => $tasks->sum('assigned_quantity') - $tasks->sum('completed_quantity'),
                     'total_qty'      => 0, 'total_earning' => 0,
-                    'advance'        => 0, 'completion_pct' => 0,
+                    'advance'        => 0, 'completion_pct' => $tasks->sum('assigned_quantity') > 0
+                        ? round(($tasks->sum('completed_quantity') / $tasks->sum('assigned_quantity')) * 100) : 0,
                 ];
             }
 
@@ -553,7 +559,9 @@ class ProductionController extends Controller
         $to   = $request->to   ?? today()->toDateString();
 
         // Salary employees get a separate professional dashboard
-        if ($employee->type === 'salary') {
+        // Guard: only redirect if salary > 0, so old employees with default type='salary'
+        // but salary=0 (production workers not yet updated) fall through to production view.
+        if ($employee->type === 'salary' && (float)$employee->salary > 0) {
             $monthStart = Carbon::parse($from)->startOfMonth()->toDateString();
             $monthEnd   = Carbon::parse($from)->endOfMonth()->toDateString();
 
@@ -814,7 +822,7 @@ class ProductionController extends Controller
         // This month totals
         $monthPaid = $payments->sum('amount');
 
-        if ($employee->type === 'salary') {
+        if ($employee->type === 'salary' && (float)$employee->salary > 0) {
             // For salary employees: earned = fixed monthly salary, not production entries.
             $monthEarned = (float)$employee->salary;
 
