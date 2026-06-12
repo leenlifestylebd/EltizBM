@@ -547,13 +547,23 @@ class ProductionController extends Controller
             ->orderByDesc('entry_date')
             ->get();
 
-        $productReport = ProductionEntry::where('production_entries.employee_id', $employee->id)
-            ->whereBetween('production_entries.entry_date', [$from, $to])
-            ->leftJoin('production_rates', 'production_entries.production_rate_id', '=', 'production_rates.id')
-            ->selectRaw('COALESCE(production_rates.product_name, production_entries.notes, "Manual Entry") as product_name, SUM(production_entries.quantity) as total_qty, SUM(production_entries.amount) as total_amount')
-            ->groupBy(\DB::raw('COALESCE(production_rates.product_name, production_entries.notes, "Manual Entry")'))
-            ->orderByDesc('total_amount')
-            ->get();
+        $productReport = ProductionEntry::where('business_id', $bizId)
+            ->where('employee_id', $employee->id)
+            ->whereBetween('entry_date', [$from, $to])
+            ->with('productionRate')
+            ->get()
+            ->groupBy(fn($e) => implode('|', array_filter([
+                $e->productionRate?->product_name ?? 'Manual Entry',
+                $e->productionRate?->color ?? '',
+                $e->productionRate?->size  ?? '',
+            ])))
+            ->map(fn($g) => (object) [
+                'product_name' => $g->first()->productionRate?->product_name ?? 'Manual Entry',
+                'total_qty'    => $g->sum('quantity'),
+                'total_amount' => $g->sum('amount'),
+            ])
+            ->sortByDesc('total_amount')
+            ->values();
 
         $myTasks = ProductionTask::where('business_id', $bizId)
             ->where('employee_id', $employee->id)

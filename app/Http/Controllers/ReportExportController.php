@@ -332,6 +332,8 @@ class ReportExportController extends Controller
     // =============================================
     private function exportEmployeeProduction(Request $request, string $format)
     {
+        ini_set('memory_limit', '256M');
+
         $bizId = auth()->user()->business_id;
         $from  = $request->from     ?? now()->startOfMonth()->format('Y-m-d');
         $to    = $request->to       ?? now()->endOfMonth()->format('Y-m-d');
@@ -349,25 +351,28 @@ class ReportExportController extends Controller
         $rows = [
             ['Employee Production Report'],
             ['Period', Carbon::parse($from)->format('d M Y').' - '.Carbon::parse($to)->format('d M Y')],
-            ['Total Pieces', $d['totalQty'], 'Total Wages', 'BDT '.number_format($d['totalAmount'], 2)],
+            ['Total Pieces', (int) $d['totalQty'], 'Total Wages', 'BDT '.number_format((float) $d['totalAmount'], 2)],
             [],
             ['Employee', 'Date', 'Product', 'Color', 'Size', 'Quantity', 'Rate (BDT)', 'Amount (BDT)', 'Notes'],
         ];
         foreach ($d['entries'] as $entry) {
+            $qty    = (int)   ($entry->quantity ?? 0);
+            $amount = (float) ($entry->amount   ?? 0);
+            $date   = $entry->entry_date ? $entry->entry_date->format('d/m/Y') : '—';
             $rows[] = [
                 $entry->employee?->name ?? '—',
-                $entry->entry_date->format('d/m/Y'),
+                $date,
                 $entry->productionRate?->product_name ?? 'Manual',
                 $entry->productionRate?->color ?? '—',
                 $entry->productionRate?->size  ?? '—',
-                $entry->quantity,
-                $entry->quantity > 0 ? number_format($entry->amount / $entry->quantity, 2) : '0.00',
-                number_format($entry->amount, 2),
+                $qty,
+                $qty > 0 ? number_format($amount / $qty, 2) : '0.00',
+                number_format($amount, 2),
                 $entry->notes ?? '',
             ];
         }
         $rows[] = [];
-        $rows[] = ['', '', '', '', 'TOTAL', $d['totalQty'], '', number_format($d['totalAmount'], 2)];
+        $rows[] = ['', '', '', '', 'TOTAL', (int) $d['totalQty'], '', number_format((float) $d['totalAmount'], 2)];
         return $this->csvResponse($rows, "employee-production_{$from}_{$to}.csv");
     }
 
