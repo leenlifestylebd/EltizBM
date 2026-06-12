@@ -559,6 +559,7 @@ class ProductionController extends Controller
             ->where('employee_id', $employee->id)
             ->whereNotIn('status', ['cancelled'])
             ->withCount('submissions')
+            ->with('productionRate')
             ->orderByDesc('assigned_at')
             ->get();
 
