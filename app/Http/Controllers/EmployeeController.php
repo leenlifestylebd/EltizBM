@@ -94,8 +94,6 @@ class EmployeeController extends Controller
             'salary' => 'nullable|numeric|min:0',
         ]);
 
-        $isProduction = ($request->type ?? 'salary') === 'production';
-
         Employee::create([
             'business_id'  => auth()->user()->business_id,
             'user_id'      => $request->user_id ?: null,
@@ -104,79 +102,12 @@ class EmployeeController extends Controller
             'email'        => $request->email,
             'designation'  => $request->designation,
             'department'   => $request->department,
-            'type'         => $request->type ?? 'salary',
-            'salary'       => $isProduction ? 0 : ($request->salary ?? 0),
+            'salary'       => $request->salary ?? 0,
             'joining_date' => $request->joining_date,
             'status'       => $request->status ?? 'active',
         ]);
 
         return redirect()->route('employees.index')->with('success', 'Employee added!');
-    }
-
-    // =============================================
-    // ONE-CLICK LOGIN ACCESS (create + link a worker user, set a PIN)
-    // =============================================
-    public function enableLogin(Request $request, Employee $employee)
-    {
-        $this->authorize($employee);
-
-        $request->validate([
-            'pin' => 'required|digits_between:4,6',
-        ]);
-
-        $bizId = auth()->user()->business_id;
-
-        // Reuse the already-linked user, or one matching the employee's phone, else create.
-        $user = $employee->user
-            ?? ($employee->phone
-                ? User::where('business_id', $bizId)->where('phone', $employee->phone)->first()
-                : null);
-
-        if (!$user) {
-            // A login record is required to have an email; workers never type it — they
-            // sign in with phone + PIN — so we synthesise a unique placeholder.
-            $slug  = $employee->business->slug ?? ('biz' . $bizId);
-            $email = 'emp' . $employee->id . '.' . ($employee->phone ?: \Illuminate\Support\Str::random(5)) . '@' . $slug . '.worker';
-
-            $user = User::create([
-                'business_id' => $bizId,
-                'name'        => $employee->name,
-                'email'       => strtolower($email),
-                'phone'       => $employee->phone,
-                'role'        => 'employee',
-                'password'    => \Illuminate\Support\Facades\Hash::make($request->pin),
-                'is_active'   => true,
-                'is_approved' => 1,
-                'approved_by' => auth()->id(),
-                'approved_at' => now(),
-            ]);
-        } else {
-            $user->update([
-                'role'      => 'employee',
-                'phone'     => $employee->phone ?: $user->phone,
-                'password'  => \Illuminate\Support\Facades\Hash::make($request->pin),
-                'is_active' => true,
-                'is_approved' => 1,
-            ]);
-        }
-
-        $employee->update(['user_id' => $user->id]);
-
-        return back()->with('success', $employee->name . ' can now log in with phone ' . ($employee->phone ?: '—') . ' and the PIN you set.');
-    }
-
-    public function resetPin(Request $request, Employee $employee)
-    {
-        $this->authorize($employee);
-        $request->validate(['pin' => 'required|digits_between:4,6']);
-
-        abort_if(!$employee->user_id, 422, 'This employee has no login yet.');
-
-        User::where('id', $employee->user_id)
-            ->where('business_id', auth()->user()->business_id)
-            ->update(['password' => \Illuminate\Support\Facades\Hash::make($request->pin), 'is_active' => true]);
-
-        return back()->with('success', 'PIN updated for ' . $employee->name . '.');
     }
 
     public function show(Employee $employee)
@@ -198,7 +129,19 @@ class EmployeeController extends Controller
 
         $monthAttendance = Attendance::where('employee_id', $employee->id)
             ->whereBetween('attendance_date', [$monthStart, $monthEnd])
-            ->where('status', 'present')->count();
+            ->whereIn('status', ['present', 'late'])->count();
+
+        // Salary-employee extras: total paid this month and recent payments
+        $monthTotalPaid   = EmployeePayment::where('employee_id', $employee->id)
+            ->whereBetween('payment_date', [$monthStart, $monthEnd])
+            ->whereIn('type', ['salary', 'advance', 'bonus'])->sum('amount');
+        $monthDeductions  = EmployeePayment::where('employee_id', $employee->id)
+            ->whereBetween('payment_date', [$monthStart, $monthEnd])
+            ->where('type', 'deduction')->sum('amount');
+        $monthNetPayable  = (float)$employee->salary - (float)$monthTotalPaid + (float)$monthDeductions;
+
+        $recentPayments   = EmployeePayment::where('employee_id', $employee->id)
+            ->orderByDesc('payment_date')->limit(5)->get();
 
         $recentEntries = ProductionEntry::where('employee_id', $employee->id)
             ->with('productionRate')
@@ -241,7 +184,8 @@ class EmployeeController extends Controller
 
         return view('employees.show', compact(
             'employee', 'monthProduction', 'monthEarning', 'monthAdvance',
-            'monthAttendance', 'recentEntries', 'productionEntries',
+            'monthAttendance', 'monthTotalPaid', 'monthDeductions', 'monthNetPayable',
+            'recentPayments', 'recentEntries', 'productionEntries',
             'recentLogs', 'productionLogs', 'avgQuality', 'products',
             'attendanceRecords', 'last7Days', 'calendarStart', 'daysInMonth', 'attendanceMap'
         ));
@@ -260,8 +204,6 @@ class EmployeeController extends Controller
         $this->authorize($employee);
         $request->validate(['name' => 'required|string|max:100']);
 
-        $isProduction = ($request->type ?? $employee->type) === 'production';
-
         $employee->update([
             'user_id'      => $request->user_id ?: null,
             'name'         => $request->name,
@@ -269,42 +211,12 @@ class EmployeeController extends Controller
             'email'        => $request->email,
             'designation'  => $request->designation,
             'department'   => $request->department,
-            'type'         => $request->type ?? $employee->type,
-            'salary'       => $isProduction ? 0 : ($request->salary ?? 0),
+            'salary'       => $request->salary ?? 0,
             'joining_date' => $request->joining_date,
             'status'       => $request->status,
         ]);
 
         return redirect()->route('employees.show', $employee)->with('success', 'Employee updated!');
-    }
-
-    public function destroy(Employee $employee)
-    {
-        $this->authorize($employee);
-
-        // Block if any active tasks exist (not completed/cancelled)
-        $activeTasks = \App\Models\ProductionTask::where('employee_id', $employee->id)
-            ->whereNotIn('status', ['completed', 'cancelled'])
-            ->count();
-
-        if ($activeTasks > 0) {
-            return back()->with('error', "{$employee->name}-এর {$activeTasks}টি active task আছে। Delete করার আগে task গুলো complete বা cancel করুন।");
-        }
-
-        // Deactivate linked user account (do not delete — they may have other data)
-        if ($employee->user_id) {
-            User::where('id', $employee->user_id)
-                ->where('business_id', auth()->user()->business_id)
-                ->update(['is_active' => false]);
-        }
-
-        $name = $employee->name;
-        $employee->delete(); // SoftDelete — all history preserved
-
-        $this->logActivity('deleted', $employee, ['name' => $name], []);
-
-        return redirect()->route('employees.index')
-            ->with('success', "{$name} deleted. All payroll and production history is preserved.");
     }
 
     public function production(Employee $employee)

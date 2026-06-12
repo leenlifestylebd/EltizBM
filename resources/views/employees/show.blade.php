@@ -55,6 +55,26 @@
 
     {{-- Stats Cards --}}
     <div class="grid grid-cols-2 sm:grid-cols-4 gap-3 mb-4">
+        @if($employee->type === 'salary')
+        <div class="bg-white dark:bg-slate-800 rounded-xl border border-indigo-100 dark:border-indigo-900/30 p-3 text-center">
+            <p class="text-xl font-bold text-indigo-600 dark:text-indigo-400">৳{{ number_format($employee->salary, 0) }}</p>
+            <p class="text-xs text-gray-500 dark:text-slate-400">Monthly Salary</p>
+        </div>
+        <div class="bg-white dark:bg-slate-800 rounded-xl border border-green-100 dark:border-green-900/30 p-3 text-center">
+            <p class="text-xl font-bold text-green-600 dark:text-green-400">{{ $monthAttendance }}</p>
+            <p class="text-xs text-gray-500 dark:text-slate-400">Days Present</p>
+        </div>
+        <div class="bg-white dark:bg-slate-800 rounded-xl border border-blue-100 dark:border-blue-900/30 p-3 text-center">
+            <p class="text-xl font-bold text-blue-600 dark:text-blue-400">৳{{ number_format($monthTotalPaid, 0) }}</p>
+            <p class="text-xs text-gray-500 dark:text-slate-400">Paid This Month</p>
+        </div>
+        <div class="bg-white dark:bg-slate-800 rounded-xl border border-orange-100 dark:border-orange-900/30 p-3 text-center">
+            <p class="text-xl font-bold {{ $monthNetPayable > 0 ? 'text-orange-600 dark:text-orange-400' : 'text-green-600 dark:text-green-400' }}">
+                ৳{{ number_format(abs($monthNetPayable), 0) }}
+            </p>
+            <p class="text-xs text-gray-500 dark:text-slate-400">{{ $monthNetPayable < 0 ? 'Overpaid' : 'Net Payable' }}</p>
+        </div>
+        @else
         <div class="bg-white dark:bg-slate-800 rounded-xl border border-gray-100 dark:border-slate-700 p-3 text-center">
             <p class="text-xl font-bold text-gray-900 dark:text-white">{{ $employee->todayProduction() }}</p>
             <p class="text-xs text-gray-500 dark:text-slate-400">Today</p>
@@ -71,26 +91,81 @@
             <p class="text-xl font-bold text-purple-600 dark:text-purple-400">{{ $avgQuality ?? 0 }}%</p>
             <p class="text-xs text-gray-500 dark:text-slate-400">Avg Quality</p>
         </div>
+        @endif
     </div>
 
     {{-- Tabs --}}
     <div class="flex gap-1 mb-4 bg-gray-100 dark:bg-slate-700 p-1 rounded-xl">
-        @foreach([
-            ['key'=>'overview',    'label'=>'Overview'],
-            ['key'=>'production',  'label'=>'Production'],
-            ['key'=>'attendance',  'label'=>'Attendance'],
-        ] as $t)
-        <button @click="tab = '{{ $t['key'] }}'"
-                class="flex-1 py-2 text-xs font-medium rounded-lg transition-colors"
-                :class="tab === '{{ $t['key'] }}' ? 'bg-white dark:bg-slate-800 text-gray-900 dark:text-white shadow-sm' : 'text-gray-500 dark:text-slate-400 hover:text-gray-700 dark:hover:text-slate-300'">
-            {{ $t['label'] }}
-        </button>
-        @endforeach
+        @if($employee->type === 'salary')
+            @foreach([['key'=>'overview','label'=>'Overview'],['key'=>'payments','label'=>'Payments'],['key'=>'attendance','label'=>'Attendance']] as $t)
+        @else
+            @foreach([['key'=>'overview','label'=>'Overview'],['key'=>'production','label'=>'Production'],['key'=>'attendance','label'=>'Attendance']] as $t)
+        @endif
+            <button @click="tab = '{{ $t['key'] }}'"
+                    class="flex-1 py-2 text-xs font-medium rounded-lg transition-colors"
+                    :class="tab === '{{ $t['key'] }}' ? 'bg-white dark:bg-slate-800 text-gray-900 dark:text-white shadow-sm' : 'text-gray-500 dark:text-slate-400 hover:text-gray-700 dark:hover:text-slate-300'">
+                {{ $t['label'] }}
+            </button>
+            @endforeach
     </div>
 
     {{-- Tab: Overview --}}
     <div x-show="tab === 'overview'">
-        {{-- Production Chart (last 7 days) --}}
+        @if($employee->type === 'salary')
+        {{-- Salary employee overview --}}
+        <div class="bg-white dark:bg-slate-800 rounded-xl border border-gray-100 dark:border-slate-700 p-4 mb-4">
+            <h3 class="text-sm font-semibold text-gray-900 dark:text-white mb-3">This Month Summary</h3>
+            <div class="space-y-2">
+                <div class="flex justify-between text-sm">
+                    <span class="text-gray-500 dark:text-slate-400">Monthly Salary</span>
+                    <span class="font-semibold text-gray-900 dark:text-white">৳{{ number_format($employee->salary, 0) }}</span>
+                </div>
+                <div class="flex justify-between text-sm">
+                    <span class="text-gray-500 dark:text-slate-400">Paid This Month</span>
+                    <span class="font-semibold text-green-600 dark:text-green-400">- ৳{{ number_format($monthTotalPaid, 0) }}</span>
+                </div>
+                @if($monthDeductions > 0)
+                <div class="flex justify-between text-sm">
+                    <span class="text-gray-500 dark:text-slate-400">Deductions</span>
+                    <span class="font-semibold text-red-500">+ ৳{{ number_format($monthDeductions, 0) }}</span>
+                </div>
+                @endif
+                <div class="border-t border-gray-100 dark:border-slate-700 pt-2 flex justify-between text-sm font-bold">
+                    <span class="text-gray-900 dark:text-white">Net Payable</span>
+                    <span class="{{ $monthNetPayable > 0 ? 'text-orange-600' : 'text-green-600' }}">
+                        ৳{{ number_format(abs($monthNetPayable), 0) }}
+                        @if($monthNetPayable < 0) <span class="text-xs font-normal">(Overpaid)</span> @endif
+                    </span>
+                </div>
+            </div>
+        </div>
+
+        {{-- Recent Payments --}}
+        <div class="bg-white dark:bg-slate-800 rounded-xl border border-gray-100 dark:border-slate-700 overflow-hidden">
+            <div class="px-4 py-3 border-b border-gray-50 dark:border-slate-700">
+                <h3 class="text-sm font-semibold text-gray-900 dark:text-white">Recent Payments</h3>
+            </div>
+            @forelse($recentPayments as $pay)
+            @php $typeColors=['salary'=>'bg-indigo-100 text-indigo-700','advance'=>'bg-orange-100 text-orange-700','bonus'=>'bg-green-100 text-green-700','deduction'=>'bg-red-100 text-red-700']; @endphp
+            <div class="flex items-center gap-3 px-4 py-3 border-b border-gray-50 dark:border-slate-700 last:border-0">
+                <div class="flex-1">
+                    <div class="flex items-center gap-2">
+                        <span class="px-2 py-0.5 rounded-full text-xs font-medium {{ $typeColors[$pay->type] ?? 'bg-gray-100 text-gray-600' }}">{{ ucfirst($pay->type) }}</span>
+                        <span class="text-xs text-gray-400 dark:text-slate-500">{{ $pay->payment_date->format('d M Y') }}</span>
+                    </div>
+                    @if($pay->notes)<p class="text-xs text-gray-400 dark:text-slate-500 mt-0.5">{{ $pay->notes }}</p>@endif
+                </div>
+                <p class="text-sm font-bold {{ $pay->type === 'deduction' ? 'text-red-600' : 'text-gray-900 dark:text-white' }}">
+                    {{ $pay->type === 'deduction' ? '-' : '' }}৳{{ number_format($pay->amount, 0) }}
+                </p>
+            </div>
+            @empty
+            <div class="px-4 py-8 text-center text-sm text-gray-400 dark:text-slate-500">No payments recorded yet</div>
+            @endforelse
+        </div>
+
+        @else
+        {{-- Production employee overview --}}
         <div class="bg-white dark:bg-slate-800 rounded-xl border border-gray-100 dark:border-slate-700 p-4 mb-4">
             <h3 class="text-sm font-semibold text-gray-900 dark:text-white mb-4">Last 7 Days Production</h3>
             <div class="flex items-end gap-1 h-24">
@@ -105,7 +180,6 @@
             </div>
         </div>
 
-        {{-- Recent Production Logs --}}
         <div class="bg-white dark:bg-slate-800 rounded-xl border border-gray-100 dark:border-slate-700 overflow-hidden">
             <div class="px-4 py-3 border-b border-gray-50 dark:border-slate-700">
                 <h3 class="text-sm font-semibold text-gray-900 dark:text-white">Recent Production</h3>
@@ -125,9 +199,7 @@
                 <div class="text-right flex-shrink-0">
                     <p class="text-sm font-bold text-gray-900 dark:text-white">{{ $log->quantity }}</p>
                     @if($log->target_quantity > 0)
-                        <p class="text-xs {{ $log->quantity >= $log->target_quantity ? 'text-green-500' : 'text-yellow-500' }}">
-                            / {{ $log->target_quantity }}
-                        </p>
+                        <p class="text-xs {{ $log->quantity >= $log->target_quantity ? 'text-green-500' : 'text-yellow-500' }}">/ {{ $log->target_quantity }}</p>
                     @endif
                 </div>
             </div>
@@ -135,9 +207,57 @@
             <div class="px-4 py-8 text-center text-sm text-gray-400 dark:text-slate-500">No production logs yet</div>
             @endforelse
         </div>
+        @endif
     </div>
 
-    {{-- Tab: Production --}}
+    {{-- Tab: Payments (salary employees only) --}}
+    @if($employee->type === 'salary')
+    <div x-show="tab === 'payments'" x-cloak>
+        <div class="bg-white dark:bg-slate-800 rounded-xl border border-gray-100 dark:border-slate-700 overflow-hidden">
+            <div class="px-4 py-3 border-b border-gray-50 dark:border-slate-700 flex items-center justify-between">
+                <h3 class="text-sm font-semibold text-gray-900 dark:text-white">Payment History</h3>
+                <a href="{{ route('production.worker.ledger.detail', $employee) }}"
+                   class="text-xs text-primary-600 hover:underline">Full Ledger →</a>
+            </div>
+            @php
+                $allPayments = \App\Models\EmployeePayment::where('employee_id', $employee->id)
+                    ->orderByDesc('payment_date')->paginate(20);
+                $typeColors = ['salary'=>'bg-indigo-100 text-indigo-700 dark:bg-indigo-900/30 dark:text-indigo-400','advance'=>'bg-orange-100 text-orange-700','bonus'=>'bg-green-100 text-green-700','deduction'=>'bg-red-100 text-red-700'];
+            @endphp
+            @if($allPayments->count())
+            <table class="w-full text-sm">
+                <thead class="bg-gray-50 dark:bg-slate-700/50">
+                    <tr>
+                        <th class="text-left px-4 py-2.5 text-xs font-medium text-gray-500 dark:text-slate-400">Date</th>
+                        <th class="text-left px-4 py-2.5 text-xs font-medium text-gray-500 dark:text-slate-400">Type</th>
+                        <th class="text-right px-4 py-2.5 text-xs font-medium text-gray-500 dark:text-slate-400">Amount</th>
+                        <th class="text-left px-4 py-2.5 text-xs font-medium text-gray-500 dark:text-slate-400">Note</th>
+                    </tr>
+                </thead>
+                <tbody class="divide-y divide-gray-50 dark:divide-slate-700">
+                    @foreach($allPayments as $pay)
+                    <tr class="hover:bg-gray-50 dark:hover:bg-slate-700/30">
+                        <td class="px-4 py-2.5 text-xs text-gray-600 dark:text-slate-300 whitespace-nowrap">{{ $pay->payment_date->format('d M Y') }}</td>
+                        <td class="px-4 py-2.5"><span class="px-2 py-0.5 rounded-full text-xs font-medium {{ $typeColors[$pay->type] ?? 'bg-gray-100 text-gray-600' }}">{{ ucfirst($pay->type) }}</span></td>
+                        <td class="px-4 py-2.5 text-right font-semibold {{ $pay->type === 'deduction' ? 'text-red-600' : 'text-gray-900 dark:text-white' }}">
+                            {{ $pay->type === 'deduction' ? '-' : '' }}৳{{ number_format($pay->amount, 0) }}
+                        </td>
+                        <td class="px-4 py-2.5 text-xs text-gray-400 dark:text-slate-500 truncate max-w-[140px]">{{ $pay->notes ?? '—' }}</td>
+                    </tr>
+                    @endforeach
+                </tbody>
+            </table>
+            @if($allPayments->hasPages())
+            <div class="px-4 py-3 border-t border-gray-100 dark:border-slate-700">{{ $allPayments->links() }}</div>
+            @endif
+            @else
+            <div class="px-4 py-10 text-center text-sm text-gray-400 dark:text-slate-500">No payments recorded yet.</div>
+            @endif
+        </div>
+    </div>
+    @endif
+
+    {{-- Tab: Production (production employees only) --}}
     <div x-show="tab === 'production'" x-cloak>
         {{-- Log Form --}}
         <div class="bg-white dark:bg-slate-800 rounded-xl border border-gray-100 dark:border-slate-700 p-4 mb-4">
