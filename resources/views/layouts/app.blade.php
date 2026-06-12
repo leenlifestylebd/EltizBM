@@ -223,7 +223,7 @@
             <div x-show="open" x-cloak class="pl-9 space-y-0.5">
                 <a href="{{ route('accounts.income') }}" class="block px-3 py-2 text-xs text-gray-500 dark:text-slate-400 hover:text-primary-600 rounded-lg hover:bg-gray-50 dark:hover:bg-slate-700">Income</a>
                 <a href="{{ route('accounts.expenses') }}" class="block px-3 py-2 text-xs text-gray-500 dark:text-slate-400 hover:text-primary-600 rounded-lg hover:bg-gray-50 dark:hover:bg-slate-700">Expenses</a>
-                <a href="{{ route('accounts.salary') }}" class="block px-3 py-2 text-xs text-gray-500 dark:text-slate-400 hover:text-primary-600 rounded-lg hover:bg-gray-50 dark:hover:bg-slate-700">Salary</a>
+                <a href="{{ route('production.payroll') }}" class="block px-3 py-2 text-xs text-gray-500 dark:text-slate-400 hover:text-primary-600 rounded-lg hover:bg-gray-50 dark:hover:bg-slate-700">Salary (Payroll)</a>
                 <a href="{{ route('accounts.payment-transfer') }}" class="block px-3 py-2 text-xs text-gray-500 dark:text-slate-400 hover:text-primary-600 rounded-lg hover:bg-gray-50 dark:hover:bg-slate-700">Payment Transfer</a>
             </div>
         </div>
