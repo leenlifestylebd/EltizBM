@@ -5,6 +5,7 @@ namespace App\Http\Controllers;
 use Illuminate\Support\Facades\DB;
 use App\Http\Requests\StoreProductionEntryRequest;
 use App\Models\Employee;
+use App\Models\EmployeeNotification;
 use App\Models\PayrollPeriod;
 use App\Models\ProductionRate;
 use App\Models\ProductionEntry;
@@ -299,6 +300,14 @@ class ProductionController extends Controller
             ]);
         }
 
+        $typeLabels = ['advance' => 'অগ্রিম', 'salary' => 'বেতন', 'bonus' => 'বোনাস', 'deduction' => 'কর্তন'];
+        EmployeeNotification::notify(
+            $bizId, $employee->id, 'payment',
+            ($typeLabels[$request->type] ?? 'পেমেন্ট') . ' ৳' . number_format((float)$request->amount),
+            Carbon::parse($request->payment_date)->format('d M Y') . ' তারিখে ' . ($typeLabels[$request->type] ?? 'পেমেন্ট') . ' হিসেবে ৳' . number_format((float)$request->amount) . ' record হয়েছে',
+            route('production.worker.dashboard')
+        );
+
         return back()->with('success', 'Payment recorded!');
     }
 
@@ -558,6 +567,11 @@ class ProductionController extends Controller
         $from = $request->from ?? today()->startOfMonth()->toDateString();
         $to   = $request->to   ?? today()->toDateString();
 
+        // In-app notifications (bell) — latest 15 + unread badge count
+        $notifications = EmployeeNotification::where('employee_id', $employee->id)
+            ->orderByDesc('created_at')->limit(15)->get();
+        $notifUnread = $notifications->whereNull('read_at')->count();
+
         // Salary employees get a separate professional dashboard
         // Guard: only redirect if salary > 0, so old employees with default type='salary'
         // but salary=0 (production workers not yet updated) fall through to production view.
@@ -627,7 +641,8 @@ class ProductionController extends Controller
                 'attendance', 'daysInMonth', 'daysPresent', 'daysAbsent',
                 'daysHalfDay', 'daysHoliday', 'daysNotMarked',
                 'payments', 'totalPaid', 'totalDeducted', 'netPayable', 'openingBalance',
-                'calendarMap', 'calendarStart', 'allMonths'
+                'calendarMap', 'calendarStart', 'allMonths',
+                'notifications', 'notifUnread'
             ));
         }
 
@@ -700,8 +715,31 @@ class ProductionController extends Controller
             'employee', 'allEmployees', 'entries', 'payments', 'rates',
             'totalEarning', 'totalQty', 'totalAdvance', 'netPayable', 'openingBalance',
             'from', 'to', 'dailyReport', 'productReport',
-            'myTasks', 'taskStats'
+            'myTasks', 'taskStats',
+            'notifications', 'notifUnread'
         ));
+    }
+
+    public function markNotificationsRead(Request $request)
+    {
+        $user = auth()->user();
+
+        // Workers mark their own; admins viewing a worker dashboard mark that worker's
+        if ($user->role === 'employee') {
+            $employee = Employee::where('business_id', $user->business_id)
+                ->where('user_id', $user->id)->first();
+        } else {
+            $employee = Employee::where('business_id', $user->business_id)
+                ->find($request->employee_id);
+        }
+
+        if ($employee) {
+            EmployeeNotification::where('employee_id', $employee->id)
+                ->whereNull('read_at')
+                ->update(['read_at' => now()]);
+        }
+
+        return response()->json(['ok' => true]);
     }
 
     // =============================================

@@ -3,6 +3,7 @@
 namespace App\Http\Controllers;
 
 use App\Models\Employee;
+use App\Models\EmployeeNotification;
 use App\Models\ProductionEntry;
 use App\Models\ProductionRate;
 use App\Models\ProductionTask;
@@ -111,6 +112,19 @@ class ProductionTaskController extends Controller
             'assigned_at'        => now(),
         ]);
 
+        $details = $request->product_name
+            . ($request->color ? ', ' . $request->color : '')
+            . ($request->size ? ', সাইজ ' . $request->size : '')
+            . ' — ' . $request->assigned_quantity . ' পিস'
+            . ($request->deadline ? ' (ডেডলাইন: ' . \Carbon\Carbon::parse($request->deadline)->format('d M') . ')' : '');
+
+        EmployeeNotification::notify(
+            $bizId, $employee->id, 'task',
+            'নতুন কাজ পেয়েছেন',
+            $details,
+            route('production.worker.dashboard')
+        );
+
         return redirect()->route('production.tasks.index')
             ->with('success', 'Task assigned to ' . $employee->name . '!');
     }
@@ -200,6 +214,14 @@ class ProductionTaskController extends Controller
         abort_if($task->business_id !== auth()->user()->business_id, 403);
         $task->update(['status' => 'cancelled']);
         $task->delete();
+
+        EmployeeNotification::notify(
+            $task->business_id, $task->employee_id, 'task',
+            'কাজ বাতিল হয়েছে',
+            $task->product_name . ' — ' . $task->assigned_quantity . ' পিস',
+            route('production.worker.dashboard')
+        );
+
         return back()->with('success', 'Task cancelled.');
     }
 

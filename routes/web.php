@@ -247,6 +247,7 @@ Route::middleware(['auth', 'business'])->group(function () {
         Route::post('/payroll/{employee}/finalize',      [App\Http\Controllers\ProductionController::class, 'finalizePayroll'])->name('payroll.finalize');
         Route::post('/payroll/{payrollPeriod}/unfinalize',[App\Http\Controllers\ProductionController::class, 'unfinalizePayroll'])->name('payroll.unfinalize');
         Route::get('/my-dashboard',    [App\Http\Controllers\ProductionController::class, 'workerDashboard'])->name('worker.dashboard');
+        Route::post('/notifications/mark-read', [App\Http\Controllers\ProductionController::class, 'markNotificationsRead'])->name('notifications.read');
 
         // ---- WORKER EFFICIENCY REPORT ----
         Route::get('/efficiency',  [App\Http\Controllers\ProductionController::class, 'efficiency'])->name('efficiency');
