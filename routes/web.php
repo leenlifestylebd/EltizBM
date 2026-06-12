@@ -234,6 +234,7 @@ Route::middleware(['auth', 'business'])->group(function () {
         Route::post('/{employee}/enable-login',[EmployeeController::class, 'enableLogin'])->name('enable-login');
         Route::post('/{employee}/reset-pin',   [EmployeeController::class, 'resetPin'])->name('reset-pin');
         Route::put('/{employee}',             [EmployeeController::class, 'update'])->name('update');
+        Route::delete('/{employee}',          [EmployeeController::class, 'destroy'])->name('destroy');
         Route::get('/{employee}/attendance',  [EmployeeController::class, 'attendance'])->name('attendance');
         Route::post('/{employee}/attendance', [EmployeeController::class, 'storeAttendance'])->name('attendance.store');
         Route::get('/{employee}/production',  [EmployeeController::class, 'production'])->name('production');

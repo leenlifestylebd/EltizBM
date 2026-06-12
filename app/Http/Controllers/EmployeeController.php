@@ -272,6 +272,35 @@ class EmployeeController extends Controller
         return redirect()->route('employees.show', $employee)->with('success', 'Employee updated!');
     }
 
+    public function destroy(Employee $employee)
+    {
+        $this->authorize($employee);
+
+        // Block if any active tasks exist (not completed/cancelled)
+        $activeTasks = \App\Models\ProductionTask::where('employee_id', $employee->id)
+            ->whereNotIn('status', ['completed', 'cancelled'])
+            ->count();
+
+        if ($activeTasks > 0) {
+            return back()->with('error', "{$employee->name}-এর {$activeTasks}টি active task আছে। Delete করার আগে task গুলো complete বা cancel করুন।");
+        }
+
+        // Deactivate linked user account (do not delete — they may have other data)
+        if ($employee->user_id) {
+            User::where('id', $employee->user_id)
+                ->where('business_id', auth()->user()->business_id)
+                ->update(['is_active' => false]);
+        }
+
+        $name = $employee->name;
+        $employee->delete(); // SoftDelete — all history preserved
+
+        $this->logActivity('deleted', $employee, ['name' => $name], []);
+
+        return redirect()->route('employees.index')
+            ->with('success', "{$name} deleted. All payroll and production history is preserved.");
+    }
+
     public function production(Employee $employee)
     {
         $this->authorize($employee);
