@@ -221,6 +221,7 @@
 
                 {{-- Submit Button --}}
                 @if($isPending)
+                @php $taskRate = $task->productionRate?->rate ?? 0; @endphp
                 <div class="px-4 pb-4">
                     <button
                         @click="$dispatch('open-submit-modal', {
@@ -228,11 +229,13 @@
                             taskName: '{{ addslashes($task->product_name) }}',
                             color: '{{ addslashes($task->color ?? '') }}',
                             size: '{{ addslashes($task->size ?? '') }}',
-                            max: {{ $task->pending_quantity }}
+                            max: {{ $task->pending_quantity }},
+                            rate: {{ $taskRate }}
                         })"
                         class="w-full py-3 bg-primary-600 hover:bg-primary-700 active:bg-primary-800 text-white text-sm font-semibold rounded-xl transition-colors flex items-center justify-center gap-2">
                         <svg class="w-4 h-4" fill="none" stroke="currentColor" viewBox="0 0 24 24"><path stroke-linecap="round" stroke-linejoin="round" stroke-width="2" d="M5 13l4 4L19 7"/></svg>
                         কাজ জমা দিন (বাকি {{ $task->pending_quantity }} পিস)
+                        @if($taskRate > 0)<span class="opacity-70 text-xs font-normal"> · ৳{{ number_format($taskRate) }}/পিস</span>@endif
                     </button>
                 </div>
                 @else
@@ -383,9 +386,21 @@
 
 {{-- Submit Work Modal (Bottom Sheet on Mobile) --}}
 <div x-data="{
-        show: false, taskId: null, taskName: '', taskColor: '', taskSize: '', maxQty: 1, qty: 1
+        show: false, taskId: null, taskName: '', taskColor: '', taskSize: '',
+        maxQty: 1, qty: 1, defaultRate: 0, rateUsed: 0,
+        get earning() { return Math.round(this.qty * this.rateUsed).toLocaleString(); }
      }"
-     @open-submit-modal.window="show = true; taskId = $event.detail.taskId; taskName = $event.detail.taskName; taskColor = $event.detail.color; taskSize = $event.detail.size; maxQty = $event.detail.max; qty = Math.min(1, $event.detail.max)"
+     @open-submit-modal.window="
+        show = true;
+        taskId    = $event.detail.taskId;
+        taskName  = $event.detail.taskName;
+        taskColor = $event.detail.color;
+        taskSize  = $event.detail.size;
+        maxQty    = $event.detail.max;
+        qty       = Math.min(1, $event.detail.max);
+        defaultRate = $event.detail.rate || 0;
+        rateUsed    = $event.detail.rate || 0;
+     "
      x-show="show"
      x-cloak
      class="fixed inset-0 z-50 flex items-end sm:items-center justify-center"
@@ -411,12 +426,13 @@
 
         <form method="POST" :action="'{{ url('production/tasks') }}/' + taskId + '/submit'">
             @csrf
+
+            {{-- Quantity --}}
             <div class="mb-4">
                 <label class="block text-sm font-medium text-gray-700 dark:text-slate-300 mb-2">
                     কতটি পিস সম্পন্ন হয়েছে?
                     <span class="text-gray-400 font-normal">(সর্বোচ্চ <span x-text="maxQty"></span>)</span>
                 </label>
-                {{-- Big number input for mobile --}}
                 <div class="flex items-center gap-3">
                     <button type="button" @click="qty = Math.max(1, qty - 1)"
                             class="w-12 h-12 rounded-xl bg-gray-100 dark:bg-slate-700 text-gray-700 dark:text-white text-xl font-bold flex items-center justify-center active:bg-gray-200">−</button>
@@ -429,10 +445,40 @@
                 </div>
                 <p class="text-xs text-center text-gray-400 mt-1.5">বাকি থাকবে: <strong x-text="maxQty - qty"></strong> পিস</p>
             </div>
+
+            {{-- Rate Override --}}
+            <div class="mb-3">
+                <label class="block text-sm font-medium text-gray-700 dark:text-slate-300 mb-1.5">
+                    প্রতি পিস রেট (৳)
+                    <span x-show="defaultRate > 0" class="text-xs text-gray-400 font-normal">
+                        — assigned: ৳<span x-text="defaultRate"></span>
+                    </span>
+                </label>
+                <input type="number" name="rate_used" x-model.number="rateUsed"
+                       min="0" step="0.01"
+                       class="w-full px-4 py-3 text-sm border border-gray-200 dark:border-slate-600 rounded-xl bg-white dark:bg-slate-700 text-gray-900 dark:text-white focus:outline-none focus:ring-2 focus:ring-primary-500">
+                <p x-show="defaultRate > 0 && rateUsed != defaultRate && rateUsed > 0"
+                   class="text-xs text-amber-600 dark:text-amber-400 mt-1">
+                    ⚠️ Assigned rate ৳<span x-text="defaultRate"></span> থেকে আলাদা
+                </p>
+            </div>
+
+            {{-- Earning Preview --}}
+            <div x-show="rateUsed > 0"
+                 class="mb-4 flex items-center justify-between bg-green-50 dark:bg-green-900/20 rounded-xl px-4 py-2.5">
+                <span class="text-sm text-gray-500 dark:text-slate-400">
+                    <span x-text="qty"></span> পিস × ৳<span x-text="rateUsed"></span>
+                </span>
+                <span class="text-base font-bold text-green-600 dark:text-green-400">
+                    = ৳<span x-text="earning"></span>
+                </span>
+            </div>
+
             <div class="mb-4">
                 <input type="text" name="quality_note" placeholder="মন্তব্য (ঐচ্ছিক)"
                        class="w-full px-4 py-3 text-sm border border-gray-200 dark:border-slate-600 rounded-xl bg-white dark:bg-slate-700 text-gray-900 dark:text-white focus:outline-none focus:ring-2 focus:ring-primary-500">
             </div>
+
             <div class="flex gap-3">
                 <button type="button" @click="show = false"
                         class="flex-1 py-3.5 bg-gray-100 dark:bg-slate-700 text-gray-700 dark:text-slate-300 text-sm font-medium rounded-xl">
