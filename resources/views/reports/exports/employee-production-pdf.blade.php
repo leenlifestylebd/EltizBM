@@ -1,4 +1,10 @@
-﻿@extends('reports.exports._layout')
+﻿@php
+    $pc   = isset($biz) ? $biz->themeColor('600') : '#2563eb';
+    $p50  = isset($biz) ? $biz->themeColor('50')  : '#eff6ff';
+    $p100 = isset($biz) ? $biz->themeColor('100') : '#dbeafe';
+    $p800 = isset($biz) ? $biz->themeColor('800') : '#1e40af';
+@endphp
+@extends('reports.exports._layout')
 @section('content')
 <div class="page">
 

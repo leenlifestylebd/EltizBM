@@ -1,3 +1,9 @@
+@php
+    $pc   = isset($biz) ? $biz->themeColor('600') : '#2563eb';
+    $p50  = isset($biz) ? $biz->themeColor('50')  : '#eff6ff';
+    $p100 = isset($biz) ? $biz->themeColor('100') : '#dbeafe';
+    $p800 = isset($biz) ? $biz->themeColor('800') : '#1e40af';
+@endphp
 @extends('reports.exports._layout')
 @section('content')
 @php $colors = ['#14b8a6','#22c55e','#3b82f6','#8b5cf6','#f97316','#ec4899','#eab308','#ef4444','#6366f1','#f59e0b']; @endphp
