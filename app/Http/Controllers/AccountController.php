@@ -69,57 +69,6 @@ class AccountController extends Controller
         Transaction::create(['business_id'=>auth()->user()->business_id,'category_id'=>$request->category_id?:null,'created_by'=>auth()->id(),'type'=>'expense','title'=>$request->title,'amount'=>$request->amount,'payment_method'=>$request->payment_method??'cash','notes'=>$request->notes,'transaction_date'=>$request->transaction_date]);
         return back()->with('success', 'Expense recorded!');
     }
-    public function salary(Request $request)
-    {
-        $bizId = auth()->user()->business_id;
-        $month = $request->month ?? now()->format('Y-m');
-        $employees = Employee::where('business_id',$bizId)->where('status','active')->orderBy('name')->get();
-        [$y,$m] = explode('-',$month);
-        $daysInMonth = Carbon::parse($month)->daysInMonth;
-        $salaryData = [];
-        foreach ($employees as $emp) {
-            $daysPresent = Attendance::where('employee_id',$emp->id)->whereYear('attendance_date',$y)->whereMonth('attendance_date',$m)->whereIn('status',['present','late'])->count();
-            $paid = Transaction::where('business_id',$bizId)->where('type','expense')->where('reference','SALARY-'.$emp->id.'-'.$month)->exists();
-            $salaryData[$emp->id] = ['days_present'=>$daysPresent>0?$daysPresent:$daysInMonth,'paid'=>$paid];
-        }
-        return view('accounts.salary', compact('employees','month','salaryData'));
-    }
-    public function storeSalary(Request $request)
-    {
-        $request->validate([
-            'employee_id' => 'required|exists:employees,id',
-            'amount'      => 'required|numeric|min:0.01',
-            'month'       => 'required|date_format:Y-m',
-        ]);
-
-        $bizId = auth()->user()->business_id;
-
-        $employee = Employee::where('business_id', $bizId)->findOrFail($request->employee_id);
-        $ref      = 'SALARY-' . $employee->id . '-' . $request->month;
-
-        // Block paying the same employee's salary twice for the same month.
-        $already = Transaction::where('business_id', $bizId)
-            ->where('type', 'expense')
-            ->where('reference', $ref)
-            ->exists();
-
-        if ($already) {
-            return back()->with('error', $employee->name . "'s salary for " . $request->month . ' is already paid.');
-        }
-
-        Transaction::create([
-            'business_id'      => $bizId,
-            'created_by'       => auth()->id(),
-            'type'             => 'expense',
-            'title'            => $request->title ?: ('Salary — ' . $employee->name . ' (' . $request->month . ')'),
-            'amount'           => $request->amount,
-            'payment_method'   => $request->payment_method ?: 'cash',
-            'reference'        => $ref,
-            'transaction_date' => Carbon::parse($request->month . '-01')->endOfMonth()->format('Y-m-d'),
-        ]);
-
-        return back()->with('success', 'Salary paid!');
-    }
     public function paymentTransfer()
     {
         $bizId = auth()->user()->business_id;

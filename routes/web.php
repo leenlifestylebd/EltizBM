@@ -177,8 +177,10 @@ Route::middleware(['auth', 'business'])->group(function () {
         Route::post('/income',           [AccountController::class, 'storeIncome'])->name('income.store');
         Route::get('/expenses',          [AccountController::class, 'expenses'])->name('expenses');
         Route::post('/expenses',         [AccountController::class, 'storeExpense'])->name('expenses.store');
-        Route::get('/salary',            [AccountController::class, 'salary'])->name('salary');
-        Route::post('/salary',           [AccountController::class, 'storeSalary'])->name('salary.store');
+        // Salary moved to Production > Payroll: that flow records the employee ledger
+        // entry AND the expense transaction together, so the cash book and worker
+        // ledgers always agree. Old bookmarks land on payroll instead of a 404.
+        Route::get('/salary', fn() => redirect()->route('production.payroll'))->name('salary');
         Route::get('/payment-transfer',  [AccountController::class, 'paymentTransfer'])->name('payment-transfer');
         Route::post('/payment-transfer', [AccountController::class, 'storeTransfer'])->name('payment-transfer.store');
         Route::delete('/transactions/{transaction}', [AccountController::class, 'destroyTransaction'])->name('transactions.destroy');
