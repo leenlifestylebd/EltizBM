@@ -170,6 +170,7 @@ Route::middleware(['auth', 'business'])->group(function () {
         Route::post('/barcode/print',   [InventoryController::class, 'printBarcode'])->name('barcode.print');
         Route::get('/transfers',        [InventoryController::class, 'transfers'])->name('transfers');
         Route::post('/transfers',       [InventoryController::class, 'storeTransfer'])->name('transfers.store');
+        Route::get('/warehouse-stock',  [InventoryController::class, 'warehouseStock'])->name('warehouse-stock');
     });
 
     // ---- ACCOUNTS ----

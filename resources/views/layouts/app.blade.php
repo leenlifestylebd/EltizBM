@@ -206,9 +206,10 @@
                 <a href="{{ route('inventory.overview') }}" class="block px-3 py-2 text-xs text-gray-500 dark:text-slate-400 hover:text-primary-600 rounded-lg hover:bg-gray-50 dark:hover:bg-slate-700">Overview</a>
                 <a href="{{ route('inventory.purchase-orders') }}" class="block px-3 py-2 text-xs text-gray-500 dark:text-slate-400 hover:text-primary-600 rounded-lg hover:bg-gray-50 dark:hover:bg-slate-700">Purchase Orders</a>
                 <a href="{{ route('inventory.stock-levels') }}" class="block px-3 py-2 text-xs text-gray-500 dark:text-slate-400 hover:text-primary-600 rounded-lg hover:bg-gray-50 dark:hover:bg-slate-700">Stock Levels</a>
+                <a href="{{ route('inventory.warehouse-stock') }}" class="block px-3 py-2 text-xs text-gray-500 dark:text-slate-400 hover:text-primary-600 rounded-lg hover:bg-gray-50 dark:hover:bg-slate-700">By Warehouse</a>
                 <a href="{{ route('inventory.adjustments') }}" class="block px-3 py-2 text-xs text-gray-500 dark:text-slate-400 hover:text-primary-600 rounded-lg hover:bg-gray-50 dark:hover:bg-slate-700">Adjustments</a>
+                <a href="{{ route('inventory.transfers') }}" class="block px-3 py-2 text-xs text-gray-500 dark:text-slate-400 hover:text-primary-600 rounded-lg hover:bg-gray-50 dark:hover:bg-slate-700">Transfers</a>
                 <a href="{{ route('inventory.barcode') }}" class="block px-3 py-2 text-xs text-gray-500 dark:text-slate-400 hover:text-primary-600 rounded-lg hover:bg-gray-50 dark:hover:bg-slate-700">Barcode Print</a>
-                {{-- Stock Transfers hidden: single-warehouse setup. Re-enable when multi-warehouse stock lands. --}}
             </div>
         </div>
 

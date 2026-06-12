@@ -101,7 +101,7 @@ class PosController extends Controller
                     'due_amount'     => $due,
                 ]);
 
-                // Create items + deduct stock
+                // Create items
                 foreach ($request->items as $item) {
                     OrderItem::create([
                         'order_id'     => $order->id,
@@ -113,12 +113,10 @@ class PosController extends Controller
                         'discount'     => $item['discount'] ?? 0,
                         'total'        => $item['total'],
                     ]);
-
-                    Product::where('id', $item['product_id'])
-                        ->where('track_stock', true)
-                        ->where('business_id', $bizId)
-                        ->decrement('stock', $item['quantity']);
                 }
+
+                // Deduct stock (warehouse-aware)
+                app(\App\Services\StockService::class)->deductForOrder($order->load('items'));
 
                 // Income transaction
                 Transaction::create([
