@@ -4,7 +4,6 @@ namespace App\Http\Controllers;
 
 use App\Models\Employee;
 use App\Models\ProductionEntry;
-use App\Models\ProductionLog;
 use App\Models\EmployeePayment;
 use App\Models\Attendance;
 use App\Models\Product;
@@ -170,16 +169,6 @@ class EmployeeController extends Controller
             ->with('productionRate')
             ->orderByDesc('entry_date')->paginate(20);
 
-        $recentLogs = ProductionLog::where('employee_id', $employee->id)
-            ->with('product')
-            ->orderByDesc('log_date')->limit(5)->get();
-
-        $productionLogs = ProductionLog::where('employee_id', $employee->id)
-            ->with('product')
-            ->orderByDesc('log_date')->paginate(20);
-
-        $avgQuality = ProductionLog::where('employee_id', $employee->id)->avg('quality_rate') ?? 0;
-
         $products = Product::where('business_id', auth()->user()->business_id)
             ->orderBy('name')->get();
 
@@ -204,8 +193,7 @@ class EmployeeController extends Controller
         return view('employees.show', compact(
             'employee', 'monthProduction', 'monthEarning', 'monthAdvance',
             'monthAttendance', 'monthTotalPaid', 'monthDeductions', 'monthNetPayable',
-            'recentPayments', 'recentEntries', 'productionEntries',
-            'recentLogs', 'productionLogs', 'avgQuality', 'products',
+            'recentPayments', 'recentEntries', 'productionEntries', 'products',
             'attendanceRecords', 'last7Days', 'calendarStart', 'daysInMonth', 'attendanceMap'
         ));
     }
@@ -236,12 +224,6 @@ class EmployeeController extends Controller
         ]);
 
         return redirect()->route('employees.show', $employee)->with('success', 'Employee updated!');
-    }
-
-    public function production(Employee $employee)
-    {
-        $this->authorize($employee);
-        return redirect()->route('employees.show', $employee)->with('tab', 'production');
     }
 
     public function attendance(Employee $employee)

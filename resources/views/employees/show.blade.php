@@ -88,8 +88,8 @@
             <p class="text-xs text-gray-500 dark:text-slate-400">Days Present</p>
         </div>
         <div class="bg-white dark:bg-slate-800 rounded-xl border border-purple-100 dark:border-purple-900/30 p-3 text-center">
-            <p class="text-xl font-bold text-purple-600 dark:text-purple-400">{{ $avgQuality ?? 0 }}%</p>
-            <p class="text-xs text-gray-500 dark:text-slate-400">Avg Quality</p>
+            <p class="text-xl font-bold text-purple-600 dark:text-purple-400">৳{{ number_format($monthEarning, 0) }}</p>
+            <p class="text-xs text-gray-500 dark:text-slate-400">Month Earning</p>
         </div>
         @endif
     </div>
@@ -182,30 +182,30 @@
         </div>
 
         <div class="bg-white dark:bg-slate-800 rounded-xl border border-gray-100 dark:border-slate-700 overflow-hidden">
-            <div class="px-4 py-3 border-b border-gray-50 dark:border-slate-700">
-                <h3 class="text-sm font-semibold text-gray-900 dark:text-white">Recent Production</h3>
+            <div class="px-4 py-3 border-b border-gray-50 dark:border-slate-700 flex items-center justify-between">
+                <h3 class="text-sm font-semibold text-gray-900 dark:text-white">Recent Entries</h3>
+                <a href="{{ route('production.worker.ledger.detail', $employee) }}" class="text-xs text-primary-600 hover:underline">Full Ledger →</a>
             </div>
-            @forelse($recentLogs as $log)
+            @forelse($recentEntries as $entry)
             <div class="flex items-center gap-3 px-4 py-3 border-b border-gray-50 dark:border-slate-700 last:border-0">
-                <div class="w-8 h-8 bg-green-100 dark:bg-green-900/30 rounded-lg flex items-center justify-center flex-shrink-0">
-                    <svg class="w-4 h-4 text-green-600 dark:text-green-400" fill="none" stroke="currentColor" viewBox="0 0 24 24"><path stroke-linecap="round" stroke-linejoin="round" stroke-width="2" d="M9 5H7a2 2 0 00-2 2v12a2 2 0 002 2h10a2 2 0 002-2V7a2 2 0 00-2-2h-2M9 5a2 2 0 002 2h2a2 2 0 002-2M9 5a2 2 0 012-2h2a2 2 0 012 2m-6 9l2 2 4-4"/></svg>
+                <div class="w-8 h-8 bg-primary-100 dark:bg-primary-900/30 rounded-lg flex items-center justify-center flex-shrink-0">
+                    <svg class="w-4 h-4 text-primary-600 dark:text-primary-400" fill="none" stroke="currentColor" viewBox="0 0 24 24"><path stroke-linecap="round" stroke-linejoin="round" stroke-width="2" d="M20 7l-8-4-8 4m16 0l-8 4m8-4v10l-8 4m0-10L4 7m8 4v10M4 7v10l8 4"/></svg>
                 </div>
                 <div class="flex-1 min-w-0">
-                    <p class="text-sm font-medium text-gray-900 dark:text-white truncate">{{ $log->task_name }}</p>
+                    <p class="text-sm font-medium text-gray-900 dark:text-white truncate">{{ $entry->productionRate?->product_name ?? 'Manual Entry' }}</p>
                     <p class="text-xs text-gray-400 dark:text-slate-500 mt-0.5">
-                        {{ $log->log_date->format('d M Y') }}
-                        @if($log->product) · {{ $log->product->name }} @endif
+                        {{ $entry->entry_date->format('d M Y') }}
+                        @if($entry->productionRate?->color) · {{ $entry->productionRate->color }}@endif
+                        @if($entry->productionRate?->size) · {{ $entry->productionRate->size }}@endif
                     </p>
                 </div>
                 <div class="text-right flex-shrink-0">
-                    <p class="text-sm font-bold text-gray-900 dark:text-white">{{ $log->quantity }}</p>
-                    @if($log->target_quantity > 0)
-                        <p class="text-xs {{ $log->quantity >= $log->target_quantity ? 'text-green-500' : 'text-yellow-500' }}">/ {{ $log->target_quantity }}</p>
-                    @endif
+                    <p class="text-sm font-bold text-green-600 dark:text-green-400">৳{{ number_format($entry->amount, 0) }}</p>
+                    <p class="text-xs text-gray-400">{{ $entry->quantity }} pcs</p>
                 </div>
             </div>
             @empty
-            <div class="px-4 py-8 text-center text-sm text-gray-400 dark:text-slate-500">No production logs yet</div>
+            <div class="px-4 py-8 text-center text-sm text-gray-400 dark:text-slate-500">No production entries yet</div>
             @endforelse
         </div>
         @endif
@@ -260,129 +260,62 @@
 
     {{-- Tab: Production (production employees only) --}}
     <div x-show="tab === 'production'" x-cloak>
-        {{-- Log Form --}}
-        <div class="bg-white dark:bg-slate-800 rounded-xl border border-gray-100 dark:border-slate-700 p-4 mb-4">
-            <h3 class="text-sm font-semibold text-gray-900 dark:text-white mb-4">Log Production</h3>
-            <form method="POST" action="{{ route('employees.production.store', $employee) }}" class="space-y-3">
-                @csrf
-                <div class="grid grid-cols-1 sm:grid-cols-2 gap-3">
-                    <div>
-                        <label class="block text-xs font-medium text-gray-700 dark:text-slate-300 mb-1.5">Task / Product <span class="text-red-500">*</span></label>
-                        <input type="text" name="task_name" required
-                               class="w-full px-3 py-2.5 text-sm border border-gray-200 dark:border-slate-600 rounded-lg bg-white dark:bg-slate-700 text-gray-900 dark:text-white focus:outline-none focus:ring-2 focus:ring-primary-500"
-                               placeholder="e.g. Packing boxes, Cutting fabric...">
-                    </div>
-                    <div>
-                        <label class="block text-xs font-medium text-gray-700 dark:text-slate-300 mb-1.5">Product (optional)</label>
-                        <select name="product_id" class="w-full px-3 py-2.5 text-sm border border-gray-200 dark:border-slate-600 rounded-lg bg-white dark:bg-slate-700 text-gray-700 dark:text-slate-200 focus:outline-none focus:ring-2 focus:ring-primary-500">
-                            <option value="">Select product</option>
-                            @foreach($products as $p)
-                                <option value="{{ $p->id }}">{{ $p->name }}</option>
-                            @endforeach
-                        </select>
-                    </div>
-                    <div>
-                        <label class="block text-xs font-medium text-gray-700 dark:text-slate-300 mb-1.5">Quantity Done <span class="text-red-500">*</span></label>
-                        <input type="number" name="quantity" required min="0"
-                               class="w-full px-3 py-2.5 text-sm border border-gray-200 dark:border-slate-600 rounded-lg bg-white dark:bg-slate-700 text-gray-900 dark:text-white focus:outline-none focus:ring-2 focus:ring-primary-500"
-                               placeholder="0">
-                    </div>
-                    <div>
-                        <label class="block text-xs font-medium text-gray-700 dark:text-slate-300 mb-1.5">Target Quantity</label>
-                        <input type="number" name="target_quantity" min="0"
-                               class="w-full px-3 py-2.5 text-sm border border-gray-200 dark:border-slate-600 rounded-lg bg-white dark:bg-slate-700 text-gray-900 dark:text-white focus:outline-none focus:ring-2 focus:ring-primary-500"
-                               placeholder="0">
-                    </div>
-                    <div>
-                        <label class="block text-xs font-medium text-gray-700 dark:text-slate-300 mb-1.5">Date <span class="text-red-500">*</span></label>
-                        <input type="date" name="log_date" required value="{{ today()->format('Y-m-d') }}"
-                               class="w-full px-3 py-2.5 text-sm border border-gray-200 dark:border-slate-600 rounded-lg bg-white dark:bg-slate-700 text-gray-900 dark:text-white focus:outline-none focus:ring-2 focus:ring-primary-500">
-                    </div>
-                    <div>
-                        <label class="block text-xs font-medium text-gray-700 dark:text-slate-300 mb-1.5">Quality Rate (%)</label>
-                        <input type="number" name="quality_rate" min="0" max="100" value="100"
-                               class="w-full px-3 py-2.5 text-sm border border-gray-200 dark:border-slate-600 rounded-lg bg-white dark:bg-slate-700 text-gray-900 dark:text-white focus:outline-none focus:ring-2 focus:ring-primary-500">
-                    </div>
-                    <div class="grid grid-cols-2 gap-2">
-                        <div>
-                            <label class="block text-xs font-medium text-gray-700 dark:text-slate-300 mb-1.5">Start Time</label>
-                            <input type="time" name="start_time"
-                                   class="w-full px-3 py-2.5 text-sm border border-gray-200 dark:border-slate-600 rounded-lg bg-white dark:bg-slate-700 text-gray-900 dark:text-white focus:outline-none focus:ring-2 focus:ring-primary-500">
-                        </div>
-                        <div>
-                            <label class="block text-xs font-medium text-gray-700 dark:text-slate-300 mb-1.5">End Time</label>
-                            <input type="time" name="end_time"
-                                   class="w-full px-3 py-2.5 text-sm border border-gray-200 dark:border-slate-600 rounded-lg bg-white dark:bg-slate-700 text-gray-900 dark:text-white focus:outline-none focus:ring-2 focus:ring-primary-500">
-                        </div>
-                    </div>
-                    <div>
-                        <label class="block text-xs font-medium text-gray-700 dark:text-slate-300 mb-1.5">Notes</label>
-                        <input type="text" name="notes"
-                               class="w-full px-3 py-2.5 text-sm border border-gray-200 dark:border-slate-600 rounded-lg bg-white dark:bg-slate-700 text-gray-900 dark:text-white focus:outline-none focus:ring-2 focus:ring-primary-500"
-                               placeholder="Optional notes...">
-                    </div>
-                </div>
-                <button type="submit"
-                        class="w-full bg-green-600 hover:bg-green-700 text-white font-medium py-2.5 text-sm rounded-lg transition-colors">
-                    Log Production
-                </button>
-            </form>
+        {{-- Quick actions --}}
+        <div class="flex gap-2 mb-4">
+            <a href="{{ route('production.worker.dashboard', ['employee_id' => $employee->id]) }}"
+               class="flex-1 flex items-center justify-center gap-1.5 px-3 py-2.5 text-xs font-semibold text-primary-600 dark:text-primary-400 bg-primary-50 dark:bg-primary-900/20 border border-primary-200 dark:border-primary-800 rounded-xl hover:bg-primary-100 transition-colors">
+                <svg class="w-3.5 h-3.5" fill="none" stroke="currentColor" viewBox="0 0 24 24"><path stroke-linecap="round" stroke-linejoin="round" stroke-width="2" d="M9 19v-6a2 2 0 00-2-2H5a2 2 0 00-2 2v6a2 2 0 002 2h2a2 2 0 002-2zm0 0V9a2 2 0 012-2h2a2 2 0 012 2v10m-6 0a2 2 0 002 2h2a2 2 0 002-2m0 0V5a2 2 0 012-2h2a2 2 0 012 2v14a2 2 0 01-2 2h-2a2 2 0 01-2-2z"/></svg>
+                Worker Dashboard
+            </a>
+            <a href="{{ route('production.worker.ledger.detail', $employee) }}"
+               class="flex-1 flex items-center justify-center gap-1.5 px-3 py-2.5 text-xs font-semibold text-gray-600 dark:text-slate-300 bg-white dark:bg-slate-700 border border-gray-200 dark:border-slate-600 rounded-xl hover:bg-gray-50 transition-colors">
+                <svg class="w-3.5 h-3.5" fill="none" stroke="currentColor" viewBox="0 0 24 24"><path stroke-linecap="round" stroke-linejoin="round" stroke-width="2" d="M9 17v-2m3 2v-4m3 4v-6m2 10H7a2 2 0 01-2-2V5a2 2 0 012-2h5.586a1 1 0 01.707.293l5.414 5.414a1 1 0 01.293.707V19a2 2 0 01-2 2z"/></svg>
+                Ledger
+            </a>
+            <a href="{{ route('production.tasks.create') }}?employee_id={{ $employee->id }}"
+               class="flex-1 flex items-center justify-center gap-1.5 px-3 py-2.5 text-xs font-semibold text-white bg-primary-600 rounded-xl hover:bg-primary-700 transition-colors">
+                <svg class="w-3.5 h-3.5" fill="none" stroke="currentColor" viewBox="0 0 24 24"><path stroke-linecap="round" stroke-linejoin="round" stroke-width="2" d="M12 4v16m8-8H4"/></svg>
+                Assign Task
+            </a>
         </div>
 
-        {{-- Production Logs Table --}}
+        {{-- Production Entries Table --}}
         <div class="bg-white dark:bg-slate-800 rounded-xl border border-gray-100 dark:border-slate-700 overflow-hidden">
-            <div class="px-4 py-3 border-b border-gray-50 dark:border-slate-700">
-                <h3 class="text-sm font-semibold text-gray-900 dark:text-white">Production History</h3>
+            <div class="px-4 py-3 border-b border-gray-50 dark:border-slate-700 flex items-center justify-between">
+                <h3 class="text-sm font-semibold text-gray-900 dark:text-white">Production Entries</h3>
+                <span class="text-xs text-gray-400 dark:text-slate-500">{{ $productionEntries->total() }} total</span>
             </div>
             <div class="overflow-x-auto">
                 <table class="w-full text-sm">
                     <thead>
                         <tr class="bg-gray-50 dark:bg-slate-700/50">
                             <th class="text-left px-4 py-2.5 text-xs font-medium text-gray-500 dark:text-slate-400">Date</th>
-                            <th class="text-left px-4 py-2.5 text-xs font-medium text-gray-500 dark:text-slate-400">Task</th>
-                            <th class="text-center px-4 py-2.5 text-xs font-medium text-gray-500 dark:text-slate-400">Done / Target</th>
-                            <th class="text-center px-4 py-2.5 text-xs font-medium text-gray-500 dark:text-slate-400">Quality</th>
-                            <th class="text-center px-4 py-2.5 text-xs font-medium text-gray-500 dark:text-slate-400">Hours</th>
+                            <th class="text-left px-4 py-2.5 text-xs font-medium text-gray-500 dark:text-slate-400">Product</th>
+                            <th class="text-center px-4 py-2.5 text-xs font-medium text-gray-500 dark:text-slate-400">Qty</th>
+                            <th class="text-right px-4 py-2.5 text-xs font-medium text-gray-500 dark:text-slate-400">Amount</th>
                         </tr>
                     </thead>
                     <tbody class="divide-y divide-gray-50 dark:divide-slate-700">
-                        @forelse($productionLogs as $log)
+                        @forelse($productionEntries as $entry)
                         <tr class="hover:bg-gray-50 dark:hover:bg-slate-700/30 transition-colors">
-                            <td class="px-4 py-2.5 text-xs text-gray-600 dark:text-slate-300 whitespace-nowrap">{{ $log->log_date->format('d M Y') }}</td>
+                            <td class="px-4 py-2.5 text-xs text-gray-600 dark:text-slate-300 whitespace-nowrap">{{ $entry->entry_date->format('d M Y') }}</td>
                             <td class="px-4 py-2.5">
-                                <p class="text-sm font-medium text-gray-900 dark:text-white">{{ $log->task_name }}</p>
-                                @if($log->product)<p class="text-xs text-gray-400 dark:text-slate-500">{{ $log->product->name }}</p>@endif
-                            </td>
-                            <td class="px-4 py-2.5 text-center">
-                                <span class="text-sm font-bold {{ $log->target_quantity > 0 && $log->quantity >= $log->target_quantity ? 'text-green-600 dark:text-green-400' : 'text-gray-900 dark:text-white' }}">
-                                    {{ $log->quantity }}
-                                </span>
-                                @if($log->target_quantity > 0)
-                                    <span class="text-xs text-gray-400 dark:text-slate-500"> / {{ $log->target_quantity }}</span>
+                                <p class="text-sm font-medium text-gray-900 dark:text-white">{{ $entry->productionRate?->product_name ?? 'Manual' }}</p>
+                                @if($entry->productionRate?->color || $entry->productionRate?->size)
+                                <p class="text-xs text-gray-400">{{ implode(' · ', array_filter([$entry->productionRate->color, $entry->productionRate->size])) }}</p>
                                 @endif
                             </td>
-                            <td class="px-4 py-2.5 text-center">
-                                <span class="inline-flex px-2 py-0.5 rounded-full text-xs font-medium
-                                    {{ $log->quality_rate >= 90 ? 'bg-green-100 text-green-700 dark:bg-green-900/30 dark:text-green-400' : ($log->quality_rate >= 70 ? 'bg-yellow-100 text-yellow-700' : 'bg-red-100 text-red-700') }}">
-                                    {{ $log->quality_rate }}%
-                                </span>
-                            </td>
-                            <td class="px-4 py-2.5 text-center text-xs text-gray-500 dark:text-slate-400">
-                                @if($log->start_time && $log->end_time)
-                                    {{ \Carbon\Carbon::parse($log->start_time)->format('H:i') }}–{{ \Carbon\Carbon::parse($log->end_time)->format('H:i') }}
-                                @else
-                                    —
-                                @endif
-                            </td>
+                            <td class="px-4 py-2.5 text-center font-bold text-gray-900 dark:text-white">{{ $entry->quantity }}</td>
+                            <td class="px-4 py-2.5 text-right font-bold text-primary-600 dark:text-primary-400">৳{{ number_format($entry->amount, 0) }}</td>
                         </tr>
                         @empty
-                        <tr><td colspan="5" class="px-4 py-8 text-center text-sm text-gray-400 dark:text-slate-500">No production logs yet</td></tr>
+                        <tr><td colspan="4" class="px-4 py-8 text-center text-sm text-gray-400 dark:text-slate-500">No production entries yet</td></tr>
                         @endforelse
                     </tbody>
                 </table>
             </div>
-            @if($productionLogs->hasPages())
-            <div class="px-4 py-3 border-t border-gray-100 dark:border-slate-700">{{ $productionLogs->links() }}</div>
+            @if($productionEntries->hasPages())
+            <div class="px-4 py-3 border-t border-gray-100 dark:border-slate-700">{{ $productionEntries->withQueryString()->links() }}</div>
             @endif
         </div>
     </div>
