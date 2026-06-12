@@ -151,6 +151,36 @@
         </div>
 
         {{-- Stats Grid --}}
+        @if($stat['type'] === 'salary')
+        {{-- Fixed salary employee: show salary / attendance / paid / net payable --}}
+        <div class="grid grid-cols-2 md:grid-cols-4 divide-x divide-gray-50 dark:divide-slate-700">
+            <div class="px-3 py-3 text-center">
+                <p class="text-xs text-gray-400 mb-1">মাসিক বেতন</p>
+                <p class="text-xl font-bold text-indigo-600 dark:text-indigo-400">৳{{ number_format($stat['monthly_salary'], 0) }}</p>
+                <span class="text-xs text-indigo-400">Fixed</span>
+            </div>
+            <div class="px-3 py-3 text-center">
+                <p class="text-xs text-gray-400 mb-1">উপস্থিতি</p>
+                <p class="text-xl font-bold text-green-600 dark:text-green-400">{{ $stat['present_days'] }}</p>
+                <span class="text-xs text-green-400">দিন</span>
+            </div>
+            <div class="px-3 py-3 text-center">
+                <p class="text-xs text-gray-400 mb-1">পরিশোধিত</p>
+                <p class="text-xl font-bold text-blue-600 dark:text-blue-400">৳{{ number_format($stat['total_paid'], 0) }}</p>
+                <span class="text-xs text-blue-400">এই মাসে</span>
+            </div>
+            <div class="px-3 py-3 text-center">
+                <p class="text-xs text-gray-400 mb-1">নেট পাওনা</p>
+                <p class="text-xl font-bold {{ $stat['net_payable'] > 0 ? 'text-orange-600' : ($stat['net_payable'] < 0 ? 'text-green-600' : 'text-gray-400') }}">
+                    ৳{{ number_format(abs($stat['net_payable']), 0) }}
+                </p>
+                <p class="text-xs {{ $stat['net_payable'] < 0 ? 'text-green-400' : 'text-orange-400' }}">
+                    {{ $stat['net_payable'] < 0 ? 'অতিরিক্ত' : 'প্রদেয়' }}
+                </p>
+            </div>
+        </div>
+        @else
+        {{-- Production employee: existing columns --}}
         <div class="grid grid-cols-3 md:grid-cols-6 divide-x divide-gray-50 dark:divide-slate-700">
 
             <div class="px-3 py-3 text-center">
@@ -195,6 +225,7 @@
                 </p>
             </div>
         </div>
+        @endif
 
         {{-- Footer bar --}}
         <div class="px-4 py-2 bg-gray-50 dark:bg-slate-700/30 flex items-center gap-2 flex-wrap">

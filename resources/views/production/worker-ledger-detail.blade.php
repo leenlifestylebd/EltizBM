@@ -71,9 +71,13 @@
     @endif
 
     <div class="bg-primary-50 dark:bg-primary-900/20 rounded-xl p-4 border border-primary-100 dark:border-primary-900/40">
-        <p class="text-xs text-primary-600 dark:text-primary-400 font-medium mb-1">P.Bill (This Month)</p>
+        <p class="text-xs text-primary-600 dark:text-primary-400 font-medium mb-1">
+            {{ $employee->type === 'salary' ? 'Monthly Salary' : 'P.Bill (This Month)' }}
+        </p>
         <p class="text-2xl font-bold text-primary-700 dark:text-primary-300">৳{{ number_format($monthEarned) }}</p>
-        <p class="text-xs text-primary-500 mt-1">{{ $entries->sum('quantity') }} pieces</p>
+        <p class="text-xs text-primary-500 mt-1">
+            {{ $employee->type === 'salary' ? 'Fixed monthly' : $entries->sum('quantity').' pieces' }}
+        </p>
     </div>
     <div class="bg-green-50 dark:bg-green-900/20 rounded-xl p-4 border border-green-100 dark:border-green-900/40">
         <p class="text-xs text-green-600 dark:text-green-400 font-medium mb-1">Paid (This Month)</p>
@@ -96,8 +100,49 @@
 
 <div class="grid grid-cols-1 lg:grid-cols-3 gap-4">
 
-    {{-- LEFT: Production Entries --}}
+    {{-- LEFT: Production Entries / Salary Info --}}
     <div class="lg:col-span-2 space-y-4">
+
+        @if($employee->type === 'salary')
+        {{-- Salary employee: show attendance summary for this month --}}
+        @php
+            $attRecs = \App\Models\Attendance::where('employee_id', $employee->id)
+                ->whereBetween('attendance_date', [$from, $to])
+                ->orderBy('attendance_date')->get();
+        @endphp
+        <div class="bg-white dark:bg-slate-800 rounded-xl border border-gray-100 dark:border-slate-700 overflow-hidden">
+            <div class="px-4 py-3 border-b border-gray-50 dark:border-slate-700 flex items-center justify-between">
+                <h3 class="text-sm font-semibold text-gray-900 dark:text-white">Attendance — {{ \Carbon\Carbon::parse($from)->format('F Y') }}</h3>
+                <div class="flex gap-2 text-xs">
+                    <span class="px-2 py-0.5 rounded-full bg-green-100 dark:bg-green-900/30 text-green-700 dark:text-green-400">Present: {{ $attRecs->whereIn('status',['present','late'])->count() }}</span>
+                    <span class="px-2 py-0.5 rounded-full bg-red-100 dark:bg-red-900/30 text-red-700 dark:text-red-400">Absent: {{ $attRecs->where('status','absent')->count() }}</span>
+                </div>
+            </div>
+            @if($attRecs->isNotEmpty())
+            <table class="w-full text-xs">
+                <thead class="bg-gray-50 dark:bg-slate-700/50">
+                    <tr>
+                        <th class="text-left px-4 py-2 font-medium text-gray-500 dark:text-slate-400">Date</th>
+                        <th class="text-left px-4 py-2 font-medium text-gray-500 dark:text-slate-400">Status</th>
+                        <th class="text-left px-4 py-2 font-medium text-gray-500 dark:text-slate-400">Check In / Out</th>
+                    </tr>
+                </thead>
+                <tbody class="divide-y divide-gray-50 dark:divide-slate-700">
+                @foreach($attRecs as $rec)
+                @php $sc=['present'=>'bg-green-100 text-green-700','late'=>'bg-orange-100 text-orange-700','absent'=>'bg-red-100 text-red-700','half_day'=>'bg-yellow-100 text-yellow-700','holiday'=>'bg-blue-100 text-blue-700']; @endphp
+                <tr class="hover:bg-gray-50 dark:hover:bg-slate-700/30">
+                    <td class="px-4 py-2 text-gray-600 dark:text-slate-300">{{ \Carbon\Carbon::parse($rec->attendance_date)->format('d M, D') }}</td>
+                    <td class="px-4 py-2"><span class="px-2 py-0.5 rounded-full text-xs font-medium {{ $sc[$rec->status] ?? 'bg-gray-100 text-gray-600' }}">{{ ucfirst(str_replace('_',' ',$rec->status)) }}</span></td>
+                    <td class="px-4 py-2 text-gray-400">{{ $rec->check_in ? \Carbon\Carbon::parse($rec->check_in)->format('h:i A') : '—' }}{{ $rec->check_out ? ' → '.\Carbon\Carbon::parse($rec->check_out)->format('h:i A') : '' }}</td>
+                </tr>
+                @endforeach
+                </tbody>
+            </table>
+            @else
+            <div class="py-8 text-center text-xs text-gray-400 dark:text-slate-500">No attendance records for this month.</div>
+            @endif
+        </div>
+        @else
 
         {{-- Product Breakdown (summary) --}}
         @if($productBreakdown->isNotEmpty())
@@ -207,6 +252,8 @@
             <div class="px-4 py-10 text-center text-sm text-gray-400 dark:text-slate-500">No production entries this month</div>
             @endif
         </div>
+
+        @endif {{-- end salary/production branch --}}
     </div>
 
     {{-- RIGHT: Payments --}}
