@@ -420,15 +420,50 @@ class ProductionController extends Controller
             ->groupBy('employee_id')
             ->pluck('total', 'employee_id');
 
+        // Salary employee payments and attendance for the period
+        $salaryPaid = \App\Models\EmployeePayment::where('business_id', $bizId)
+            ->whereBetween('payment_date', [$fromDate, $toDate])
+            ->whereIn('type', ['salary', 'advance', 'bonus'])
+            ->selectRaw('employee_id, SUM(amount) as total')
+            ->groupBy('employee_id')
+            ->pluck('total', 'employee_id');
+
+        $attendanceCounts = Attendance::whereHas('employee', fn($q) => $q->where('business_id', $bizId))
+            ->whereBetween('attendance_date', [$fromDate, $toDate])
+            ->whereIn('status', ['present', 'late'])
+            ->selectRaw('employee_id, COUNT(*) as cnt')
+            ->groupBy('employee_id')
+            ->pluck('cnt', 'employee_id');
+
         // Per-employee stats
-        $employeeStats = $employees->map(function ($emp) use ($allTasks, $earnings, $advances) {
-            $tasks   = $allTasks->where('employee_id', $emp->id);
-            $earning = $earnings[$emp->id] ?? null;
-            $advance = $advances[$emp->id] ?? 0;
+        $employeeStats = $employees->map(function ($emp) use ($allTasks, $earnings, $advances, $salaryPaid, $attendanceCounts) {
+            $tasks    = $allTasks->where('employee_id', $emp->id);
+            $earning  = $earnings[$emp->id] ?? null;
+            $advance  = $advances[$emp->id] ?? 0;
             $totalAmt = $earning['total_amount'] ?? 0;
+
+            if ($emp->type === 'salary') {
+                $paid    = (float)($salaryPaid[$emp->id] ?? 0);
+                $present = (int)($attendanceCounts[$emp->id] ?? 0);
+                return [
+                    'employee'       => $emp,
+                    'type'           => 'salary',
+                    'monthly_salary' => (float)$emp->salary,
+                    'present_days'   => $present,
+                    'total_paid'     => $paid,
+                    'net_payable'    => (float)$emp->salary - $paid,
+                    // production fields zeroed so totals aren't skewed
+                    'total_tasks'    => 0, 'assigned' => 0, 'in_progress' => 0,
+                    'partial'        => 0, 'completed' => 0,
+                    'total_assigned' => 0, 'total_done' => 0, 'total_pending' => 0,
+                    'total_qty'      => 0, 'total_earning' => 0,
+                    'advance'        => 0, 'completion_pct' => 0,
+                ];
+            }
 
             return [
                 'employee'       => $emp,
+                'type'           => 'production',
                 'total_tasks'    => $tasks->count(),
                 'assigned'       => $tasks->where('status', 'assigned')->count(),
                 'in_progress'    => $tasks->where('status', 'in_progress')->count(),
@@ -445,7 +480,7 @@ class ProductionController extends Controller
                     ? round(($tasks->sum('completed_quantity') / $tasks->sum('assigned_quantity')) * 100)
                     : 0,
             ];
-        })->sortByDesc('total_earning');
+        })->sortByDesc(fn($s) => $s['type'] === 'salary' ? $s['monthly_salary'] : $s['total_earning']);
 
         // Business summary
         $summary = [
@@ -776,25 +811,56 @@ class ProductionController extends Controller
             ->orderBy('payment_date')
             ->get();
 
-        // All-time cumulative balance (carry-over from previous months)
-        $allTimeEarned = ProductionEntry::where('business_id', $bizId)
-            ->where('employee_id', $employee->id)
-            ->where('entry_date', '<', $from)
-            ->sum('amount');
-
-        $allTimePaid = EmployeePayment::where('business_id', $bizId)
-            ->where('employee_id', $employee->id)
-            ->where('payment_date', '<', $from)
-            ->sum('amount');
-
-        $carryOver = (float)$allTimePaid - (float)$allTimeEarned; // positive = overpay brought forward
-
         // This month totals
-        $monthEarned = $entries->sum('amount');
-        $monthPaid   = $payments->sum('amount');
-        $totalBill   = $monthEarned - $carryOver; // effective bill after carryover
-        $balance     = $monthEarned - $monthPaid; // >0 due, <0 overpay this month
-        $runningDue  = (float)$allTimeEarned + $monthEarned - (float)$allTimePaid - $monthPaid; // all-time
+        $monthPaid = $payments->sum('amount');
+
+        if ($employee->type === 'salary') {
+            // For salary employees: earned = fixed monthly salary, not production entries.
+            $monthEarned = (float)$employee->salary;
+
+            // All-time earned = months of service × monthly salary
+            $joiningDate = $employee->joining_date
+                ? Carbon::parse($employee->joining_date)->startOfMonth()
+                : null;
+            $periodStart = Carbon::parse($from);
+
+            $monthsBeforePeriod  = ($joiningDate && $joiningDate->lt($periodStart))
+                ? (int)$joiningDate->diffInMonths($periodStart) : 0;
+            $allTimeEarnedBefore = $monthsBeforePeriod * $monthEarned;
+
+            $allTimePaidBefore = (float)EmployeePayment::where('business_id', $bizId)
+                ->where('employee_id', $employee->id)
+                ->where('payment_date', '<', $from)
+                ->whereIn('type', ['salary', 'advance', 'bonus'])
+                ->sum('amount');
+            $allTimeDeductBefore = (float)EmployeePayment::where('business_id', $bizId)
+                ->where('employee_id', $employee->id)
+                ->where('payment_date', '<', $from)
+                ->where('type', 'deduction')
+                ->sum('amount');
+
+            // carryOver > 0 means overpaid before (reduces this month's bill)
+            // carryOver < 0 means underpaid before (adds to this month's bill)
+            $carryOver  = $allTimePaidBefore - $allTimeDeductBefore - $allTimeEarnedBefore;
+            $runningDue = $allTimeEarnedBefore + $monthEarned + $allTimeDeductBefore
+                        - $allTimePaidBefore - $monthPaid;
+        } else {
+            $allTimeEarned = (float)ProductionEntry::where('business_id', $bizId)
+                ->where('employee_id', $employee->id)
+                ->where('entry_date', '<', $from)
+                ->sum('amount');
+
+            $allTimePaid = (float)EmployeePayment::where('business_id', $bizId)
+                ->where('employee_id', $employee->id)
+                ->where('payment_date', '<', $from)
+                ->sum('amount');
+
+            $carryOver  = $allTimePaid - $allTimeEarned;
+            $monthEarned = (float)$entries->sum('amount');
+            $runningDue  = $allTimeEarned + $monthEarned - $allTimePaid - $monthPaid;
+        }
+
+        $balance = $monthEarned - $monthPaid; // >0 due this month, <0 overpay this month
 
         // Product breakdown (grouped by product name/color/size)
         $productBreakdown = $entries->groupBy(fn($e) => implode('|', array_filter([
