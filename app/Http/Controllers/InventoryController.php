@@ -300,6 +300,50 @@ class InventoryController extends Controller
         return back()->with('success', 'Stock adjusted successfully!');
     }
 
+    /**
+     * Quick +/- stock adjust from the stock-levels list. Applies a delta, logs a
+     * StockAdjustment row, and returns JSON so the row updates without a reload —
+     * lets the user run down the whole list without opening each product.
+     */
+    public function quickAdjust(Request $request)
+    {
+        $request->validate([
+            'product_id' => 'required|integer',
+            'delta'      => 'required|integer|not_in:0',
+        ]);
+
+        $bizId   = auth()->user()->business_id;
+        $product = Product::where('id', $request->product_id)
+            ->where('business_id', $bizId)
+            ->firstOrFail();
+
+        $before = (int) $product->stock;
+        $after  = max(0, $before + (int) $request->delta);
+        $diff   = $after - $before; // real change after clamping at 0
+
+        if ($diff !== 0) {
+            $product->update(['stock' => $after]);
+
+            StockAdjustment::create([
+                'business_id'     => $bizId,
+                'product_id'      => $product->id,
+                'created_by'      => auth()->id(),
+                'type'            => $diff > 0 ? 'increase' : 'decrease',
+                'quantity'        => abs($diff),
+                'quantity_before' => $before,
+                'quantity_after'  => $after,
+                'reason'          => $request->reason ?: 'Quick adjust',
+            ]);
+        }
+
+        return response()->json([
+            'stock'   => $after,
+            'changed' => $diff !== 0,
+            'low'     => $product->isLowStock(),
+            'out'     => $after <= 0,
+        ]);
+    }
+
     // =============================================
     // BARCODE PRINT
     // =============================================
