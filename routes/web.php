@@ -34,6 +34,9 @@ use App\Http\Controllers\TailoringController;
 Route::middleware('guest')->group(function () {
     Route::get('/login',    [AuthController::class, 'showLogin'])->name('login');
     Route::post('/login',   [AuthController::class, 'login']);
+    // Worker login (phone + PIN) — low-hassle entry for factory workers
+    Route::get('/worker-login',  [AuthController::class, 'showWorkerLogin'])->name('worker.login');
+    Route::post('/worker-login', [AuthController::class, 'workerLogin']);
     Route::get('/register', [AuthController::class, 'showRegister'])->name('register');
     Route::post('/register',[AuthController::class, 'register']);
     Route::get('/forgot-password', [AuthController::class, 'showForgotPassword'])->name('password.request');
