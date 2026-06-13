@@ -43,6 +43,20 @@
     </form>
 </div>
 
+<div x-data="{ step: 1 }">
+
+{{-- Quick-adjust step selector --}}
+<div class="flex items-center gap-2 mb-3 flex-wrap">
+    <span class="text-xs text-gray-500 dark:text-slate-400">Quick adjust step:</span>
+    <template x-for="s in [1, 5, 10, 25]" :key="s">
+        <button type="button" @click="step = s"
+                :class="step === s ? 'bg-primary-600 text-white border-primary-600' : 'bg-white dark:bg-slate-700 text-gray-600 dark:text-slate-300 border-gray-200 dark:border-slate-600'"
+                class="px-3 py-1 text-xs font-semibold rounded-lg border transition-colors"
+                x-text="'±' + s"></button>
+    </template>
+    <span class="text-xs text-gray-400 dark:text-slate-500 ml-1">— each <span class="font-semibold text-green-600">+</span>/<span class="font-semibold text-red-600">−</span> changes stock by this amount</span>
+</div>
+
 {{-- Desktop Table --}}
 <div class="bg-white dark:bg-slate-800 rounded-xl border border-gray-100 dark:border-slate-700 overflow-hidden">
     <div class="hidden md:block overflow-x-auto">
@@ -68,7 +82,7 @@
                             ? 'text-yellow-600 dark:text-yellow-400'
                             : 'text-gray-900 dark:text-white');
                 @endphp
-                <tr class="hover:bg-gray-50 dark:hover:bg-slate-700/30 transition-colors" x-data="{ editing: false, newQty: {{ $product->stock }} }">
+                <tr class="hover:bg-gray-50 dark:hover:bg-slate-700/30 transition-colors" x-data="{ editing: false, newQty: {{ $product->stock }}, stock: {{ $product->stock }}, saving: false, low: {{ $product->low_stock_alert }} }">
                     <td class="px-4 py-3">
                         <div class="flex items-center gap-3">
                             <div class="w-8 h-8 rounded-lg bg-gray-100 dark:bg-slate-700 flex-shrink-0 overflow-hidden">
@@ -85,10 +99,18 @@
                     </td>
                     <td class="px-4 py-3 text-xs font-mono text-gray-500 dark:text-slate-400">{{ $product->sku ?? '—' }}</td>
                     <td class="px-4 py-3 text-xs text-gray-600 dark:text-slate-300">{{ $product->category?->name ?? '—' }}</td>
-                    <td class="px-4 py-3 text-center">
-                        <div x-show="!editing">
-                            <span class="text-base font-bold {{ $stockColor }}">{{ $product->stock }}</span>
-                            <span class="text-xs text-gray-400 dark:text-slate-500 ml-1">{{ $product->unit }}</span>
+                    <td class="px-4 py-3">
+                        <div x-show="!editing" class="flex items-center justify-center gap-1.5">
+                            <button type="button" :disabled="saving || stock <= 0"
+                                    @click="saving = true; quickAdjustStock({{ $product->id }}, -step).then(d => { if (d.stock !== null) stock = d.stock; saving = false; })"
+                                    class="w-7 h-7 flex items-center justify-center rounded-lg bg-red-50 dark:bg-red-900/20 text-red-600 dark:text-red-400 hover:bg-red-100 dark:hover:bg-red-900/40 disabled:opacity-30 disabled:cursor-not-allowed transition-colors text-lg font-bold leading-none">−</button>
+                            <span class="min-w-[2.75rem] text-center text-base font-bold"
+                                  :class="stock <= 0 ? 'text-red-600 dark:text-red-400' : (stock <= low ? 'text-yellow-600 dark:text-yellow-400' : 'text-gray-900 dark:text-white')"
+                                  :style="saving ? 'opacity:0.4' : ''"
+                                  x-text="stock"></span>
+                            <button type="button" :disabled="saving"
+                                    @click="saving = true; quickAdjustStock({{ $product->id }}, step).then(d => { if (d.stock !== null) stock = d.stock; saving = false; })"
+                                    class="w-7 h-7 flex items-center justify-center rounded-lg bg-green-50 dark:bg-green-900/20 text-green-600 dark:text-green-400 hover:bg-green-100 dark:hover:bg-green-900/40 disabled:opacity-30 transition-colors text-lg font-bold leading-none">+</button>
                         </div>
                         <div x-show="editing" x-cloak>
                             <input type="number" x-model.number="newQty" min="0"
@@ -97,21 +119,17 @@
                     </td>
                     <td class="px-4 py-3 text-center text-xs text-gray-500 dark:text-slate-400">{{ $product->low_stock_alert }}</td>
                     <td class="px-4 py-3 text-right text-sm font-medium text-gray-900 dark:text-white">
-                        ৳{{ number_format($product->stock * $product->cost_price) }}
+                        <span x-text="'৳' + Math.round(stock * {{ $product->cost_price }}).toLocaleString()"></span>
                     </td>
                     <td class="px-4 py-3 text-center">
-                        @if($product->stock <= 0)
-                            <span class="inline-flex px-2 py-0.5 rounded-full text-xs font-medium bg-red-100 text-red-700 dark:bg-red-900/30 dark:text-red-400">Out</span>
-                        @elseif($product->isLowStock())
-                            <span class="inline-flex px-2 py-0.5 rounded-full text-xs font-medium bg-yellow-100 text-yellow-700 dark:bg-yellow-900/30 dark:text-yellow-400">Low</span>
-                        @else
-                            <span class="inline-flex px-2 py-0.5 rounded-full text-xs font-medium bg-green-100 text-green-700 dark:bg-green-900/30 dark:text-green-400">OK</span>
-                        @endif
+                        <span x-show="stock <= 0" class="inline-flex px-2 py-0.5 rounded-full text-xs font-medium bg-red-100 text-red-700 dark:bg-red-900/30 dark:text-red-400">Out</span>
+                        <span x-show="stock > 0 && stock <= low" x-cloak class="inline-flex px-2 py-0.5 rounded-full text-xs font-medium bg-yellow-100 text-yellow-700 dark:bg-yellow-900/30 dark:text-yellow-400">Low</span>
+                        <span x-show="stock > low" x-cloak class="inline-flex px-2 py-0.5 rounded-full text-xs font-medium bg-green-100 text-green-700 dark:bg-green-900/30 dark:text-green-400">OK</span>
                     </td>
                     <td class="px-4 py-3 text-center">
                         <div x-show="!editing">
-                            <button @click="editing = true; newQty = {{ $product->stock }}"
-                                    class="p-1.5 text-gray-400 hover:text-primary-600 hover:bg-primary-50 dark:hover:bg-primary-900/20 rounded-lg transition-colors" title="Quick edit stock">
+                            <button @click="editing = true; newQty = stock"
+                                    class="p-1.5 text-gray-400 hover:text-primary-600 hover:bg-primary-50 dark:hover:bg-primary-900/20 rounded-lg transition-colors" title="Set exact stock">
                                 <svg class="w-4 h-4" fill="none" stroke="currentColor" viewBox="0 0 24 24"><path stroke-linecap="round" stroke-linejoin="round" stroke-width="2" d="M11 5H6a2 2 0 00-2 2v11a2 2 0 002 2h11a2 2 0 002-2v-5m-1.414-9.414a2 2 0 112.828 2.828L11.828 15H9v-2.828l8.586-8.586z"/></svg>
                             </button>
                         </div>
@@ -148,7 +166,7 @@
                     ? 'text-yellow-600 dark:text-yellow-400'
                     : 'text-gray-900 dark:text-white');
         @endphp
-        <div class="p-4 flex items-center gap-3">
+        <div class="p-4 flex items-center gap-3" x-data="{ stock: {{ $product->stock }}, saving: false, low: {{ $product->low_stock_alert }} }">
             <div class="w-12 h-12 rounded-xl bg-gray-100 dark:bg-slate-700 flex-shrink-0 overflow-hidden">
                 @if($product->images)
                     <img src="{{ Storage::url($product->images[0]) }}" class="w-full h-full object-cover">
@@ -162,9 +180,17 @@
                 <p class="text-sm font-medium text-gray-900 dark:text-white truncate">{{ $product->name }}</p>
                 <p class="text-xs text-gray-400 dark:text-slate-500 mt-0.5">{{ $product->sku ?? '—' }} · {{ $product->category?->name ?? '—' }}</p>
             </div>
-            <div class="text-right flex-shrink-0">
-                <p class="text-lg font-bold {{ $mobileColor }}">{{ $product->stock }}</p>
-                <p class="text-xs text-gray-400 dark:text-slate-500">{{ $product->unit }}</p>
+            <div class="flex items-center gap-2 flex-shrink-0">
+                <button type="button" :disabled="saving || stock <= 0"
+                        @click="saving = true; quickAdjustStock({{ $product->id }}, -step).then(d => { if (d.stock !== null) stock = d.stock; saving = false; })"
+                        class="w-8 h-8 flex items-center justify-center rounded-lg bg-red-50 dark:bg-red-900/20 text-red-600 dark:text-red-400 disabled:opacity-30 text-xl font-bold leading-none">−</button>
+                <span class="min-w-[2.25rem] text-center text-lg font-bold"
+                      :class="stock <= 0 ? 'text-red-600 dark:text-red-400' : (stock <= low ? 'text-yellow-600 dark:text-yellow-400' : 'text-gray-900 dark:text-white')"
+                      :style="saving ? 'opacity:0.4' : ''"
+                      x-text="stock"></span>
+                <button type="button" :disabled="saving"
+                        @click="saving = true; quickAdjustStock({{ $product->id }}, step).then(d => { if (d.stock !== null) stock = d.stock; saving = false; })"
+                        class="w-8 h-8 flex items-center justify-center rounded-lg bg-green-50 dark:bg-green-900/20 text-green-600 dark:text-green-400 disabled:opacity-30 text-xl font-bold leading-none">+</button>
             </div>
         </div>
         @empty
@@ -176,5 +202,25 @@
     <div class="px-4 py-3 border-t border-gray-100 dark:border-slate-700">{{ $products->withQueryString()->links() }}</div>
     @endif
 </div>
+
+</div>{{-- /x-data step wrapper --}}
+
+<script>
+    // Shared by every +/- button: POST a delta, return the new stock from the server.
+    // Stock lives in the DB, so the displayed number always matches what was saved.
+    window.quickAdjustStock = function (productId, delta) {
+        return fetch('{{ route('inventory.quick-adjust') }}', {
+            method: 'POST',
+            headers: {
+                'Content-Type': 'application/json',
+                'Accept': 'application/json',
+                'X-CSRF-TOKEN': '{{ csrf_token() }}',
+            },
+            body: JSON.stringify({ product_id: productId, delta: delta }),
+        })
+        .then(r => r.json())
+        .catch(() => { alert('Could not update stock. Check your connection and try again.'); return { stock: null }; });
+    };
+</script>
 
 @endsection
