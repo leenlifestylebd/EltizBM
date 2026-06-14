@@ -88,19 +88,32 @@ class Employee extends Model
         $from = is_string($from) ? $from : $from->toDateString();
         $to   = is_string($to)   ? $to   : $to->toDateString();
 
-        $priorEarned    = $this->productionEntries()->where('entry_date', '<', $from)->sum('amount');
-        $priorPaid      = $this->payments()->where('payment_date', '<', $from)->whereIn('type', ['salary', 'advance', 'bonus'])->sum('amount');
-        $priorDeducted  = $this->payments()->where('payment_date', '<', $from)->where('type', 'deduction')->sum('amount');
-        $opening        = (float)$priorEarned - (float)$priorPaid - (float)$priorDeducted;
+        // Base salary owed before the period (each month at its effective rate).
+        $priorBase = 0.0;
+        if ((float)$this->salary > 0 || $this->salaries()->exists()) {
+            $start = $this->joining_date
+                ? \Carbon\Carbon::parse($this->joining_date)->startOfMonth()
+                : \Carbon\Carbon::parse($from)->startOfMonth();
+            $beforePeriod = \Carbon\Carbon::parse($from)->startOfMonth()->subMonth();
+            if ($start->lte($beforePeriod)) $priorBase = $this->salaryOwedForRange($start, $beforePeriod);
+        }
 
-        $earned    = (float)$this->productionEntries()->whereBetween('entry_date', [$from, $to])->sum('amount');
-        $advance   = (float)$this->payments()->whereBetween('payment_date', [$from, $to])->where('type', 'advance')->sum('amount');
-        $bonus     = (float)$this->payments()->whereBetween('payment_date', [$from, $to])->where('type', 'bonus')->sum('amount');
-        $deduction = (float)$this->payments()->whereBetween('payment_date', [$from, $to])->where('type', 'deduction')->sum('amount');
-        $paid      = (float)$this->payments()->whereBetween('payment_date', [$from, $to])->whereIn('type', ['salary', 'advance', 'bonus'])->sum('amount');
-        $closing   = $opening + $earned - $deduction - $paid;
+        $priorProduction = (float)$this->productionEntries()->where('entry_date', '<', $from)->sum('amount');
+        $priorPaid       = $this->payments()->where('payment_date', '<', $from)->whereIn('type', ['salary', 'advance', 'bonus'])->sum('amount');
+        $priorDeducted   = $this->payments()->where('payment_date', '<', $from)->where('type', 'deduction')->sum('amount');
+        $opening         = $priorBase + (float)$priorProduction - (float)$priorPaid - (float)$priorDeducted;
 
-        return compact('opening', 'earned', 'advance', 'bonus', 'deduction', 'paid', 'closing');
+        // This period: base salary (effective per month) + production piece-rate.
+        $base       = $this->salaryOwedForRange($from, $to);
+        $production = (float)$this->productionEntries()->whereBetween('entry_date', [$from, $to])->sum('amount');
+        $earned     = $base + $production;
+        $advance    = (float)$this->payments()->whereBetween('payment_date', [$from, $to])->where('type', 'advance')->sum('amount');
+        $bonus      = (float)$this->payments()->whereBetween('payment_date', [$from, $to])->where('type', 'bonus')->sum('amount');
+        $deduction  = (float)$this->payments()->whereBetween('payment_date', [$from, $to])->where('type', 'deduction')->sum('amount');
+        $paid       = (float)$this->payments()->whereBetween('payment_date', [$from, $to])->whereIn('type', ['salary', 'advance', 'bonus'])->sum('amount');
+        $closing    = $opening + $earned - $deduction - $paid;
+
+        return compact('opening', 'earned', 'base', 'production', 'advance', 'bonus', 'deduction', 'paid', 'closing');
     }
 
     /**

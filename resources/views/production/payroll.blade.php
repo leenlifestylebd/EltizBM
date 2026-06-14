@@ -78,7 +78,12 @@
                             <span class="text-gray-300">—</span>
                         @endif
                     </td>
-                    <td class="px-4 py-3 text-right font-medium text-gray-900 dark:text-white">৳{{ number_format($emp->total_earning) }}</td>
+                    <td class="px-4 py-3 text-right font-medium text-gray-900 dark:text-white">
+                        ৳{{ number_format($emp->total_earning) }}
+                        @if(($emp->total_base ?? 0) > 0 && ($emp->total_production ?? 0) > 0)
+                            <span class="block text-xs font-normal text-gray-400">৳{{ number_format($emp->total_base) }} + ৳{{ number_format($emp->total_production) }}</span>
+                        @endif
+                    </td>
                     <td class="px-4 py-3 text-right text-red-600 dark:text-red-400">{{ $emp->total_advance > 0 ? '৳'.number_format($emp->total_advance) : '—' }}</td>
                     <td class="px-4 py-3 text-right text-green-600 dark:text-green-400">{{ $emp->total_bonus > 0 ? '৳'.number_format($emp->total_bonus) : '—' }}</td>
                     <td class="px-4 py-3 text-right text-red-600 dark:text-red-400">{{ $emp->total_deduct > 0 ? '৳'.number_format($emp->total_deduct) : '—' }}</td>

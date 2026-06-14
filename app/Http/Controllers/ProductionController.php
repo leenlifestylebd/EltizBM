@@ -143,18 +143,21 @@ class ProductionController extends Controller
         $employees = Employee::where('business_id', $bizId)
             ->where('status', 'active')
             ->with([
+                'salaries',
                 'productionEntries' => fn($q) => $q->whereBetween('entry_date', [$startDate, $endDate]),
                 'payments'          => fn($q) => $q->whereBetween('payment_date', [$startDate, $endDate]),
                 'attendances'       => fn($q) => $q->whereBetween('attendance_date', [$startDate, $endDate]),
             ])
             ->get()
             ->map(function ($emp) use ($startDate, $endDate) {
-                // Professional running ledger: prior balance carries in, overpay/advance
-                // is shown (not hidden), and the closing balance is the true amount due.
+                // Professional running ledger: base salary + production carry in, overpay/
+                // advance is shown (not hidden), and closing is the true amount due.
                 $L = $emp->payrollLedger($startDate, $endDate);
 
                 $emp->opening_balance = $L['opening'];   // + owed from before, − advance carried
-                $emp->total_earning   = $L['earned'];
+                $emp->total_earning   = $L['earned'];    // base salary + production
+                $emp->total_base      = $L['base'];
+                $emp->total_production = $L['production'];
                 $emp->total_advance   = $L['advance'];
                 $emp->total_bonus     = $L['bonus'];
                 $emp->total_deduct    = $L['deduction'];
