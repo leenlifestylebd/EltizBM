@@ -78,11 +78,11 @@ class EmployeeController extends Controller
             $emp->month_deducted   = (float)($pay->month_deducted ?? 0);
             $emp->days_present     = $att->days_present ?? 0;
 
-            if ($emp->type === 'salary' && (float)$emp->salary > 0) {
-                $emp->month_net = (float)$emp->salary - $emp->month_advance + $emp->month_deducted;
-            } else {
-                $emp->month_net = $emp->month_earning - $emp->month_advance;
-            }
+            // Unified: net = base salary + production − paid + deductions.
+            // Handles salary-only, production-only, and salary+production workers.
+            $emp->month_base = (float)$emp->salary > 0 ? (float)$emp->salary : 0;
+            $emp->month_net  = $emp->month_base + $emp->month_earning - $emp->month_advance + $emp->month_deducted;
+            $emp->is_hybrid  = $emp->month_base > 0 && $emp->month_earning > 0;
         }
 
         $stats = [
@@ -156,7 +156,10 @@ class EmployeeController extends Controller
         $monthDeductions  = EmployeePayment::where('employee_id', $employee->id)
             ->whereBetween('payment_date', [$monthStart, $monthEnd])
             ->where('type', 'deduction')->sum('amount');
-        $monthNetPayable  = (float)$employee->salary - (float)$monthTotalPaid + (float)$monthDeductions;
+        // Unified net = base salary + production earning − paid + deductions.
+        $monthBase        = (float)$employee->salary > 0 ? (float)$employee->salary : 0;
+        $monthNetPayable  = $monthBase + (float)$monthEarning - (float)$monthTotalPaid + (float)$monthDeductions;
+        $isHybrid         = $monthBase > 0 && (float)$monthEarning > 0;
 
         $recentPayments   = EmployeePayment::where('employee_id', $employee->id)
             ->orderByDesc('payment_date')->limit(5)->get();
@@ -193,6 +196,7 @@ class EmployeeController extends Controller
         return view('employees.show', compact(
             'employee', 'monthProduction', 'monthEarning', 'monthAdvance',
             'monthAttendance', 'monthTotalPaid', 'monthDeductions', 'monthNetPayable',
+            'monthBase', 'isHybrid',
             'recentPayments', 'recentEntries', 'productionEntries', 'products',
             'attendanceRecords', 'last7Days', 'calendarStart', 'daysInMonth', 'attendanceMap'
         ));

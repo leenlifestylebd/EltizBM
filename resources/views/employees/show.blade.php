@@ -55,7 +55,7 @@
 
     {{-- Stats Cards --}}
     <div class="grid grid-cols-2 sm:grid-cols-4 gap-3 mb-4">
-        @if($employee->type === 'salary' && (float)$employee->salary > 0)
+        @if((float)$employee->salary > 0)
         <div class="bg-white dark:bg-slate-800 rounded-xl border border-indigo-100 dark:border-indigo-900/30 p-3 text-center">
             <p class="text-xl font-bold text-indigo-600 dark:text-indigo-400">৳{{ number_format($employee->salary, 0) }}</p>
             <p class="text-xs text-gray-500 dark:text-slate-400">Monthly Salary</p>
@@ -96,9 +96,12 @@
 
     {{-- Tabs --}}
     @php
-        $tabs = $employee->type === 'salary' && (float)$employee->salary > 0
-            ? [['key'=>'overview','label'=>'Overview'],['key'=>'payments','label'=>'Payments'],['key'=>'attendance','label'=>'Attendance']]
-            : [['key'=>'overview','label'=>'Overview'],['key'=>'production','label'=>'Production'],['key'=>'attendance','label'=>'Attendance']];
+        $hasBase = (float)$employee->salary > 0;
+        $hasProd = $monthEarning > 0 || $employee->type === 'production' || !$hasBase;
+        $tabs = [['key'=>'overview','label'=>'Overview']];
+        if ($hasBase) $tabs[] = ['key'=>'payments','label'=>'Payments'];
+        if ($hasProd) $tabs[] = ['key'=>'production','label'=>'Production'];
+        $tabs[] = ['key'=>'attendance','label'=>'Attendance'];
     @endphp
     <div class="flex gap-1 mb-4 bg-gray-100 dark:bg-slate-700 p-1 rounded-xl">
         @foreach($tabs as $t)
@@ -112,15 +115,24 @@
 
     {{-- Tab: Overview --}}
     <div x-show="tab === 'overview'">
-        @if($employee->type === 'salary' && (float)$employee->salary > 0)
-        {{-- Salary employee overview --}}
+        @if((float)$employee->salary > 0)
+        {{-- Base-salary overview (+ production line when the worker also does piece-work) --}}
         <div class="bg-white dark:bg-slate-800 rounded-xl border border-gray-100 dark:border-slate-700 p-4 mb-4">
-            <h3 class="text-sm font-semibold text-gray-900 dark:text-white mb-3">This Month Summary</h3>
+            <h3 class="text-sm font-semibold text-gray-900 dark:text-white mb-3">
+                This Month Summary
+                @if($isHybrid)<span class="ml-1 text-xs font-medium text-purple-600 dark:text-purple-400">Salary + Production</span>@endif
+            </h3>
             <div class="space-y-2">
                 <div class="flex justify-between text-sm">
                     <span class="text-gray-500 dark:text-slate-400">Monthly Salary</span>
                     <span class="font-semibold text-gray-900 dark:text-white">৳{{ number_format($employee->salary, 0) }}</span>
                 </div>
+                @if($monthEarning > 0)
+                <div class="flex justify-between text-sm">
+                    <span class="text-gray-500 dark:text-slate-400">Production ({{ $monthProduction }} pcs)</span>
+                    <span class="font-semibold text-purple-600 dark:text-purple-400">+ ৳{{ number_format($monthEarning, 0) }}</span>
+                </div>
+                @endif
                 <div class="flex justify-between text-sm">
                     <span class="text-gray-500 dark:text-slate-400">Paid This Month</span>
                     <span class="font-semibold text-green-600 dark:text-green-400">- ৳{{ number_format($monthTotalPaid, 0) }}</span>
@@ -211,8 +223,8 @@
         @endif
     </div>
 
-    {{-- Tab: Payments (salary employees only) --}}
-    @if($employee->type === 'salary' && (float)$employee->salary > 0)
+    {{-- Tab: Payments (any worker with a base salary) --}}
+    @if((float)$employee->salary > 0)
     <div x-show="tab === 'payments'" x-cloak>
         <div class="bg-white dark:bg-slate-800 rounded-xl border border-gray-100 dark:border-slate-700 overflow-hidden">
             <div class="px-4 py-3 border-b border-gray-50 dark:border-slate-700 flex items-center justify-between">
