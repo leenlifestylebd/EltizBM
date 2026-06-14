@@ -41,6 +41,7 @@
         return {
             q: '',
             sel: [],
+            modalOpen: false,
             // Full list stays in memory so selection survives searching — search only
             // filters what's shown, never reloads the page or drops ticks.
             items: @json($products->map(fn($p) => ['id' => $p->id, 's' => strtolower($p->name . ' ' . $p->sku), 'short' => $p->shortfall])),
@@ -76,6 +77,22 @@
         <p class="text-xs text-gray-500 dark:text-slate-400 mt-0.5">Pieces to produce</p>
     </div>
 </div>
+
+{{-- Send to Cutting action --}}
+@if($cuttingWorkers->count())
+<div class="mb-4 no-print">
+    <button type="button" @click="modalOpen = true" :disabled="count === 0"
+            class="w-full flex items-center justify-center gap-2 px-4 py-2.5 text-sm font-semibold text-white bg-blue-600 rounded-xl hover:bg-blue-700 disabled:opacity-40 disabled:cursor-not-allowed transition-colors">
+        ✂️ Send to Cutting
+        <span x-show="count > 0" class="bg-white/20 px-2 py-0.5 rounded-full text-xs" x-text="count + ' product' + (count > 1 ? 's' : '')"></span>
+    </button>
+    <p x-show="count === 0" class="text-xs text-center text-gray-400 dark:text-slate-500 mt-1">Tick products above to assign them for cutting</p>
+</div>
+@else
+<div class="mb-4 no-print bg-amber-50 dark:bg-amber-900/20 border border-amber-200 dark:border-amber-800 rounded-xl p-3 text-xs text-amber-700 dark:text-amber-400">
+    No active employees to assign cutting. <a href="{{ route('employees.index') }}" class="underline">Add an employee</a> first.
+</div>
+@endif
 
 {{-- Search (live, no reload) + select-all toolbar --}}
 <div class="bg-white dark:bg-slate-800 rounded-xl border border-gray-100 dark:border-slate-700 p-3 mb-4 no-print">
@@ -195,6 +212,69 @@
         @endforelse
     </div>
 </div>
+
+{{-- Send to Cutting modal --}}
+@if($cuttingWorkers->count())
+<div x-show="modalOpen" x-cloak
+     class="fixed inset-0 z-50 flex items-center justify-center p-4 no-print"
+     style="background: rgba(0,0,0,0.5)">
+    <div @click.outside="modalOpen = false"
+         class="bg-white dark:bg-slate-800 rounded-2xl border border-gray-100 dark:border-slate-700 shadow-xl w-full max-w-md">
+        <div class="px-5 py-4 border-b border-gray-100 dark:border-slate-700 flex items-center justify-between">
+            <h3 class="text-sm font-semibold text-gray-900 dark:text-white">✂️ Send to Cutting</h3>
+            <button @click="modalOpen = false" class="text-gray-400 hover:text-gray-600 text-lg leading-none">&times;</button>
+        </div>
+        <form method="POST" action="{{ route('inventory.cutting-list.send') }}" class="p-5 space-y-4">
+            @csrf
+            <template x-for="id in sel" :key="id">
+                <input type="hidden" name="product_ids[]" :value="id">
+            </template>
+
+            <div class="bg-blue-50 dark:bg-blue-900/20 rounded-lg p-3 text-xs text-blue-700 dark:text-blue-400">
+                <span class="font-semibold" x-text="count"></span> product(s) ·
+                <span class="font-semibold" x-text="total.toLocaleString()"></span> pieces to cut.
+                Each product's cutting quantity = its shortfall (minimum − current stock).
+            </div>
+
+            {{-- Cutting worker --}}
+            <div>
+                <label class="block text-xs font-medium text-gray-700 dark:text-slate-300 mb-1">Cutting Worker <span class="text-red-500">*</span></label>
+                <select name="employee_id" required
+                        class="w-full px-3 py-2 text-sm border border-gray-200 dark:border-slate-600 rounded-lg bg-white dark:bg-slate-700 text-gray-700 dark:text-slate-200 focus:outline-none focus:ring-2 focus:ring-blue-400">
+                    <option value="">Select worker</option>
+                    @foreach($cuttingWorkers as $emp)
+                    <option value="{{ $emp->id }}">{{ $emp->name }}{{ $emp->designation ? ' — '.$emp->designation : '' }}</option>
+                    @endforeach
+                </select>
+            </div>
+
+            {{-- Cutting rate (optional) --}}
+            <div>
+                <label class="block text-xs font-medium text-gray-700 dark:text-slate-300 mb-1">Cutting Rate <span class="text-gray-400">(optional)</span></label>
+                <select name="production_rate_id"
+                        class="w-full px-3 py-2 text-sm border border-gray-200 dark:border-slate-600 rounded-lg bg-white dark:bg-slate-700 text-gray-700 dark:text-slate-200 focus:outline-none focus:ring-2 focus:ring-blue-400">
+                    <option value="">-- Rate ছাড়াই assign করুন --</option>
+                    @foreach($cuttingRates as $rate)
+                    <option value="{{ $rate->id }}">{{ $rate->product_name }}{{ $rate->color ? ' ('.$rate->color.')' : '' }} — ৳{{ number_format($rate->rate) }}/{{ $rate->unit }}</option>
+                    @endforeach
+                </select>
+                @if($cuttingRates->isEmpty())
+                <p class="text-xs text-amber-600 dark:text-amber-400 mt-1">Cutting rate নেই — <a href="{{ route('production.rates') }}" class="underline">যোগ করুন</a>। Rate ছাড়াও assign করা যাবে।</p>
+                @endif
+            </div>
+
+            <div class="flex gap-2 pt-1">
+                <button type="submit" :disabled="count === 0"
+                        class="flex-1 bg-blue-600 hover:bg-blue-700 text-white text-sm font-medium py-2 rounded-lg disabled:opacity-40 transition-colors">
+                    ✂️ Assign Cutting
+                </button>
+                <button type="button" @click="modalOpen = false"
+                        class="px-4 py-2 bg-gray-100 dark:bg-slate-700 text-gray-600 dark:text-slate-300 text-sm rounded-lg">Cancel</button>
+            </div>
+        </form>
+    </div>
+</div>
+@endif
 
 </div>{{-- /x-data --}}
 

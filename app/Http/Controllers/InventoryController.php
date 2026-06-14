@@ -10,10 +10,15 @@ use App\Models\Warehouse;
 use App\Models\WarehouseStock;
 use App\Models\Vendor;
 use App\Models\Category;
+use App\Models\Employee;
+use App\Models\ProductionTask;
+use App\Models\ProductionRate;
+use App\Models\EmployeeNotification;
 use App\Services\StockService;
 use Illuminate\Http\Request;
 use Illuminate\Support\Str;
 use Illuminate\Support\Facades\DB;
+use Illuminate\Validation\Rule;
 
 class InventoryController extends Controller
 {
@@ -109,7 +114,76 @@ class InventoryController extends Controller
         $totalShortfall = $products->sum('shortfall');
         $totalProducts  = $products->count();
 
-        return view('inventory.cutting-list', compact('products', 'totalShortfall', 'totalProducts'));
+        // For the "Send to Cutting" assign modal
+        $cuttingWorkers = Employee::where('business_id', $bizId)
+            ->where('status', 'active')->orderBy('name')->get();
+        $cuttingRates = ProductionRate::where('business_id', $bizId)
+            ->where('stage', 'cutting')->where('is_active', true)
+            ->orderBy('product_name')->get();
+
+        return view('inventory.cutting-list', compact(
+            'products', 'totalShortfall', 'totalProducts', 'cuttingWorkers', 'cuttingRates'
+        ));
+    }
+
+    /**
+     * Create cutting-stage production tasks for the selected low-stock products,
+     * assigned to one cutting worker. Quantity per product = the shortfall
+     * (minimum − current stock), recomputed server-side. Entry point of the
+     * Cutting → Sewing → Iron pipeline.
+     */
+    public function sendToCutting(Request $request)
+    {
+        $bizId = auth()->user()->business_id;
+
+        $request->validate([
+            'product_ids'        => 'required|array|min:1',
+            'product_ids.*'      => 'integer',
+            'employee_id'        => ['required', Rule::exists('employees', 'id')->where('business_id', $bizId)],
+            'production_rate_id' => ['nullable', Rule::exists('production_rates', 'id')->where('business_id', $bizId)->where('stage', 'cutting')],
+        ]);
+
+        $worker = Employee::where('business_id', $bizId)->findOrFail($request->employee_id);
+
+        $products = Product::where('business_id', $bizId)
+            ->whereIn('id', $request->product_ids)
+            ->where('low_stock_alert', '>', 0)
+            ->get();
+
+        $created = 0;
+        foreach ($products as $p) {
+            $qty = max(0, (int) $p->low_stock_alert - (int) $p->stock);
+            if ($qty <= 0) continue;
+
+            ProductionTask::create([
+                'business_id'        => $bizId,
+                'employee_id'        => $worker->id,
+                'assigned_by'        => auth()->id(),
+                'production_rate_id' => $request->production_rate_id ?: null,
+                'stage'              => 'cutting',
+                'product_name'       => $p->name,
+                'assigned_quantity'  => $qty,
+                'completed_quantity' => 0,
+                'status'             => 'assigned',
+                'assigned_at'        => now(),
+                'notes'              => 'From cutting list — SKU: ' . ($p->sku ?? '—'),
+            ]);
+            $created++;
+        }
+
+        if ($created === 0) {
+            return back()->with('error', 'No cutting tasks created — selected products are already at their minimum stock.');
+        }
+
+        EmployeeNotification::notify(
+            $bizId, $worker->id, 'task',
+            'নতুন কাটিং কাজ পেয়েছেন',
+            $created . 'টি product কাটিং-এর জন্য assign করা হয়েছে',
+            route('production.worker.dashboard')
+        );
+
+        return redirect()->route('production.pipeline')
+            ->with('success', "{$created} cutting task(s) assigned to {$worker->name}.");
     }
 
     public function exportCuttingList(Request $request)
