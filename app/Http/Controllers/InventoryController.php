@@ -75,6 +75,67 @@ class InventoryController extends Controller
     }
 
     // =============================================
+    // CUTTING LIST — production requirement to reach minimum stock
+    // =============================================
+    private function shortfallProducts(int $bizId, ?string $search = null)
+    {
+        $query = Product::where('business_id', $bizId)
+            ->where('low_stock_alert', '>', 0)
+            ->whereColumn('stock', '<', 'low_stock_alert')
+            ->with('category');
+
+        if ($search) {
+            $query->where(function ($q) use ($search) {
+                $q->where('name', 'like', "%{$search}%")
+                  ->orWhere('sku', 'like', "%{$search}%");
+            });
+        }
+
+        return $query->get()
+            ->map(function ($p) {
+                // How many more pieces must be produced to reach the minimum.
+                $p->shortfall = max(0, (int) $p->low_stock_alert - (int) $p->stock);
+                return $p;
+            })
+            ->sortByDesc('shortfall')
+            ->values();
+    }
+
+    public function cuttingList(Request $request)
+    {
+        $bizId    = auth()->user()->business_id;
+        $products = $this->shortfallProducts($bizId, $request->search);
+
+        $totalShortfall = $products->sum('shortfall');
+        $totalProducts  = $products->count();
+
+        return view('inventory.cutting-list', compact('products', 'totalShortfall', 'totalProducts'));
+    }
+
+    public function exportCuttingList(Request $request)
+    {
+        $bizId    = auth()->user()->business_id;
+        $products = $this->shortfallProducts($bizId, $request->search);
+
+        $filename = 'cutting-list-' . date('Y-m-d') . '.csv';
+        $headers  = ['Content-Type' => 'text/csv', 'Content-Disposition' => "attachment; filename=\"{$filename}\""];
+
+        $callback = function () use ($products) {
+            $handle = fopen('php://output', 'w');
+            fputcsv($handle, ['SKU', 'Product', 'Category', 'Current Stock', 'Minimum Qty', 'To Produce']);
+            foreach ($products as $p) {
+                fputcsv($handle, [
+                    $p->sku, $p->name, $p->category?->name,
+                    $p->stock, $p->low_stock_alert, $p->shortfall,
+                ]);
+            }
+            fclose($handle);
+        };
+
+        return response()->stream($callback, 200, $headers);
+    }
+
+    // =============================================
     // PURCHASE ORDERS
     // =============================================
     public function purchaseOrders(Request $request)
