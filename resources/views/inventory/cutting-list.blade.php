@@ -39,7 +39,7 @@
 <script>
     function cuttingList() {
         return {
-            sel: @json($products->pluck('id')->values()),
+            sel: [],
             short: @json($products->mapWithKeys(fn($p) => [$p->id => $p->shortfall])),
             allIds: @json($products->pluck('id')->values()),
             has(id) { return this.sel.includes(id); },
