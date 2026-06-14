@@ -164,6 +164,8 @@ Route::middleware(['auth', 'business'])->group(function () {
         Route::post('/purchase-orders', [InventoryController::class, 'storePurchaseOrder'])->name('purchase-orders.store');
         Route::get('/stock-levels',     [InventoryController::class, 'stockLevels'])->name('stock-levels');
         Route::get('/export-stock',     [InventoryController::class, 'exportStock'])->name('export-stock');
+        Route::get('/cutting-list',        [InventoryController::class, 'cuttingList'])->name('cutting-list');
+        Route::get('/cutting-list/export', [InventoryController::class, 'exportCuttingList'])->name('cutting-list.export');
         Route::get('/adjustments',      [InventoryController::class, 'adjustments'])->name('adjustments');
         Route::post('/adjustments',     [InventoryController::class, 'storeAdjustment'])->name('adjustments.store');
         Route::post('/quick-adjust',    [InventoryController::class, 'quickAdjust'])->name('quick-adjust');
