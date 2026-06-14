@@ -39,15 +39,26 @@
 <script>
     function cuttingList() {
         return {
+            q: '',
             sel: [],
-            short: @json($products->mapWithKeys(fn($p) => [$p->id => $p->shortfall])),
-            allIds: @json($products->pluck('id')->values()),
+            // Full list stays in memory so selection survives searching — search only
+            // filters what's shown, never reloads the page or drops ticks.
+            items: @json($products->map(fn($p) => ['id' => $p->id, 's' => strtolower($p->name . ' ' . $p->sku), 'short' => $p->shortfall])),
+            matches(item) { const t = this.q.trim().toLowerCase(); return t === '' || item.s.includes(t); },
+            visible(id) { const it = this.items.find(i => i.id === id); return it ? this.matches(it) : true; },
+            filteredIds() { return this.items.filter(i => this.matches(i)).map(i => i.id); },
+            noResults() { return this.q.trim() !== '' && this.filteredIds().length === 0; },
             has(id) { return this.sel.includes(id); },
             toggle(id) { const i = this.sel.indexOf(id); i > -1 ? this.sel.splice(i, 1) : this.sel.push(id); },
-            get allOn() { return this.allIds.length > 0 && this.sel.length === this.allIds.length; },
-            toggleAll() { this.sel = this.allOn ? [] : [...this.allIds]; },
+            get allOn() { const f = this.filteredIds(); return f.length > 0 && f.every(id => this.sel.includes(id)); },
+            toggleAll() {
+                const f = this.filteredIds();
+                if (this.allOn) { this.sel = this.sel.filter(id => !f.includes(id)); }
+                else { f.forEach(id => { if (!this.sel.includes(id)) this.sel.push(id); }); }
+            },
             get count() { return this.sel.length; },
-            get total() { return this.sel.reduce((s, id) => s + (this.short[id] || 0), 0); }
+            shortOf(id) { const it = this.items.find(i => i.id === id); return it ? it.short : 0; },
+            get total() { return this.sel.reduce((s, id) => s + this.shortOf(id), 0); }
         };
     }
 </script>
@@ -66,28 +77,26 @@
     </div>
 </div>
 
-{{-- Search + select-all toolbar --}}
+{{-- Search (live, no reload) + select-all toolbar --}}
 <div class="bg-white dark:bg-slate-800 rounded-xl border border-gray-100 dark:border-slate-700 p-3 mb-4 no-print">
-    <form method="GET" action="{{ route('inventory.cutting-list') }}" class="flex gap-2 mb-2">
+    <div class="flex gap-2 mb-2">
         <div class="relative flex-1">
             <svg class="absolute left-3 top-1/2 -translate-y-1/2 w-4 h-4 text-gray-400" fill="none" stroke="currentColor" viewBox="0 0 24 24"><path stroke-linecap="round" stroke-linejoin="round" stroke-width="2" d="M21 21l-6-6m2-5a7 7 0 11-14 0 7 7 0 0114 0"/></svg>
-            <input type="text" name="search" value="{{ request('search') }}" placeholder="Search product or SKU..."
+            <input type="text" x-model="q" placeholder="Search product or SKU..."
                    class="w-full pl-9 pr-3 py-2 text-sm border border-gray-200 dark:border-slate-600 rounded-lg bg-transparent text-gray-900 dark:text-white placeholder-gray-400 focus:outline-none focus:ring-2 focus:ring-primary-500">
         </div>
-        <button type="submit" class="px-3 py-2 bg-primary-600 text-white rounded-lg hover:bg-primary-700 text-sm transition-colors">Search</button>
-        @if(request('search'))
-            <a href="{{ route('inventory.cutting-list') }}" class="px-3 py-2 text-sm text-gray-500 dark:text-slate-400 border border-gray-200 dark:border-slate-600 rounded-lg hover:bg-gray-50 dark:hover:bg-slate-700">Clear</a>
-        @endif
-    </form>
+        <button type="button" x-show="q" @click="q = ''" class="px-3 py-2 text-sm text-gray-500 dark:text-slate-400 border border-gray-200 dark:border-slate-600 rounded-lg hover:bg-gray-50 dark:hover:bg-slate-700">Clear</button>
+    </div>
     @if($products->count())
     <div class="flex items-center gap-3 text-xs">
         <label class="inline-flex items-center gap-1.5 cursor-pointer select-none">
             <input type="checkbox" :checked="allOn" @change="toggleAll()"
                    class="w-4 h-4 rounded border-gray-300 dark:border-slate-600 text-primary-600 focus:ring-primary-500">
-            <span class="font-medium text-gray-700 dark:text-slate-200">Select all</span>
+            <span class="font-medium text-gray-700 dark:text-slate-200" x-text="q ? 'Select shown' : 'Select all'"></span>
         </label>
         <span class="text-gray-400">·</span>
         <button type="button" @click="sel = []" class="text-gray-500 dark:text-slate-400 hover:text-primary-600">Clear selection</button>
+        <span class="text-gray-400 ml-auto"><span class="font-semibold text-primary-600" x-text="count"></span> selected</span>
     </div>
     @endif
 </div>
@@ -121,6 +130,7 @@
             <tbody class="divide-y divide-gray-50 dark:divide-slate-700">
                 @forelse($products as $product)
                 <tr class="hover:bg-gray-50 dark:hover:bg-slate-700/30 transition-colors"
+                    x-show="visible({{ $product->id }})"
                     :class="has({{ $product->id }}) ? '' : 'opacity-40 print-exclude'">
                     <td class="no-print text-center px-3 py-3">
                         <input type="checkbox" :checked="has({{ $product->id }})" @change="toggle({{ $product->id }})"
@@ -145,6 +155,9 @@
                     </td>
                 </tr>
                 @endforelse
+                <tr x-show="noResults()" x-cloak>
+                    <td colspan="7" class="px-4 py-12 text-center text-sm text-gray-400 dark:text-slate-500">No products match your search.</td>
+                </tr>
             </tbody>
             @if($products->count())
             <tfoot>
@@ -161,7 +174,7 @@
     {{-- Mobile cards --}}
     <div class="md:hidden divide-y divide-gray-50 dark:divide-slate-700">
         @forelse($products as $product)
-        <div class="p-4 flex items-center gap-3" :class="has({{ $product->id }}) ? '' : 'opacity-40 print-exclude'">
+        <div class="p-4 flex items-center gap-3" x-show="visible({{ $product->id }})" :class="has({{ $product->id }}) ? '' : 'opacity-40 print-exclude'">
             <input type="checkbox" :checked="has({{ $product->id }})" @change="toggle({{ $product->id }})"
                    class="no-print w-4 h-4 rounded border-gray-300 dark:border-slate-600 text-primary-600 focus:ring-primary-500 flex-shrink-0">
             <div class="flex-1 min-w-0">
