@@ -41,6 +41,27 @@ class ProductionTask extends Model
         return max(0, $this->completed_quantity - $this->forwardedQuantity());
     }
 
+    /** The next stage in the pipeline after this task's stage, or null if last. */
+    public function nextStage(): ?string
+    {
+        $order = ProductionRate::PIPELINE;
+        $i = array_search($this->stage ?? 'sewing', $order, true);
+        if ($i === false || $i === count($order) - 1) return null;
+        return $order[$i + 1];
+    }
+
+    public function nextStageLabel(): ?string
+    {
+        $next = $this->nextStage();
+        return $next ? (ProductionRate::STAGES[$next] ?? ucfirst($next)) : null;
+    }
+
+    /** Can completed pieces still be forwarded to a following stage? */
+    public function canForward(): bool
+    {
+        return $this->nextStage() !== null && $this->forwardable_quantity > 0;
+    }
+
     public function getPendingQuantityAttribute(): int
     {
         return max(0, $this->assigned_quantity - $this->completed_quantity);

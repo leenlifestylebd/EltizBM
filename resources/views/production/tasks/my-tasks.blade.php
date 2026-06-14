@@ -133,12 +133,14 @@
         <div class="flex-1">
             @php
                 $stageLabelBn = match($task->stage ?? 'sewing') {
+                    'cutting' => 'কাটিং',
                     'ironing' => 'ইস্ত্রি',
                     'folding' => 'ভাঁজ',
                     'packing' => 'প্যাকিং',
                     default   => 'সেলাই',
                 };
                 $stageBadgeBn = match($task->stage ?? 'sewing') {
+                    'cutting' => 'bg-blue-100 text-blue-700 dark:bg-blue-900/30 dark:text-blue-400',
                     'ironing' => 'bg-orange-100 text-orange-700 dark:bg-orange-900/30 dark:text-orange-400',
                     'folding' => 'bg-purple-100 text-purple-700 dark:bg-purple-900/30 dark:text-purple-400',
                     'packing' => 'bg-teal-100 text-teal-700 dark:bg-teal-900/30 dark:text-teal-400',

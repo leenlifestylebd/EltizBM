@@ -163,10 +163,10 @@
                                class="px-2.5 py-1 text-xs text-primary-600 border border-primary-200 rounded-lg hover:bg-primary-50 dark:hover:bg-primary-900/20">
                                 View
                             </a>
-                            @if(($task->stage ?? 'sewing') === 'sewing' && $task->forwardable_quantity > 0)
+                            @if($task->canForward())
                             <a href="{{ route('production.tasks.show', $task) }}#forward"
                                class="px-2.5 py-1 text-xs text-orange-600 border border-orange-200 rounded-lg hover:bg-orange-50 dark:hover:bg-orange-900/20">
-                                🔥 Iron
+                                → {{ $task->nextStageLabel() }}
                             </a>
                             @endif
                             <form method="POST" action="{{ route('production.tasks.destroy', $task) }}"
@@ -231,9 +231,9 @@
         <div class="flex items-center justify-between">
             <span class="text-xs text-gray-500">Pending: <strong class="{{ $task->pending_quantity > 0 ? 'text-orange-600' : 'text-green-600' }}">{{ $task->pending_quantity }}</strong></span>
             <div class="flex gap-1.5 flex-wrap justify-end">
-                @if(($task->stage ?? 'sewing') === 'sewing' && $task->forwardable_quantity > 0)
+                @if($task->canForward())
                 <a href="{{ route('production.tasks.show', $task) }}#forward"
-                   class="px-2.5 py-1 text-xs text-orange-600 border border-orange-200 rounded-lg">🔥 Iron</a>
+                   class="px-2.5 py-1 text-xs text-orange-600 border border-orange-200 rounded-lg">→ {{ $task->nextStageLabel() }}</a>
                 @endif
                 <a href="{{ route('production.tasks.show', $task) }}"
                    class="px-2.5 py-1 text-xs text-primary-600 border border-primary-200 rounded-lg">View</a>

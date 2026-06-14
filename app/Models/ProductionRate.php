@@ -12,11 +12,15 @@ class ProductionRate extends Model
     ];
 
     public const STAGES = [
+        'cutting' => 'Cutting',
         'sewing'  => 'Sewing',
         'ironing' => 'Ironing',
         'folding' => 'Folding',
         'packing' => 'Packing',
     ];
+
+    /** Ordered manufacturing pipeline: work flows left to right. */
+    public const PIPELINE = ['cutting', 'sewing', 'ironing'];
 
     public function business() { return $this->belongsTo(Business::class); }
     public function entries()  { return $this->hasMany(ProductionEntry::class); }
