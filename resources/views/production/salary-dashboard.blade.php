@@ -56,10 +56,11 @@
     <div class="grid grid-cols-2 gap-3 mb-4">
         {{-- Monthly Salary (+ production for hybrids) --}}
         <div class="bg-white dark:bg-slate-800 rounded-xl border border-gray-100 dark:border-slate-700 p-4">
+            @php $monthSalary = $monthSalary ?? (float)$employee->salary; @endphp
             <p class="text-xs text-gray-500 dark:text-slate-400 mb-1">{{ ($monthProduction ?? 0) > 0 ? 'Earned This Month' : 'Monthly Salary' }}</p>
-            <p class="text-xl font-bold text-gray-900 dark:text-white">৳{{ number_format($employee->salary + ($monthProduction ?? 0), 0) }}</p>
+            <p class="text-xl font-bold text-gray-900 dark:text-white">৳{{ number_format($monthSalary + ($monthProduction ?? 0), 0) }}</p>
             @if(($monthProduction ?? 0) > 0)
-                <p class="text-xs text-purple-600 dark:text-purple-400 mt-1 font-medium">৳{{ number_format($employee->salary, 0) }} salary + ৳{{ number_format($monthProduction, 0) }} production</p>
+                <p class="text-xs text-purple-600 dark:text-purple-400 mt-1 font-medium">৳{{ number_format($monthSalary, 0) }} salary + ৳{{ number_format($monthProduction, 0) }} production</p>
             @else
                 <p class="text-xs text-indigo-600 dark:text-indigo-400 mt-1 font-medium">Fixed</p>
             @endif

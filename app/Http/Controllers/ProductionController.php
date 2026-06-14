@@ -398,9 +398,10 @@ class ProductionController extends Controller
         $fromDate = $from->toDateString();
         $toDate   = $to->toDateString();
 
-        // All active employees
+        // All active employees (with salary history for effective-rate lookups)
         $employees = Employee::where('business_id', $bizId)
             ->where('status', 'active')
+            ->with('salaries')
             ->orderBy('name')
             ->get();
 
@@ -467,13 +468,14 @@ class ProductionController extends Controller
                 // Task stats still shown for salary employees (they may have tasks too)
                 // Unified: a base-salary worker may also earn production piece-rate.
                 // net = base salary + production − paid + deductions.
+                $effSalary = $emp->salaryForMonth($fromDate);
                 return [
                     'employee'       => $emp,
                     'type'           => 'salary',
-                    'monthly_salary' => (float)$emp->salary,
+                    'monthly_salary' => $effSalary,
                     'present_days'   => $present,
                     'total_paid'     => $paid,
-                    'net_payable'    => (float)$emp->salary + (float)$totalAmt - $paid + $deducted,
+                    'net_payable'    => $effSalary + (float)$totalAmt - $paid + $deducted,
                     'total_tasks'    => $tasks->count(),
                     'assigned'       => $tasks->where('status', 'assigned')->count(),
                     'in_progress'    => $tasks->where('status', 'in_progress')->count(),
@@ -620,8 +622,10 @@ class ProductionController extends Controller
             $periodStartMonth = Carbon::parse($monthStart);
 
             if ($joiningDate && $joiningDate->lt($periodStartMonth)) {
-                $monthsBeforePeriod  = (int)$joiningDate->diffInMonths($periodStartMonth);
-                $salaryOwedBefore    = $monthsBeforePeriod * (float)$employee->salary;
+                // Salary owed for every month before this one, at each month's effective rate.
+                $salaryOwedBefore = $employee->salaryOwedForRange(
+                    $joiningDate, $periodStartMonth->copy()->subMonth()
+                );
             } else {
                 $salaryOwedBefore = 0;
             }
@@ -643,7 +647,8 @@ class ProductionController extends Controller
             $openingBalance = $salaryOwedBefore + $productionBefore - $paidBefore + $deductedBefore;
             // openingBalance: + employee is owed carry-in, − was overpaid (reduces this month's due)
 
-            $netPayable = $openingBalance + (float)$employee->salary + $monthProduction - $totalPaid + $totalDeducted;
+            $monthSalary = $employee->salaryForMonth($monthStart);
+            $netPayable  = $openingBalance + $monthSalary + $monthProduction - $totalPaid + $totalDeducted;
 
             $calendarMap   = $attendance->keyBy(fn($a) => Carbon::parse($a->attendance_date)->format('Y-m-d'));
             $calendarStart = Carbon::parse($monthStart)->dayOfWeek;
@@ -661,7 +666,7 @@ class ProductionController extends Controller
                 'attendance', 'daysInMonth', 'daysPresent', 'daysAbsent',
                 'daysHalfDay', 'daysHoliday', 'daysNotMarked',
                 'payments', 'totalPaid', 'totalDeducted', 'netPayable', 'openingBalance',
-                'monthProduction',
+                'monthProduction', 'monthSalary',
                 'calendarMap', 'calendarStart', 'allMonths',
                 'notifications', 'notifUnread'
             ));
@@ -882,24 +887,25 @@ class ProductionController extends Controller
         $monthPaid = $payments->sum('amount');
 
         if ((float)$employee->salary > 0) {
-            // Base-salary worker — earned = fixed monthly salary PLUS any production
-            // piece-rate they also did (salary + production hybrids).
+            // Base-salary worker — earned = the salary effective this month PLUS any
+            // production piece-rate they also did (salary + production hybrids).
             $monthProduction = (float)$entries->sum('amount');
-            $monthEarned     = (float)$employee->salary + $monthProduction;
+            $monthEarned     = $employee->salaryForMonth($from) + $monthProduction;
 
-            // All-time earned before period = months of service × salary + prior production
+            // All-time earned before period = each prior month's effective salary + prior production
             $joiningDate = $employee->joining_date
                 ? Carbon::parse($employee->joining_date)->startOfMonth()
                 : null;
             $periodStart = Carbon::parse($from);
 
-            $monthsBeforePeriod  = ($joiningDate && $joiningDate->lt($periodStart))
-                ? (int)$joiningDate->diffInMonths($periodStart) : 0;
+            $salaryOwedBefore    = ($joiningDate && $joiningDate->lt($periodStart))
+                ? $employee->salaryOwedForRange($joiningDate, $periodStart->copy()->subMonth())
+                : 0;
             $productionBefore    = (float)ProductionEntry::where('business_id', $bizId)
                 ->where('employee_id', $employee->id)
                 ->where('entry_date', '<', $from)
                 ->sum('amount');
-            $allTimeEarnedBefore = $monthsBeforePeriod * (float)$employee->salary + $productionBefore;
+            $allTimeEarnedBefore = $salaryOwedBefore + $productionBefore;
 
             $allTimePaidBefore = (float)EmployeePayment::where('business_id', $bizId)
                 ->where('employee_id', $employee->id)

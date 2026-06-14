@@ -3,6 +3,7 @@
 namespace App\Http\Controllers;
 
 use App\Models\Employee;
+use App\Models\EmployeeSalary;
 use App\Models\ProductionEntry;
 use App\Models\EmployeePayment;
 use App\Models\Attendance;
@@ -113,7 +114,7 @@ class EmployeeController extends Controller
             'type'   => 'nullable|in:salary,production,both',
         ]);
 
-        Employee::create([
+        $employee = Employee::create([
             'business_id'  => auth()->user()->business_id,
             'user_id'      => $request->user_id ?: null,
             'name'         => $request->name,
@@ -126,6 +127,20 @@ class EmployeeController extends Controller
             'joining_date' => $request->joining_date,
             'status'       => $request->status ?? 'active',
         ]);
+
+        // Seed salary history (effective from the joining month).
+        if ((float)($request->salary ?? 0) > 0) {
+            $eff = $request->joining_date
+                ? Carbon::parse($request->joining_date)->startOfMonth()
+                : now()->startOfMonth();
+            EmployeeSalary::create([
+                'business_id'    => $employee->business_id,
+                'employee_id'    => $employee->id,
+                'amount'         => $request->salary,
+                'effective_from' => $eff->toDateString(),
+                'created_by'     => auth()->id(),
+            ]);
+        }
 
         return redirect()->route('employees.index')->with('success', 'Employee added!');
     }
@@ -217,9 +232,13 @@ class EmployeeController extends Controller
     {
         $this->authorize($employee);
         $request->validate([
-            'name' => 'required|string|max:100',
-            'type' => 'nullable|in:salary,production,both',
+            'name'                  => 'required|string|max:100',
+            'type'                  => 'nullable|in:salary,production,both',
+            'salary'                => 'nullable|numeric|min:0',
+            'salary_effective_from' => 'nullable|date',
         ]);
+
+        $newSalary = (float)($request->salary ?? 0);
 
         $employee->update([
             'user_id'      => $request->user_id ?: null,
@@ -229,10 +248,25 @@ class EmployeeController extends Controller
             'designation'  => $request->designation,
             'department'   => $request->department,
             'type'         => $request->type ?? $employee->type ?? 'salary',
-            'salary'       => $request->salary ?? 0,
+            'salary'       => $newSalary,
             'joining_date' => $request->joining_date,
             'status'       => $request->status,
         ]);
+
+        // Record a salary revision (effective month) instead of rewriting history.
+        // Past months keep the rate that was in effect then.
+        if ($newSalary > 0) {
+            $eff = $request->salary_effective_from
+                ? Carbon::parse($request->salary_effective_from)->startOfMonth()
+                : now()->startOfMonth();
+            $effectiveNow = $employee->salaryForMonth($eff);
+            if ($employee->salaries()->count() === 0 || abs($newSalary - $effectiveNow) > 0.001) {
+                EmployeeSalary::updateOrCreate(
+                    ['employee_id' => $employee->id, 'effective_from' => $eff->toDateString()],
+                    ['business_id' => $employee->business_id, 'amount' => $newSalary, 'created_by' => auth()->id()]
+                );
+            }
+        }
 
         return redirect()->route('employees.show', $employee)->with('success', 'Employee updated!');
     }

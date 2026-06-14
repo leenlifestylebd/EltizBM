@@ -38,13 +38,13 @@ class Employee extends Model
         $m = ($month instanceof \Carbon\Carbon ? $month->copy() : \Carbon\Carbon::parse($month))
                 ->startOfMonth()->toDateString();
 
-        $rec = $this->salaries
-            ? $this->salaries->firstWhere(fn($s) => $s->effective_from->toDateString() <= $m)
-            : null;
+        // Use the eager-loaded collection when present (relation is ordered DESC,
+        // so the first match on-or-before $m is the effective one).
+        if ($this->relationLoaded('salaries')) {
+            $rec = $this->salaries->first(fn($s) => $s->effective_from->toDateString() <= $m);
+            return $rec ? (float) $rec->amount : (float) $this->salary;
+        }
 
-        if ($rec) return (float) $rec->amount;
-
-        // Not eager-loaded or none cached → query, then fall back to the column.
         $rec = $this->salaries()->where('effective_from', '<=', $m)->first();
         return $rec ? (float) $rec->amount : (float) $this->salary;
     }
