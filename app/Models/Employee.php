@@ -80,7 +80,7 @@ class Employee extends Model
     /**
      * Running payroll ledger for production-based employees.
      * Opening = all earnings before $from minus all payments before $from.
-     * Closing = opening + period earned - period paid + period deductions.
+     * Closing = opening + period earned - period paid - period deductions.
      * Positive closing = still owed to employee. Negative = overpaid.
      */
     public function payrollLedger($from, $to): array
@@ -91,14 +91,14 @@ class Employee extends Model
         $priorEarned    = $this->productionEntries()->where('entry_date', '<', $from)->sum('amount');
         $priorPaid      = $this->payments()->where('payment_date', '<', $from)->whereIn('type', ['salary', 'advance', 'bonus'])->sum('amount');
         $priorDeducted  = $this->payments()->where('payment_date', '<', $from)->where('type', 'deduction')->sum('amount');
-        $opening        = (float)$priorEarned - (float)$priorPaid + (float)$priorDeducted;
+        $opening        = (float)$priorEarned - (float)$priorPaid - (float)$priorDeducted;
 
         $earned    = (float)$this->productionEntries()->whereBetween('entry_date', [$from, $to])->sum('amount');
         $advance   = (float)$this->payments()->whereBetween('payment_date', [$from, $to])->where('type', 'advance')->sum('amount');
         $bonus     = (float)$this->payments()->whereBetween('payment_date', [$from, $to])->where('type', 'bonus')->sum('amount');
         $deduction = (float)$this->payments()->whereBetween('payment_date', [$from, $to])->where('type', 'deduction')->sum('amount');
         $paid      = (float)$this->payments()->whereBetween('payment_date', [$from, $to])->whereIn('type', ['salary', 'advance', 'bonus'])->sum('amount');
-        $closing   = $opening + $earned + $deduction - $paid;
+        $closing   = $opening + $earned - $deduction - $paid;
 
         return compact('opening', 'earned', 'advance', 'bonus', 'deduction', 'paid', 'closing');
     }
@@ -108,7 +108,7 @@ class Employee extends Model
      *   - Fixed base salary  (monthly salary × months in range; 0 if none)
      *   - Variable earnings  (production piece-rate; 0 if none)
      * A worker can have one, the other, or both. Net keeps the same convention
-     * used across the app: net = base + production − paid + deduction, where
+     * used across the app: net = base + production − paid − deduction, where
      * `paid` = salary/advance/bonus payments. This reduces exactly to the old
      * salary-only and production-only formulas.
      */
@@ -129,7 +129,7 @@ class Employee extends Model
         $paid      = (float) $this->payments()->whereBetween('payment_date', [$from, $to])->whereIn('type', ['salary', 'advance', 'bonus'])->sum('amount');
 
         $gross = $base + $production;
-        $net   = $gross - $paid + $deduction;
+        $net   = $gross - $paid - $deduction;
 
         return [
             'base'           => $base,

@@ -475,7 +475,7 @@ class ProductionController extends Controller
                     'monthly_salary' => $effSalary,
                     'present_days'   => $present,
                     'total_paid'     => $paid,
-                    'net_payable'    => $effSalary + (float)$totalAmt - $paid + $deducted,
+                    'net_payable'    => $effSalary + (float)$totalAmt - $paid - $deducted,
                     'total_tasks'    => $tasks->count(),
                     'assigned'       => $tasks->where('status', 'assigned')->count(),
                     'in_progress'    => $tasks->where('status', 'in_progress')->count(),
@@ -644,11 +644,11 @@ class ProductionController extends Controller
             $productionBefore = (float)ProductionEntry::where('employee_id', $employee->id)
                 ->where('entry_date', '<', $monthStart)->sum('amount');
 
-            $openingBalance = $salaryOwedBefore + $productionBefore - $paidBefore + $deductedBefore;
+            $openingBalance = $salaryOwedBefore + $productionBefore - $paidBefore - $deductedBefore;
             // openingBalance: + employee is owed carry-in, − was overpaid (reduces this month's due)
 
             $monthSalary = $employee->salaryForMonth($monthStart);
-            $netPayable  = $openingBalance + $monthSalary + $monthProduction - $totalPaid + $totalDeducted;
+            $netPayable  = $openingBalance + $monthSalary + $monthProduction - $totalPaid - $totalDeducted;
 
             $calendarMap   = $attendance->keyBy(fn($a) => Carbon::parse($a->attendance_date)->format('Y-m-d'));
             $calendarStart = Carbon::parse($monthStart)->dayOfWeek;
@@ -920,8 +920,9 @@ class ProductionController extends Controller
 
             // carryOver > 0 means overpaid before (reduces this month's bill)
             // carryOver < 0 means underpaid before (adds to this month's bill)
-            $carryOver  = $allTimePaidBefore - $allTimeDeductBefore - $allTimeEarnedBefore;
-            $runningDue = $allTimeEarnedBefore + $monthEarned + $allTimeDeductBefore
+            // Deductions reduce what was owed, so they add to any overpayment.
+            $carryOver  = $allTimePaidBefore + $allTimeDeductBefore - $allTimeEarnedBefore;
+            $runningDue = $allTimeEarnedBefore + $monthEarned - $allTimeDeductBefore
                         - $allTimePaidBefore - $monthPaid;
         } else {
             $allTimeEarned = (float)ProductionEntry::where('business_id', $bizId)

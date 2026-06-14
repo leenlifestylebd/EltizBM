@@ -140,7 +140,7 @@
                 @if($monthDeductions > 0)
                 <div class="flex justify-between text-sm">
                     <span class="text-gray-500 dark:text-slate-400">Deductions</span>
-                    <span class="font-semibold text-red-500">+ ৳{{ number_format($monthDeductions, 0) }}</span>
+                    <span class="font-semibold text-red-500">- ৳{{ number_format($monthDeductions, 0) }}</span>
                 </div>
                 @endif
                 <div class="border-t border-gray-100 dark:border-slate-700 pt-2 flex justify-between text-sm font-bold">
