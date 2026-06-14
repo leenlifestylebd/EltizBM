@@ -132,18 +132,18 @@
         </div>
         @endif
 
-        {{-- Forward to Iron button --}}
-        @if(($task->stage ?? 'sewing') === 'sewing' && $task->forwardable_quantity > 0)
+        {{-- Forward to next stage button --}}
+        @if($nextStage && $task->forwardable_quantity > 0)
         <div class="mt-4 pt-4 border-t border-gray-100 dark:border-slate-700" id="forward">
             <button @click="forwardOpen = !forwardOpen"
                     class="flex items-center gap-1.5 px-3 py-2 text-xs font-medium text-orange-600 border border-orange-300 rounded-lg hover:bg-orange-50 dark:hover:bg-orange-900/20">
-                🔥 Forward to Iron
+                → Forward to {{ $nextStageLabel }}
                 <span class="bg-orange-100 dark:bg-orange-900/40 text-orange-700 dark:text-orange-300 px-1.5 py-0.5 rounded-full text-xs font-bold">{{ $task->forwardable_quantity }} pcs</span>
             </button>
         </div>
-        @elseif(($task->stage ?? 'sewing') === 'sewing' && $task->completed_quantity > 0)
+        @elseif($nextStage && $task->completed_quantity > 0)
         <div class="mt-3">
-            <p class="text-xs text-gray-400">✓ All {{ $task->completed_quantity }} completed pieces already forwarded to iron.</p>
+            <p class="text-xs text-gray-400">✓ All {{ $task->completed_quantity }} completed pieces already forwarded to {{ strtolower($nextStageLabel) }}.</p>
         </div>
         @endif
 
@@ -250,46 +250,46 @@
         @endif
     </div>
 
-    {{-- Forward to Iron Modal --}}
-    @if(($task->stage ?? 'sewing') === 'sewing' && $ironEmployees->isNotEmpty())
+    {{-- Forward to next-stage Modal --}}
+    @if($nextStage && $nextEmployees->isNotEmpty())
     <div x-show="forwardOpen" x-cloak
          class="bg-white dark:bg-slate-800 rounded-xl border border-orange-200 dark:border-orange-800 p-5">
         <h3 class="text-sm font-semibold text-orange-700 dark:text-orange-400 mb-4 flex items-center gap-1.5">
-            🔥 Assign Iron Task
+            → Assign {{ $nextStageLabel }} Task
             <span class="text-xs font-normal text-gray-500">(forwardable: {{ $task->forwardable_quantity }} pcs)</span>
         </h3>
         <form method="POST" action="{{ route('production.tasks.forward', $task) }}" class="space-y-3">
             @csrf
 
-            {{-- Iron Worker --}}
+            {{-- Next-stage Worker --}}
             <div>
-                <label class="block text-xs font-medium text-gray-700 dark:text-slate-300 mb-1">Iron Worker <span class="text-red-500">*</span></label>
+                <label class="block text-xs font-medium text-gray-700 dark:text-slate-300 mb-1">{{ $nextStageLabel }} Worker <span class="text-red-500">*</span></label>
                 <select name="employee_id" required
                         class="w-full px-3 py-2 text-sm border border-gray-200 dark:border-slate-600 rounded-lg bg-white dark:bg-slate-700 text-gray-700 dark:text-slate-200 focus:outline-none focus:ring-2 focus:ring-orange-400">
-                    <option value="">Select Iron Worker</option>
-                    @foreach($ironEmployees as $emp)
+                    <option value="">Select {{ $nextStageLabel }} Worker</option>
+                    @foreach($nextEmployees as $emp)
                     <option value="{{ $emp->id }}">{{ $emp->name }}{{ $emp->designation ? ' — '.$emp->designation : '' }}</option>
                     @endforeach
                 </select>
             </div>
 
-            {{-- Iron Rate --}}
+            {{-- Next-stage Rate --}}
             <div>
                 <label class="block text-xs font-medium text-gray-700 dark:text-slate-300 mb-1">
-                    Iron Rate <span class="text-gray-400">(optional)</span>
+                    {{ $nextStageLabel }} Rate <span class="text-gray-400">(optional)</span>
                 </label>
                 <select name="production_rate_id"
                         class="w-full px-3 py-2 text-sm border border-gray-200 dark:border-slate-600 rounded-lg bg-white dark:bg-slate-700 text-gray-700 dark:text-slate-200 focus:outline-none focus:ring-2 focus:ring-orange-400">
                     <option value="">-- Rate ছাড়াই assign করুন --</option>
-                    @foreach($ironRates as $rate)
+                    @foreach($nextRates as $rate)
                     <option value="{{ $rate->id }}">
                         {{ $rate->product_name }}{{ $rate->variant_name ? ' — '.$rate->variant_name : '' }}{{ $rate->color ? ' ('.$rate->color.')' : '' }} — ৳{{ number_format($rate->rate) }}/{{ $rate->unit }}
                     </option>
                     @endforeach
                 </select>
-                @if($ironRates->isEmpty())
+                @if($nextRates->isEmpty())
                 <p class="text-xs text-amber-600 dark:text-amber-400 mt-1">
-                    Ironing rate নেই — <a href="{{ route('production.rates') }}" class="underline">এখানে যোগ করুন</a>।
+                    {{ $nextStageLabel }} rate নেই — <a href="{{ route('production.rates') }}" class="underline">এখানে যোগ করুন</a>।
                     Rate ছাড়াও assign করা যাবে।
                 </p>
                 @endif
@@ -317,7 +317,7 @@
             <div class="flex gap-2">
                 <button type="submit"
                         class="flex-1 bg-orange-500 hover:bg-orange-600 text-white text-sm font-medium py-2 rounded-lg transition-colors">
-                    🔥 Assign Iron Task
+                    → Assign {{ $nextStageLabel }} Task
                 </button>
                 <button type="button" @click="forwardOpen = false"
                         class="px-4 py-2 bg-gray-100 dark:bg-slate-700 text-gray-600 text-sm rounded-lg">
@@ -328,12 +328,12 @@
     </div>
     @endif
 
-    {{-- Forwarded Iron Tasks --}}
-    @if(($task->stage ?? 'sewing') === 'sewing' && $task->forwardedTasks->isNotEmpty())
+    {{-- Forwarded (next-stage) Tasks --}}
+    @if($nextStage && $task->forwardedTasks->isNotEmpty())
     <div class="bg-white dark:bg-slate-800 rounded-xl border border-gray-100 dark:border-slate-700 overflow-hidden">
         <div class="px-4 py-3 border-b border-gray-100 dark:border-slate-700 flex items-center justify-between">
             <h3 class="text-sm font-semibold text-gray-900 dark:text-white flex items-center gap-1.5">
-                🔥 Iron Tasks
+                → {{ $nextStageLabel }} Tasks
             </h3>
             <span class="text-xs text-gray-500">{{ $task->forwardedTasks->count() }} task(s)</span>
         </div>

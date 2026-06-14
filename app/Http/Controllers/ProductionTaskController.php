@@ -134,30 +134,65 @@ class ProductionTaskController extends Controller
         abort_if($task->business_id !== auth()->user()->business_id, 403);
 
         $bizId = auth()->user()->business_id;
-        $task->load(['employee', 'assignedBy', 'submissions' => fn($q) => $q->orderByDesc('submitted_at'), 'forwardedTasks.employee']);
+        $task->load(['employee', 'assignedBy', 'submissions' => fn($q) => $q->orderByDesc('submitted_at'), 'forwardedTasks.employee', 'sourceTask.employee']);
 
-        // Data for "Forward to Iron" modal (only relevant for sewing tasks with completed pieces)
-        $ironEmployees = collect();
-        $ironRates     = collect();
-        if ($task->stage === 'sewing' && $task->completed_quantity > 0) {
-            $ironEmployees = Employee::where('business_id', $bizId)
+        // Data for the "Forward to next stage" panel (cutting→sewing→iron)
+        $nextStage     = $task->nextStage();
+        $nextStageLabel= $task->nextStageLabel();
+        $nextEmployees = collect();
+        $nextRates     = collect();
+        if ($nextStage && $task->completed_quantity > 0) {
+            $nextEmployees = Employee::where('business_id', $bizId)
                 ->where('status', 'active')
                 ->orderBy('name')
                 ->get();
-            $ironRates = ProductionRate::where('business_id', $bizId)
-                ->where('stage', 'ironing')
+            $nextRates = ProductionRate::where('business_id', $bizId)
+                ->where('stage', $nextStage)
                 ->where('is_active', true)
                 ->orderBy('product_name')
                 ->get();
         }
 
-        return view('production.tasks.show', compact('task', 'ironEmployees', 'ironRates'));
+        return view('production.tasks.show', compact('task', 'nextStage', 'nextStageLabel', 'nextEmployees', 'nextRates'));
     }
 
-    public function forwardToIron(Request $request, ProductionTask $task)
+    /**
+     * Pipeline board: tasks laid out in stage columns (Cutting → Sewing → Iron)
+     * so the whole factory's work-in-progress is visible on one screen.
+     */
+    public function pipeline(Request $request)
+    {
+        $bizId = auth()->user()->business_id;
+
+        $tasks = ProductionTask::where('business_id', $bizId)
+            ->whereIn('stage', ProductionRate::PIPELINE)
+            ->whereNotIn('status', ['cancelled'])
+            ->whereDate('assigned_at', '>=', now()->subDays(90)->toDateString())
+            ->with('employee')
+            ->orderByDesc('assigned_at')
+            ->get();
+
+        $columns = [];
+        foreach (ProductionRate::PIPELINE as $stage) {
+            $columns[$stage] = $tasks->where('stage', $stage)->values();
+        }
+
+        $stageLabels = ProductionRate::STAGES;
+        $stageLabelsBn = ['cutting' => 'কাটিং', 'sewing' => 'সেলাই', 'ironing' => 'ইস্ত্রি'];
+
+        return view('production.pipeline', compact('columns', 'stageLabels', 'stageLabelsBn'));
+    }
+
+    /**
+     * Forward completed pieces to the next stage in the pipeline
+     * (cutting → sewing → ironing). Creates a linked task for the next stage.
+     */
+    public function forward(Request $request, ProductionTask $task)
     {
         abort_if($task->business_id !== auth()->user()->business_id, 403);
-        abort_if($task->stage !== 'sewing', 422, 'Only sewing tasks can be forwarded to ironing.');
+
+        $nextStage = $task->nextStage();
+        abort_if(!$nextStage, 422, 'This is the last stage — nothing to forward to.');
 
         $bizId = auth()->user()->business_id;
 
@@ -166,19 +201,19 @@ class ProductionTaskController extends Controller
 
         $request->validate([
             'employee_id'        => ['required', Rule::exists('employees', 'id')->where('business_id', $bizId)],
-            'production_rate_id' => ['nullable', Rule::exists('production_rates', 'id')->where('business_id', $bizId)->where('stage', 'ironing')],
+            'production_rate_id' => ['nullable', Rule::exists('production_rates', 'id')->where('business_id', $bizId)->where('stage', $nextStage)],
             'quantity'           => ['required', 'integer', 'min:1', "max:{$forwardable}"],
             'notes'              => 'nullable|string|max:500',
         ]);
 
-        $ironWorker = Employee::where('business_id', $bizId)->findOrFail($request->employee_id);
+        $worker = Employee::where('business_id', $bizId)->findOrFail($request->employee_id);
 
-        $ironTask = ProductionTask::create([
+        $nextTask = ProductionTask::create([
             'business_id'        => $bizId,
-            'employee_id'        => $ironWorker->id,
+            'employee_id'        => $worker->id,
             'assigned_by'        => auth()->id(),
             'production_rate_id' => $request->production_rate_id ?: null,
-            'stage'              => 'ironing',
+            'stage'              => $nextStage,
             'source_task_id'     => $task->id,
             'product_name'       => $task->product_name,
             'color'              => $task->color,
@@ -190,8 +225,16 @@ class ProductionTaskController extends Controller
             'assigned_at'        => now(),
         ]);
 
-        return redirect()->route('production.tasks.show', $ironTask)
-            ->with('success', "Iron task assigned to {$ironWorker->name} — {$request->quantity} pieces.");
+        // Notify the worker who just got the forwarded work.
+        \App\Models\EmployeeNotification::notify(
+            $bizId, $worker->id, 'task',
+            'নতুন কাজ পেয়েছেন (' . ($task->nextStageLabel() ?? ucfirst($nextStage)) . ')',
+            $task->product_name . ($task->color ? ', ' . $task->color : '') . ($task->size ? ', সাইজ ' . $task->size : '') . ' — ' . $request->quantity . ' পিস',
+            route('production.worker.dashboard')
+        );
+
+        return redirect()->route('production.tasks.show', $nextTask)
+            ->with('success', ucfirst($nextStage) . " task assigned to {$worker->name} — {$request->quantity} pieces.");
     }
 
     public function update(Request $request, ProductionTask $task)
