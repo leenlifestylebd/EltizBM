@@ -153,6 +153,35 @@
             </div>
         </div>
 
+        {{-- Salary History (revisions) --}}
+        @php $salaryHistory = $employee->salaries; @endphp
+        @if($salaryHistory->count())
+        <div class="bg-white dark:bg-slate-800 rounded-xl border border-gray-100 dark:border-slate-700 overflow-hidden mb-4">
+            <div class="px-4 py-3 border-b border-gray-100 dark:border-slate-700 flex items-center justify-between">
+                <h3 class="text-sm font-semibold text-gray-900 dark:text-white">Salary History</h3>
+                <a href="{{ route('employees.edit', $employee) }}" class="text-xs text-primary-600 hover:underline">Change salary</a>
+            </div>
+            <div class="divide-y divide-gray-50 dark:divide-slate-700">
+                @foreach($salaryHistory as $i => $rev)
+                <div class="px-4 py-2.5 flex items-center justify-between">
+                    <div>
+                        <p class="text-sm font-semibold text-gray-900 dark:text-white">৳{{ number_format($rev->amount, 0) }}<span class="text-xs font-normal text-gray-400">/mo</span></p>
+                        <p class="text-xs text-gray-500 dark:text-slate-400 mt-0.5">
+                            {{ $rev->effective_from->format('M Y') }} থেকে
+                            @if($i > 0)
+                                {{ $salaryHistory[$i - 1]->effective_from->copy()->subMonth()->format('M Y') }} পর্যন্ত
+                            @endif
+                        </p>
+                    </div>
+                    @if($i === 0)
+                        <span class="px-2 py-0.5 rounded-full text-xs font-medium bg-green-100 text-green-700 dark:bg-green-900/30 dark:text-green-400">Current</span>
+                    @endif
+                </div>
+                @endforeach
+            </div>
+        </div>
+        @endif
+
         {{-- Recent Payments --}}
         <div class="bg-white dark:bg-slate-800 rounded-xl border border-gray-100 dark:border-slate-700 overflow-hidden">
             <div class="px-4 py-3 border-b border-gray-50 dark:border-slate-700">
