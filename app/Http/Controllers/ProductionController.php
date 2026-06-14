@@ -460,7 +460,7 @@ class ProductionController extends Controller
             $advance  = $advances[$emp->id] ?? 0;
             $totalAmt = $earning['total_amount'] ?? 0;
 
-            if ($emp->type === 'salary' && (float)$emp->salary > 0) {
+            if ((float)$emp->salary > 0) {
                 $paid     = (float)($salaryPaid[$emp->id] ?? 0);
                 $deducted = (float)($salaryDeductions[$emp->id] ?? 0);
                 $present  = (int)($attendanceCounts[$emp->id] ?? 0);
@@ -586,9 +586,9 @@ class ProductionController extends Controller
         $notifUnread = $notifications->whereNull('read_at')->count();
 
         // Salary employees get a separate professional dashboard
-        // Guard: only redirect if salary > 0, so old employees with default type='salary'
-        // but salary=0 (production workers not yet updated) fall through to production view.
-        if ($employee->type === 'salary' && (float)$employee->salary > 0) {
+        // Guard: route any worker with a base salary (incl. salary+production) to the
+        // salary dashboard; pure piece-rate workers (salary=0) get the production view.
+        if ((float)$employee->salary > 0) {
             $monthStart = Carbon::parse($from)->startOfMonth()->toDateString();
             $monthEnd   = Carbon::parse($from)->endOfMonth()->toDateString();
 
@@ -873,11 +873,13 @@ class ProductionController extends Controller
         // This month totals
         $monthPaid = $payments->sum('amount');
 
-        if ($employee->type === 'salary' && (float)$employee->salary > 0) {
-            // For salary employees: earned = fixed monthly salary, not production entries.
-            $monthEarned = (float)$employee->salary;
+        if ((float)$employee->salary > 0) {
+            // Base-salary worker — earned = fixed monthly salary PLUS any production
+            // piece-rate they also did (salary + production hybrids).
+            $monthProduction = (float)$entries->sum('amount');
+            $monthEarned     = (float)$employee->salary + $monthProduction;
 
-            // All-time earned = months of service × monthly salary
+            // All-time earned before period = months of service × salary + prior production
             $joiningDate = $employee->joining_date
                 ? Carbon::parse($employee->joining_date)->startOfMonth()
                 : null;
@@ -885,7 +887,11 @@ class ProductionController extends Controller
 
             $monthsBeforePeriod  = ($joiningDate && $joiningDate->lt($periodStart))
                 ? (int)$joiningDate->diffInMonths($periodStart) : 0;
-            $allTimeEarnedBefore = $monthsBeforePeriod * $monthEarned;
+            $productionBefore    = (float)ProductionEntry::where('business_id', $bizId)
+                ->where('employee_id', $employee->id)
+                ->where('entry_date', '<', $from)
+                ->sum('amount');
+            $allTimeEarnedBefore = $monthsBeforePeriod * (float)$employee->salary + $productionBefore;
 
             $allTimePaidBefore = (float)EmployeePayment::where('business_id', $bizId)
                 ->where('employee_id', $employee->id)

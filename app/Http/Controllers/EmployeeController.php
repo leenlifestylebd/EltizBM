@@ -110,6 +110,7 @@ class EmployeeController extends Controller
             'name'   => 'required|string|max:100',
             'phone'  => 'nullable|string|max:20',
             'salary' => 'nullable|numeric|min:0',
+            'type'   => 'nullable|in:salary,production,both',
         ]);
 
         Employee::create([
@@ -120,6 +121,7 @@ class EmployeeController extends Controller
             'email'        => $request->email,
             'designation'  => $request->designation,
             'department'   => $request->department,
+            'type'         => $request->type ?? 'salary',
             'salary'       => $request->salary ?? 0,
             'joining_date' => $request->joining_date,
             'status'       => $request->status ?? 'active',
@@ -213,7 +215,10 @@ class EmployeeController extends Controller
     public function update(Request $request, Employee $employee)
     {
         $this->authorize($employee);
-        $request->validate(['name' => 'required|string|max:100']);
+        $request->validate([
+            'name' => 'required|string|max:100',
+            'type' => 'nullable|in:salary,production,both',
+        ]);
 
         $employee->update([
             'user_id'      => $request->user_id ?: null,
@@ -222,6 +227,7 @@ class EmployeeController extends Controller
             'email'        => $request->email,
             'designation'  => $request->designation,
             'department'   => $request->department,
+            'type'         => $request->type ?? $employee->type ?? 'salary',
             'salary'       => $request->salary ?? 0,
             'joining_date' => $request->joining_date,
             'status'       => $request->status,
