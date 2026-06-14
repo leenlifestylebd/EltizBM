@@ -296,19 +296,9 @@ class ProductionTaskController extends Controller
         $rateUsed     = $request->filled('rate_used') ? (float) $request->rate_used : $defaultRate;
         $amount       = $request->submitted_quantity * $rateUsed;
 
-        TaskSubmission::create([
-            'business_id'        => $task->business_id,
-            'production_task_id' => $task->id,
-            'employee_id'        => $task->employee_id,
-            'submitted_quantity' => $request->submitted_quantity,
-            'rate_used'          => $rateUsed > 0 ? $rateUsed : null,
-            'amount'             => $amount > 0 ? $amount : null,
-            'quality_note'       => $request->quality_note,
-            'submitted_at'       => today()->toDateString(),
-            'notes'              => $request->notes,
-        ]);
-
-        ProductionEntry::create([
+        // Create the payment entry first, then link the submission to it so an admin
+        // can later edit/delete the submission and adjust this exact payment.
+        $entry = ProductionEntry::create([
             'business_id'       => $task->business_id,
             'employee_id'       => $task->employee_id,
             'production_rate_id'=> $task->production_rate_id,
@@ -316,6 +306,19 @@ class ProductionTaskController extends Controller
             'quantity'          => $request->submitted_quantity,
             'amount'            => $amount,
             'notes'             => "Task #{$task->id}: {$task->product_name}" . ($task->color ? " ({$task->color})" : '') . ($task->size ? " sz {$task->size}" : ''),
+        ]);
+
+        TaskSubmission::create([
+            'business_id'        => $task->business_id,
+            'production_task_id' => $task->id,
+            'production_entry_id'=> $entry->id,
+            'employee_id'        => $task->employee_id,
+            'submitted_quantity' => $request->submitted_quantity,
+            'rate_used'          => $rateUsed > 0 ? $rateUsed : null,
+            'amount'             => $amount > 0 ? $amount : null,
+            'quality_note'       => $request->quality_note,
+            'submitted_at'       => today()->toDateString(),
+            'notes'              => $request->notes,
         ]);
 
         $task->increment('completed_quantity', $request->submitted_quantity);
@@ -332,6 +335,93 @@ class ProductionTaskController extends Controller
         }
 
         return redirect()->route('production.tasks.show', $task->id)->with('success', $message);
+    }
+
+    /**
+     * Admin: edit a worker's submission. Adjusts the linked payment entry and the
+     * task's completed quantity in lock-step. Workers cannot reach this route.
+     */
+    public function updateSubmission(Request $request, TaskSubmission $submission)
+    {
+        $bizId = auth()->user()->business_id;
+        abort_if($submission->business_id !== $bizId, 403);
+        abort_if(auth()->user()->role === 'employee', 403);
+
+        $task = $submission->task;
+        abort_if(!$task, 404);
+
+        // completed minus this submission = the baseline the new qty sits on top of
+        $completedExcl = (int) $task->completed_quantity - (int) $submission->submitted_quantity;
+        $maxQty        = (int) $task->assigned_quantity - $completedExcl;
+
+        $request->validate([
+            'submitted_quantity' => ['required', 'integer', 'min:1', "max:{$maxQty}"],
+            'rate_used'          => ['nullable', 'numeric', 'min:0'],
+        ]);
+
+        $newQty = (int) $request->submitted_quantity;
+
+        // Can't drop completed below what's already forwarded to the next stage.
+        $forwarded = $task->forwardedQuantity();
+        if ($completedExcl + $newQty < $forwarded) {
+            return back()->with('error', "Cannot reduce below the {$forwarded} pcs already forwarded to the next stage.");
+        }
+
+        $rateUsed = $request->filled('rate_used') ? (float) $request->rate_used : (float) ($submission->rate_used ?? 0);
+        $amount   = $newQty * $rateUsed;
+
+        if ($submission->production_entry_id) {
+            ProductionEntry::where('id', $submission->production_entry_id)
+                ->update(['quantity' => $newQty, 'amount' => $amount]);
+        }
+
+        $submission->update([
+            'submitted_quantity' => $newQty,
+            'rate_used'          => $rateUsed > 0 ? $rateUsed : null,
+            'amount'             => $amount > 0 ? $amount : null,
+            'quality_note'       => $request->input('quality_note', $submission->quality_note),
+            'notes'              => $request->input('notes', $submission->notes),
+        ]);
+
+        $task->completed_quantity = $completedExcl + $newQty;
+        $task->save();
+        $task->recalculateStatus();
+
+        return back()->with('success', 'Submission updated — payment and progress adjusted.');
+    }
+
+    /**
+     * Admin: delete a submission, reverse its payment entry and reduce the task's
+     * completed quantity. Blocked if the pieces have already moved to the next stage.
+     */
+    public function deleteSubmission(TaskSubmission $submission)
+    {
+        $bizId = auth()->user()->business_id;
+        abort_if($submission->business_id !== $bizId, 403);
+        abort_if(auth()->user()->role === 'employee', 403);
+
+        $task = $submission->task;
+
+        if ($task) {
+            $completedAfter = (int) $task->completed_quantity - (int) $submission->submitted_quantity;
+            if ($completedAfter < $task->forwardedQuantity()) {
+                return back()->with('error', 'Cannot delete — some of these pieces are already forwarded to the next stage.');
+            }
+        }
+
+        if ($submission->production_entry_id) {
+            ProductionEntry::where('id', $submission->production_entry_id)->delete();
+        }
+
+        if ($task) {
+            $task->completed_quantity = max(0, (int) $task->completed_quantity - (int) $submission->submitted_quantity);
+            $task->save();
+            $task->recalculateStatus();
+        }
+
+        $submission->delete();
+
+        return back()->with('success', 'Submission deleted and its payment reversed.');
     }
 
     public function myTasks(Request $request)
