@@ -212,38 +212,78 @@
                 $assignedRate = $task->productionRate?->rate ?? 0;
                 $rateChanged  = $sub->rate_used !== null && $assignedRate > 0 && (float)$sub->rate_used !== (float)$assignedRate;
             @endphp
-            <div class="px-4 py-3 flex items-start justify-between gap-3">
-                <div class="flex-1">
-                    <div class="flex items-center gap-2">
-                        <p class="text-sm font-medium text-gray-900 dark:text-white">{{ $sub->submitted_quantity }} pieces</p>
-                        @if($rateChanged)
-                        <span class="text-xs bg-amber-100 dark:bg-amber-900/30 text-amber-700 dark:text-amber-400 px-1.5 py-0.5 rounded">
-                            Rate override
-                        </span>
+            <div class="px-4 py-3" x-data="{ editing: false }">
+                <div class="flex items-start justify-between gap-3">
+                    <div class="flex-1">
+                        <div class="flex items-center gap-2">
+                            <p class="text-sm font-medium text-gray-900 dark:text-white">{{ $sub->submitted_quantity }} pieces</p>
+                            @if($rateChanged)
+                            <span class="text-xs bg-amber-100 dark:bg-amber-900/30 text-amber-700 dark:text-amber-400 px-1.5 py-0.5 rounded">
+                                Rate override
+                            </span>
+                            @endif
+                        </div>
+                        <p class="text-xs text-gray-400 mt-0.5">{{ $sub->submitted_at->format('d M Y, D') }}</p>
+                        @if($sub->rate_used !== null)
+                        <p class="text-xs text-gray-500 mt-0.5">
+                            ৳{{ number_format($sub->rate_used, 2) }}/piece
+                            @if($rateChanged)
+                            <span class="text-amber-600">(assigned: ৳{{ number_format($assignedRate, 2) }})</span>
+                            @endif
+                        </p>
+                        @endif
+                        @if($sub->quality_note)
+                        <p class="text-xs text-gray-500 mt-0.5">{{ $sub->quality_note }}</p>
+                        @endif
+                        @if($sub->notes)
+                        <p class="text-xs text-gray-400 mt-0.5 italic">{{ $sub->notes }}</p>
                         @endif
                     </div>
-                    <p class="text-xs text-gray-400 mt-0.5">{{ $sub->submitted_at->format('d M Y, D') }}</p>
-                    @if($sub->rate_used !== null)
-                    <p class="text-xs text-gray-500 mt-0.5">
-                        ৳{{ number_format($sub->rate_used, 2) }}/piece
-                        @if($rateChanged)
-                        <span class="text-amber-600">(assigned: ৳{{ number_format($assignedRate, 2) }})</span>
+                    <div class="text-right shrink-0">
+                        <p class="text-sm font-bold text-green-600">+{{ $sub->submitted_quantity }} pcs</p>
+                        @if($sub->amount !== null && $sub->amount > 0)
+                        <p class="text-xs font-semibold text-green-600 dark:text-green-400">৳{{ number_format($sub->amount, 2) }}</p>
                         @endif
-                    </p>
-                    @endif
-                    @if($sub->quality_note)
-                    <p class="text-xs text-gray-500 mt-0.5">{{ $sub->quality_note }}</p>
-                    @endif
-                    @if($sub->notes)
-                    <p class="text-xs text-gray-400 mt-0.5 italic">{{ $sub->notes }}</p>
-                    @endif
+                        @if(in_array(auth()->user()->role, ['admin','owner']))
+                        <div class="flex items-center gap-1 justify-end mt-1.5">
+                            <button type="button" @click="editing = !editing" class="text-xs text-primary-600 hover:underline">Edit</button>
+                            <span class="text-gray-300">·</span>
+                            <form method="POST" action="{{ route('production.tasks.submission.delete', $sub) }}"
+                                  onsubmit="return confirm('Delete this submission and reverse its payment?')">
+                                @csrf @method('DELETE')
+                                <button type="submit" class="text-xs text-red-600 hover:underline">Delete</button>
+                            </form>
+                        </div>
+                        @endif
+                    </div>
                 </div>
-                <div class="text-right shrink-0">
-                    <p class="text-sm font-bold text-green-600">+{{ $sub->submitted_quantity }} pcs</p>
-                    @if($sub->amount !== null && $sub->amount > 0)
-                    <p class="text-xs font-semibold text-green-600 dark:text-green-400">৳{{ number_format($sub->amount, 2) }}</p>
-                    @endif
-                </div>
+
+                @if(in_array(auth()->user()->role, ['admin','owner']))
+                {{-- Admin inline edit --}}
+                <form x-show="editing" x-cloak method="POST" action="{{ route('production.tasks.submission.update', $sub) }}"
+                      class="mt-3 pt-3 border-t border-gray-100 dark:border-slate-700 grid grid-cols-2 sm:grid-cols-4 gap-2 items-end">
+                    @csrf @method('PUT')
+                    <div>
+                        <label class="block text-xs text-gray-500 mb-1">Quantity</label>
+                        <input type="number" name="submitted_quantity" value="{{ $sub->submitted_quantity }}" min="1"
+                               class="w-full px-2 py-1.5 text-sm border border-gray-200 dark:border-slate-600 rounded-lg bg-white dark:bg-slate-700 text-gray-900 dark:text-white">
+                    </div>
+                    <div>
+                        <label class="block text-xs text-gray-500 mb-1">Rate (৳)</label>
+                        <input type="number" name="rate_used" value="{{ $sub->rate_used }}" min="0" step="0.01" placeholder="{{ $assignedRate }}"
+                               class="w-full px-2 py-1.5 text-sm border border-gray-200 dark:border-slate-600 rounded-lg bg-white dark:bg-slate-700 text-gray-900 dark:text-white">
+                    </div>
+                    <div>
+                        <label class="block text-xs text-gray-500 mb-1">Quality note</label>
+                        <input type="text" name="quality_note" value="{{ $sub->quality_note }}"
+                               class="w-full px-2 py-1.5 text-sm border border-gray-200 dark:border-slate-600 rounded-lg bg-white dark:bg-slate-700 text-gray-900 dark:text-white">
+                    </div>
+                    <div class="flex gap-1.5">
+                        <button type="submit" class="flex-1 px-3 py-1.5 text-xs bg-primary-600 text-white rounded-lg hover:bg-primary-700">Save</button>
+                        <button type="button" @click="editing = false" class="px-3 py-1.5 text-xs bg-gray-100 dark:bg-slate-700 text-gray-600 dark:text-slate-300 rounded-lg">Cancel</button>
+                    </div>
+                </form>
+                @endif
             </div>
             @endforeach
         </div>
