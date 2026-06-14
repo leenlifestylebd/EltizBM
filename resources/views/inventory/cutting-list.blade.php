@@ -11,6 +11,7 @@
         #cutting-print { position: absolute; left: 0; top: 0; width: 100%; }
         .no-print { display: none !important; }
         .print-only { display: block !important; }
+        .print-exclude { display: none !important; }
         #cutting-print table { font-size: 12px; }
     }
 </style>
@@ -19,7 +20,7 @@
 <div class="flex items-center justify-between mb-4 no-print">
     <div>
         <h2 class="text-base font-semibold text-gray-900 dark:text-white">✂️ Cutting List</h2>
-        <p class="text-xs text-gray-500 dark:text-slate-400 mt-0.5">Products below minimum stock — produce these to refill</p>
+        <p class="text-xs text-gray-500 dark:text-slate-400 mt-0.5">Tick the products you want, then print the cutting list</p>
     </div>
     <div class="flex items-center gap-2">
         <a href="{{ route('inventory.cutting-list.export', request()->only('search')) }}"
@@ -35,21 +36,39 @@
     </div>
 </div>
 
-{{-- Summary --}}
+<script>
+    function cuttingList() {
+        return {
+            sel: @json($products->pluck('id')->values()),
+            short: @json($products->mapWithKeys(fn($p) => [$p->id => $p->shortfall])),
+            allIds: @json($products->pluck('id')->values()),
+            has(id) { return this.sel.includes(id); },
+            toggle(id) { const i = this.sel.indexOf(id); i > -1 ? this.sel.splice(i, 1) : this.sel.push(id); },
+            get allOn() { return this.allIds.length > 0 && this.sel.length === this.allIds.length; },
+            toggleAll() { this.sel = this.allOn ? [] : [...this.allIds]; },
+            get count() { return this.sel.length; },
+            get total() { return this.sel.reduce((s, id) => s + (this.short[id] || 0), 0); }
+        };
+    }
+</script>
+
+<div x-data="cuttingList()">
+
+{{-- Summary (live, reflects selection) --}}
 <div class="grid grid-cols-2 gap-3 mb-4 no-print">
     <div class="bg-white dark:bg-slate-800 rounded-xl p-3 border border-gray-100 dark:border-slate-700 text-center">
-        <p class="text-xl font-bold text-gray-900 dark:text-white">{{ $totalProducts }}</p>
-        <p class="text-xs text-gray-500 dark:text-slate-400 mt-0.5">Products below minimum</p>
+        <p class="text-xl font-bold text-gray-900 dark:text-white"><span x-text="count"></span><span class="text-sm font-normal text-gray-400"> / {{ $totalProducts }}</span></p>
+        <p class="text-xs text-gray-500 dark:text-slate-400 mt-0.5">Products selected</p>
     </div>
     <div class="bg-white dark:bg-slate-800 rounded-xl p-3 border border-orange-100 dark:border-orange-900/30 text-center">
-        <p class="text-xl font-bold text-orange-600 dark:text-orange-400">{{ number_format($totalShortfall) }}</p>
-        <p class="text-xs text-gray-500 dark:text-slate-400 mt-0.5">Total pieces to produce</p>
+        <p class="text-xl font-bold text-orange-600 dark:text-orange-400" x-text="total.toLocaleString()"></p>
+        <p class="text-xs text-gray-500 dark:text-slate-400 mt-0.5">Pieces to produce</p>
     </div>
 </div>
 
-{{-- Search --}}
+{{-- Search + select-all toolbar --}}
 <div class="bg-white dark:bg-slate-800 rounded-xl border border-gray-100 dark:border-slate-700 p-3 mb-4 no-print">
-    <form method="GET" action="{{ route('inventory.cutting-list') }}" class="flex gap-2">
+    <form method="GET" action="{{ route('inventory.cutting-list') }}" class="flex gap-2 mb-2">
         <div class="relative flex-1">
             <svg class="absolute left-3 top-1/2 -translate-y-1/2 w-4 h-4 text-gray-400" fill="none" stroke="currentColor" viewBox="0 0 24 24"><path stroke-linecap="round" stroke-linejoin="round" stroke-width="2" d="M21 21l-6-6m2-5a7 7 0 11-14 0 7 7 0 0114 0"/></svg>
             <input type="text" name="search" value="{{ request('search') }}" placeholder="Search product or SKU..."
@@ -60,6 +79,17 @@
             <a href="{{ route('inventory.cutting-list') }}" class="px-3 py-2 text-sm text-gray-500 dark:text-slate-400 border border-gray-200 dark:border-slate-600 rounded-lg hover:bg-gray-50 dark:hover:bg-slate-700">Clear</a>
         @endif
     </form>
+    @if($products->count())
+    <div class="flex items-center gap-3 text-xs">
+        <label class="inline-flex items-center gap-1.5 cursor-pointer select-none">
+            <input type="checkbox" :checked="allOn" @change="toggleAll()"
+                   class="w-4 h-4 rounded border-gray-300 dark:border-slate-600 text-primary-600 focus:ring-primary-500">
+            <span class="font-medium text-gray-700 dark:text-slate-200">Select all</span>
+        </label>
+        <span class="text-gray-400">·</span>
+        <button type="button" @click="sel = []" class="text-gray-500 dark:text-slate-400 hover:text-primary-600">Clear selection</button>
+    </div>
+    @endif
 </div>
 
 {{-- Printable area --}}
@@ -68,7 +98,7 @@
     {{-- Print-only header --}}
     <div class="print-only px-4 pt-4 pb-2">
         <h1 style="font-size:18px;font-weight:bold;">Cutting / Production List — {{ $business->name ?? '' }}</h1>
-        <p style="font-size:12px;">Generated: {{ now()->format('d M Y, h:i A') }} · {{ $totalProducts }} products · {{ number_format($totalShortfall) }} pieces to produce</p>
+        <p style="font-size:12px;">Generated: {{ now()->format('d M Y, h:i A') }} · <span x-text="count"></span> products · <span x-text="total"></span> pieces to produce</p>
     </div>
 
     {{-- Desktop table --}}
@@ -76,7 +106,10 @@
         <table class="w-full text-sm">
             <thead>
                 <tr class="bg-gray-50 dark:bg-slate-700/50 border-b border-gray-100 dark:border-slate-700">
-                    <th class="text-left px-4 py-3 font-medium text-gray-500 dark:text-slate-400 text-xs">#</th>
+                    <th class="no-print text-center px-3 py-3 w-10">
+                        <input type="checkbox" :checked="allOn" @change="toggleAll()"
+                               class="w-4 h-4 rounded border-gray-300 dark:border-slate-600 text-primary-600 focus:ring-primary-500">
+                    </th>
                     <th class="text-left px-4 py-3 font-medium text-gray-500 dark:text-slate-400 text-xs">Product</th>
                     <th class="text-left px-4 py-3 font-medium text-gray-500 dark:text-slate-400 text-xs">SKU</th>
                     <th class="text-left px-4 py-3 font-medium text-gray-500 dark:text-slate-400 text-xs">Category</th>
@@ -86,9 +119,13 @@
                 </tr>
             </thead>
             <tbody class="divide-y divide-gray-50 dark:divide-slate-700">
-                @forelse($products as $i => $product)
-                <tr class="hover:bg-gray-50 dark:hover:bg-slate-700/30 transition-colors">
-                    <td class="px-4 py-3 text-xs text-gray-400 dark:text-slate-500">{{ $i + 1 }}</td>
+                @forelse($products as $product)
+                <tr class="hover:bg-gray-50 dark:hover:bg-slate-700/30 transition-colors"
+                    :class="has({{ $product->id }}) ? '' : 'opacity-40 print-exclude'">
+                    <td class="no-print text-center px-3 py-3">
+                        <input type="checkbox" :checked="has({{ $product->id }})" @change="toggle({{ $product->id }})"
+                               class="w-4 h-4 rounded border-gray-300 dark:border-slate-600 text-primary-600 focus:ring-primary-500">
+                    </td>
                     <td class="px-4 py-3 font-medium text-gray-900 dark:text-white">{{ $product->name }}</td>
                     <td class="px-4 py-3 text-xs font-mono text-gray-500 dark:text-slate-400">{{ $product->sku ?? '—' }}</td>
                     <td class="px-4 py-3 text-xs text-gray-600 dark:text-slate-300">{{ $product->category?->name ?? '—' }}</td>
@@ -112,8 +149,9 @@
             @if($products->count())
             <tfoot>
                 <tr class="bg-gray-50 dark:bg-slate-700/50 border-t-2 border-gray-200 dark:border-slate-600 font-semibold">
-                    <td colspan="6" class="px-4 py-3 text-right text-gray-700 dark:text-slate-200">Total pieces to produce</td>
-                    <td class="px-4 py-3 text-center text-orange-600 dark:text-orange-400">{{ number_format($totalShortfall) }}</td>
+                    <td class="no-print"></td>
+                    <td colspan="5" class="px-4 py-3 text-right text-gray-700 dark:text-slate-200">Total pieces to produce</td>
+                    <td class="px-4 py-3 text-center text-orange-600 dark:text-orange-400" x-text="total.toLocaleString()"></td>
                 </tr>
             </tfoot>
             @endif
@@ -122,9 +160,10 @@
 
     {{-- Mobile cards --}}
     <div class="md:hidden divide-y divide-gray-50 dark:divide-slate-700">
-        @forelse($products as $i => $product)
-        <div class="p-4 flex items-center gap-3">
-            <span class="text-xs text-gray-400 dark:text-slate-500 w-5 flex-shrink-0">{{ $i + 1 }}</span>
+        @forelse($products as $product)
+        <div class="p-4 flex items-center gap-3" :class="has({{ $product->id }}) ? '' : 'opacity-40 print-exclude'">
+            <input type="checkbox" :checked="has({{ $product->id }})" @change="toggle({{ $product->id }})"
+                   class="no-print w-4 h-4 rounded border-gray-300 dark:border-slate-600 text-primary-600 focus:ring-primary-500 flex-shrink-0">
             <div class="flex-1 min-w-0">
                 <p class="text-sm font-medium text-gray-900 dark:text-white truncate">{{ $product->name }}</p>
                 <p class="text-xs text-gray-400 dark:text-slate-500 mt-0.5">
@@ -143,5 +182,7 @@
         @endforelse
     </div>
 </div>
+
+</div>{{-- /x-data --}}
 
 @endsection
