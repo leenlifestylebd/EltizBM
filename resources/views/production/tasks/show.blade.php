@@ -20,7 +20,7 @@
 </div>
 @endif
 
-<div class="max-w-2xl mx-auto space-y-4" x-data="{ editOpen: false, forwardOpen: {{ request()->is('*#forward') || session('openForward') ? 'true' : 'false' }} }">
+<div class="max-w-2xl mx-auto space-y-4" x-data="{ editOpen: false, submitOpen: false, forwardOpen: {{ request()->is('*#forward') || session('openForward') ? 'true' : 'false' }} }">
 
     {{-- Task Header Card --}}
     <div class="bg-white dark:bg-slate-800 rounded-xl border border-gray-100 dark:border-slate-700 p-5">
@@ -129,6 +129,45 @@
                 Forwarded from <a href="{{ route('production.tasks.show', $task->source_task_id) }}" class="font-semibold underline">Sewing Task #{{ $task->source_task_id }}</a>
                 ({{ $task->sourceTask->employee->name }})
             </p>
+        </div>
+        @endif
+
+        {{-- Record completed work (admin/owner submits on the worker's behalf) --}}
+        @if(in_array(auth()->user()->role, ['admin','owner']) && !in_array($task->status, ['completed','cancelled']) && $task->pending_quantity > 0)
+        @php $assignedRate = $task->productionRate?->rate ?? 0; @endphp
+        <div class="mt-4 pt-4 border-t border-gray-100 dark:border-slate-700">
+            <button @click="submitOpen = !submitOpen" type="button"
+                    class="flex items-center gap-1.5 px-3 py-2 text-xs font-medium text-green-700 dark:text-green-400 border border-green-300 dark:border-green-800 rounded-lg hover:bg-green-50 dark:hover:bg-green-900/20">
+                ✅ Record Completed Work
+                <span class="bg-green-100 dark:bg-green-900/40 text-green-700 dark:text-green-300 px-1.5 py-0.5 rounded-full text-xs font-bold">{{ $task->pending_quantity }} pending</span>
+            </button>
+
+            <form x-show="submitOpen" x-cloak method="POST" action="{{ route('production.tasks.submit', $task) }}"
+                  class="mt-3 grid grid-cols-2 sm:grid-cols-4 gap-2 items-end">
+                @csrf
+                <div>
+                    <label class="block text-xs text-gray-500 mb-1">Completed pieces <span class="text-red-500">*</span></label>
+                    <input type="number" name="submitted_quantity" min="1" max="{{ $task->pending_quantity }}" value="{{ $task->pending_quantity }}" required
+                           class="w-full px-2 py-1.5 text-sm border border-gray-200 dark:border-slate-600 rounded-lg bg-white dark:bg-slate-700 text-gray-900 dark:text-white">
+                </div>
+                <div>
+                    <label class="block text-xs text-gray-500 mb-1">Rate (৳/pc)</label>
+                    <input type="number" name="rate_used" min="0" step="0.01" placeholder="{{ $assignedRate ?: 'optional' }}"
+                           class="w-full px-2 py-1.5 text-sm border border-gray-200 dark:border-slate-600 rounded-lg bg-white dark:bg-slate-700 text-gray-900 dark:text-white">
+                </div>
+                <div>
+                    <label class="block text-xs text-gray-500 mb-1">Quality note</label>
+                    <input type="text" name="quality_note"
+                           class="w-full px-2 py-1.5 text-sm border border-gray-200 dark:border-slate-600 rounded-lg bg-white dark:bg-slate-700 text-gray-900 dark:text-white">
+                </div>
+                <div class="flex gap-1.5">
+                    <button type="submit" class="flex-1 px-3 py-1.5 text-xs bg-green-600 text-white rounded-lg hover:bg-green-700">Save</button>
+                    <button type="button" @click="submitOpen = false" class="px-3 py-1.5 text-xs bg-gray-100 dark:bg-slate-700 text-gray-600 dark:text-slate-300 rounded-lg">Cancel</button>
+                </div>
+                @if($assignedRate <= 0)
+                <p class="col-span-full text-xs text-amber-600 dark:text-amber-400">No rate set for this task — earning will be ৳0 unless you enter a rate.</p>
+                @endif
+            </form>
         </div>
         @endif
 
