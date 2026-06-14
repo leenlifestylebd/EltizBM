@@ -164,20 +164,27 @@
             Dashboard
         </a>
 
-        <a href="{{ route('orders.index') }}"
-           class="nav-item flex items-center gap-3 px-3 py-2.5 rounded-lg text-sm text-gray-600 dark:text-slate-300 hover:bg-gray-50 dark:hover:bg-slate-700 mb-0.5 {{ request()->routeIs('orders.*') ? 'nav-active' : '' }}">
-            <svg class="w-4 h-4 flex-shrink-0" fill="none" stroke="currentColor" viewBox="0 0 24 24"><path stroke-linecap="round" stroke-linejoin="round" stroke-width="2" d="M3 3h2l.4 2M7 13h10l4-8H5.4M7 13L5.4 5M7 13l-2.293 2.293c-.63.63-.184 1.707.707 1.707H17m0 0a2 2 0 100 4 2 2 0 000-4zm-8 2a2 2 0 11-4 0 2 2 0 014 0z"/></svg>
-            Orders
-        </a>
-
-        <a href="{{ route('web-orders.index') }}"
-           class="nav-item flex items-center gap-3 px-3 py-2.5 rounded-lg text-sm text-gray-600 dark:text-slate-300 hover:bg-gray-50 dark:hover:bg-slate-700 mb-0.5 {{ request()->routeIs('web-orders.*') ? 'nav-active' : '' }}">
-            <svg class="w-4 h-4 flex-shrink-0" fill="none" stroke="currentColor" viewBox="0 0 24 24"><path stroke-linecap="round" stroke-linejoin="round" stroke-width="2" d="M21 12a9 9 0 01-9 9m9-9a9 9 0 00-9-9m9 9H3m9 9a9 9 0 01-9-9m9 9c1.657 0 3-4.03 3-9s-1.343-9-3-9m0 18c-1.657 0-3-4.03-3-9s1.343-9 3-9"/></svg>
-            Web Orders
-            @if(isset($pendingWooOrders) && $pendingWooOrders > 0)
-                <span class="ml-auto bg-primary-100 text-primary-600 text-xs font-medium px-2 py-0.5 rounded-full">{{ $pendingWooOrders }}</span>
-            @endif
-        </a>
+        {{-- Sales group --}}
+        @php $salesActive = request()->routeIs('orders.*') || request()->routeIs('web-orders.*') || request()->routeIs('pos.*') || request()->routeIs('returns.*') || request()->routeIs('steadfast.*'); @endphp
+        <div x-data="{ open: {{ $salesActive ? 'true' : 'false' }} }">
+            <button @click="open = !open" class="w-full flex items-center gap-3 px-3 py-2.5 rounded-lg text-sm text-gray-600 dark:text-slate-300 hover:bg-gray-50 dark:hover:bg-slate-700 mb-0.5 {{ $salesActive ? 'nav-active' : '' }}">
+                <svg class="w-4 h-4 flex-shrink-0" fill="none" stroke="currentColor" viewBox="0 0 24 24"><path stroke-linecap="round" stroke-linejoin="round" stroke-width="2" d="M3 3h2l.4 2M7 13h10l4-8H5.4M7 13L5.4 5M7 13l-2.293 2.293c-.63.63-.184 1.707.707 1.707H17m0 0a2 2 0 100 4 2 2 0 000-4zm-8 2a2 2 0 11-4 0 2 2 0 014 0z"/></svg>
+                Sales
+                <svg class="w-3 h-3 ml-auto transition-transform" :class="open ? 'rotate-180' : ''" fill="none" stroke="currentColor" viewBox="0 0 24 24"><path stroke-linecap="round" stroke-linejoin="round" stroke-width="2" d="M19 9l-7 7-7-7"/></svg>
+            </button>
+            <div x-show="open" x-cloak class="pl-9 space-y-0.5">
+                <a href="{{ route('orders.index') }}" class="block px-3 py-2 text-xs rounded-lg hover:bg-gray-50 dark:hover:bg-slate-700 {{ request()->routeIs('orders.*') ? 'text-primary-600 dark:text-primary-400 font-medium' : 'text-gray-500 dark:text-slate-400 hover:text-primary-600' }}">Orders</a>
+                <a href="{{ route('web-orders.index') }}" class="flex items-center px-3 py-2 text-xs rounded-lg hover:bg-gray-50 dark:hover:bg-slate-700 {{ request()->routeIs('web-orders.*') ? 'text-primary-600 dark:text-primary-400 font-medium' : 'text-gray-500 dark:text-slate-400 hover:text-primary-600' }}">
+                    Web Orders
+                    @if(isset($pendingWooOrders) && $pendingWooOrders > 0)
+                        <span class="ml-auto bg-primary-100 text-primary-600 text-xs font-medium px-2 py-0.5 rounded-full">{{ $pendingWooOrders }}</span>
+                    @endif
+                </a>
+                <a href="{{ route('pos.index') }}" class="block px-3 py-2 text-xs rounded-lg hover:bg-gray-50 dark:hover:bg-slate-700 {{ request()->routeIs('pos.*') ? 'text-primary-600 dark:text-primary-400 font-medium' : 'text-gray-500 dark:text-slate-400 hover:text-primary-600' }}">POS</a>
+                <a href="{{ route('returns.index') }}" class="block px-3 py-2 text-xs rounded-lg hover:bg-gray-50 dark:hover:bg-slate-700 {{ request()->routeIs('returns.*') ? 'text-primary-600 dark:text-primary-400 font-medium' : 'text-gray-500 dark:text-slate-400 hover:text-primary-600' }}">Returns &amp; RMA</a>
+                <a href="{{ route('steadfast.index') }}" class="block px-3 py-2 text-xs rounded-lg hover:bg-gray-50 dark:hover:bg-slate-700 {{ request()->routeIs('steadfast.*') ? 'text-primary-600 dark:text-primary-400 font-medium' : 'text-gray-500 dark:text-slate-400 hover:text-primary-600' }}">Steadfast Courier</a>
+            </div>
+        </div>
 
         <div x-data="{ open: {{ request()->routeIs('products.*') ? 'true' : 'false' }} }">
             <button @click="open = !open" class="w-full flex items-center gap-3 px-3 py-2.5 rounded-lg text-sm text-gray-600 dark:text-slate-300 hover:bg-gray-50 dark:hover:bg-slate-700 mb-0.5 {{ request()->routeIs('products.*') ? 'nav-active' : '' }}">
@@ -247,14 +254,6 @@
         </div>
         @endif
 
-        @if(auth()->user()->hasPermission('people'))
-        <a href="{{ route('people.customers') }}"
-           class="nav-item flex items-center gap-3 px-3 py-2.5 rounded-lg text-sm text-gray-600 dark:text-slate-300 hover:bg-gray-50 dark:hover:bg-slate-700 mb-0.5">
-            <svg class="w-4 h-4 flex-shrink-0" fill="none" stroke="currentColor" viewBox="0 0 24 24"><path stroke-linecap="round" stroke-linejoin="round" stroke-width="2" d="M17 20h5v-2a3 3 0 00-5.356-1.857M17 20H7m10 0v-2c0-.656-.126-1.283-.356-1.857M7 20H2v-2a3 3 0 015.356-1.857M7 20v-2c0-.656.126-1.283.356-1.857m0 0a5.002 5.002 0 019.288 0M15 7a3 3 0 11-6 0 3 3 0 016 0z"/></svg>
-            People
-        </a>
-        @endif
-
         {{-- Tailoring --}}
         <a href="{{ route('tailoring.index') }}"
            class="nav-item flex items-center gap-3 px-3 py-2.5 rounded-lg text-sm text-gray-600 dark:text-slate-300 hover:bg-gray-50 dark:hover:bg-slate-700 mb-0.5 {{ request()->routeIs('tailoring.*') ? 'nav-active' : '' }}">
@@ -287,49 +286,38 @@
             Materials
         </a>
 
-        <a href="{{ route('employees.index') }}"
-           class="nav-item flex items-center gap-3 px-3 py-2.5 rounded-lg text-sm text-gray-600 dark:text-slate-300 hover:bg-gray-50 dark:hover:bg-slate-700 mb-0.5">
-            <svg class="w-4 h-4 flex-shrink-0" fill="none" stroke="currentColor" viewBox="0 0 24 24"><path stroke-linecap="round" stroke-linejoin="round" stroke-width="2" d="M21 13.255A23.931 23.931 0 0112 15c-3.183 0-6.22-.62-9-1.745M16 6V4a2 2 0 00-2-2h-4a2 2 0 00-2 2v2m4 6h.01M5 20h14a2 2 0 002-2V8a2 2 0 00-2-2H5a2 2 0 00-2 2v10a2 2 0 002 2z"/></svg>
-            Employees
-        </a>
-
-        <a href="{{ route('pos.index') }}"
-           class="nav-item flex items-center gap-3 px-3 py-2.5 rounded-lg text-sm text-gray-600 dark:text-slate-300 hover:bg-gray-50 dark:hover:bg-slate-700 mb-0.5">
-            <svg class="w-4 h-4 flex-shrink-0" fill="none" stroke="currentColor" viewBox="0 0 24 24"><path stroke-linecap="round" stroke-linejoin="round" stroke-width="2" d="M9 7h6m0 10v-3m-3 3h.01M9 17h.01M9 14h.01M12 14h.01M15 11h.01M12 11h.01M9 11h.01M7 21h10a2 2 0 002-2V5a2 2 0 00-2-2H7a2 2 0 00-2 2v14a2 2 0 002 2z"/></svg>
-            POS
-        </a>
-
-        <a href="{{ route('tasks.index') }}"
-           class="nav-item flex items-center gap-3 px-3 py-2.5 rounded-lg text-sm text-gray-600 dark:text-slate-300 hover:bg-gray-50 dark:hover:bg-slate-700 mb-0.5">
-            <svg class="w-4 h-4 flex-shrink-0" fill="none" stroke="currentColor" viewBox="0 0 24 24"><path stroke-linecap="round" stroke-linejoin="round" stroke-width="2" d="M9 5H7a2 2 0 00-2 2v12a2 2 0 002 2h10a2 2 0 002-2V7a2 2 0 00-2-2h-2M9 5a2 2 0 002 2h2a2 2 0 002-2M9 5a2 2 0 012-2h2a2 2 0 012 2m-6 9l2 2 4-4"/></svg>
-            Tasks
-        </a>
+        {{-- People & Staff group --}}
+        @php $peopleActive = request()->routeIs('employees.*') || request()->routeIs('people.*') || request()->routeIs('tasks.*'); @endphp
+        <div x-data="{ open: {{ $peopleActive ? 'true' : 'false' }} }">
+            <button @click="open = !open" class="w-full flex items-center gap-3 px-3 py-2.5 rounded-lg text-sm text-gray-600 dark:text-slate-300 hover:bg-gray-50 dark:hover:bg-slate-700 mb-0.5 {{ $peopleActive ? 'nav-active' : '' }}">
+                <svg class="w-4 h-4 flex-shrink-0" fill="none" stroke="currentColor" viewBox="0 0 24 24"><path stroke-linecap="round" stroke-linejoin="round" stroke-width="2" d="M17 20h5v-2a3 3 0 00-5.356-1.857M17 20H7m10 0v-2c0-.656-.126-1.283-.356-1.857M7 20H2v-2a3 3 0 015.356-1.857M7 20v-2c0-.656.126-1.283.356-1.857m0 0a5.002 5.002 0 019.288 0M15 7a3 3 0 11-6 0 3 3 0 016 0z"/></svg>
+                People &amp; Staff
+                <svg class="w-3 h-3 ml-auto transition-transform" :class="open ? 'rotate-180' : ''" fill="none" stroke="currentColor" viewBox="0 0 24 24"><path stroke-linecap="round" stroke-linejoin="round" stroke-width="2" d="M19 9l-7 7-7-7"/></svg>
+            </button>
+            <div x-show="open" x-cloak class="pl-9 space-y-0.5">
+                <a href="{{ route('employees.index') }}" class="block px-3 py-2 text-xs rounded-lg hover:bg-gray-50 dark:hover:bg-slate-700 {{ request()->routeIs('employees.*') ? 'text-primary-600 dark:text-primary-400 font-medium' : 'text-gray-500 dark:text-slate-400 hover:text-primary-600' }}">Employees</a>
+                @if(auth()->user()->hasPermission('people'))
+                <a href="{{ route('people.customers') }}" class="block px-3 py-2 text-xs rounded-lg hover:bg-gray-50 dark:hover:bg-slate-700 {{ request()->routeIs('people.*') ? 'text-primary-600 dark:text-primary-400 font-medium' : 'text-gray-500 dark:text-slate-400 hover:text-primary-600' }}">Customers &amp; Vendors</a>
+                @endif
+                <a href="{{ route('tasks.index') }}" class="block px-3 py-2 text-xs rounded-lg hover:bg-gray-50 dark:hover:bg-slate-700 {{ request()->routeIs('tasks.*') ? 'text-primary-600 dark:text-primary-400 font-medium' : 'text-gray-500 dark:text-slate-400 hover:text-primary-600' }}">Tasks (To-do)</a>
+            </div>
+        </div>
 
         <p class="text-xs font-semibold text-gray-400 dark:text-slate-500 uppercase tracking-wider px-3 mb-2 mt-4">System</p>
 
-        <a href="{{ route('settings.general') }}"
-           class="nav-item flex items-center gap-3 px-3 py-2.5 rounded-lg text-sm text-gray-600 dark:text-slate-300 hover:bg-gray-50 dark:hover:bg-slate-700 mb-0.5">
-            <svg class="w-4 h-4 flex-shrink-0" fill="none" stroke="currentColor" viewBox="0 0 24 24"><path stroke-linecap="round" stroke-linejoin="round" stroke-width="2" d="M10.325 4.317c.426-1.756 2.924-1.756 3.35 0a1.724 1.724 0 002.573 1.066c1.543-.94 3.31.826 2.37 2.37a1.724 1.724 0 001.065 2.572c1.756.426 1.756 2.924 0 3.35a1.724 1.724 0 00-1.066 2.573c.94 1.543-.826 3.31-2.37 2.37a1.724 1.724 0 00-2.572 1.065c-.426 1.756-2.924 1.756-3.35 0a1.724 1.724 0 00-2.573-1.066c-1.543.94-3.31-.826-2.37-2.37a1.724 1.724 0 00-1.065-2.572c-1.756-.426-1.756-2.924 0-3.35a1.724 1.724 0 001.066-2.573c-.94-1.543.826-3.31 2.37-2.37.996.608 2.296.07 2.572-1.065z"/><path stroke-linecap="round" stroke-linejoin="round" stroke-width="2" d="M15 12a3 3 0 11-6 0 3 3 0 016 0z"/></svg>
-            Settings
-        </a>
-
-        <a href="{{ route('steadfast.index') }}"
-           class="nav-item flex items-center gap-3 px-3 py-2.5 rounded-lg text-sm text-gray-600 dark:text-slate-300 hover:bg-gray-50 dark:hover:bg-slate-700 mb-0.5 {{ request()->routeIs('steadfast.*') ? 'nav-active' : '' }}">
-            <svg class="w-4 h-4 flex-shrink-0" fill="none" stroke="currentColor" viewBox="0 0 24 24"><path stroke-linecap="round" stroke-linejoin="round" stroke-width="2" d="M8 7h12m0 0l-4-4m4 4l-4 4m0 6H4m0 0l4 4m-4-4l4-4"/></svg>
-            Steadfast
-        </a>
-
-        <a href="{{ route('returns.index') }}"
-           class="nav-item flex items-center gap-3 px-3 py-2.5 rounded-lg text-sm text-gray-600 dark:text-slate-300 hover:bg-gray-50 dark:hover:bg-slate-700 mb-0.5 {{ request()->routeIs('returns.*') ? 'nav-active' : '' }}">
-            <svg class="w-4 h-4 flex-shrink-0" fill="none" stroke="currentColor" viewBox="0 0 24 24"><path stroke-linecap="round" stroke-linejoin="round" stroke-width="2" d="M16 15v-1a4 4 0 00-4-4H8m0 0l3 3m-3-3l3-3m9 14V5a2 2 0 00-2-2H6a2 2 0 00-2 2v16l4-2 4 2 4-2 4 2z"/></svg>
-            Returns & RMA
-        </a>
-
-        <a href="{{ route('integrations.index') }}"
-           class="nav-item flex items-center gap-3 px-3 py-2.5 rounded-lg text-sm text-gray-600 dark:text-slate-300 hover:bg-gray-50 dark:hover:bg-slate-700 mb-0.5">
-            <svg class="w-4 h-4 flex-shrink-0" fill="none" stroke="currentColor" viewBox="0 0 24 24"><path stroke-linecap="round" stroke-linejoin="round" stroke-width="2" d="M13.828 10.172a4 4 0 00-5.656 0l-4 4a4 4 0 105.656 5.656l1.102-1.101m-.758-4.899a4 4 0 005.656 0l4-4a4 4 0 00-5.656-5.656l-1.1 1.1"/></svg>
-            Integrations
-        </a>
+        {{-- System group --}}
+        @php $systemActive = request()->routeIs('settings.*') || request()->routeIs('integrations.*'); @endphp
+        <div x-data="{ open: {{ $systemActive ? 'true' : 'false' }} }">
+            <button @click="open = !open" class="w-full flex items-center gap-3 px-3 py-2.5 rounded-lg text-sm text-gray-600 dark:text-slate-300 hover:bg-gray-50 dark:hover:bg-slate-700 mb-0.5 {{ $systemActive ? 'nav-active' : '' }}">
+                <svg class="w-4 h-4 flex-shrink-0" fill="none" stroke="currentColor" viewBox="0 0 24 24"><path stroke-linecap="round" stroke-linejoin="round" stroke-width="2" d="M10.325 4.317c.426-1.756 2.924-1.756 3.35 0a1.724 1.724 0 002.573 1.066c1.543-.94 3.31.826 2.37 2.37a1.724 1.724 0 001.065 2.572c1.756.426 1.756 2.924 0 3.35a1.724 1.724 0 00-1.066 2.573c.94 1.543-.826 3.31-2.37 2.37a1.724 1.724 0 00-2.572 1.065c-.426 1.756-2.924 1.756-3.35 0a1.724 1.724 0 00-2.573-1.066c-1.543.94-3.31-.826-2.37-2.37a1.724 1.724 0 00-1.065-2.572c-1.756-.426-1.756-2.924 0-3.35a1.724 1.724 0 001.066-2.573c-.94-1.543.826-3.31 2.37-2.37.996.608 2.296.07 2.572-1.065z"/><path stroke-linecap="round" stroke-linejoin="round" stroke-width="2" d="M15 12a3 3 0 11-6 0 3 3 0 016 0z"/></svg>
+                System
+                <svg class="w-3 h-3 ml-auto transition-transform" :class="open ? 'rotate-180' : ''" fill="none" stroke="currentColor" viewBox="0 0 24 24"><path stroke-linecap="round" stroke-linejoin="round" stroke-width="2" d="M19 9l-7 7-7-7"/></svg>
+            </button>
+            <div x-show="open" x-cloak class="pl-9 space-y-0.5">
+                <a href="{{ route('settings.general') }}" class="block px-3 py-2 text-xs rounded-lg hover:bg-gray-50 dark:hover:bg-slate-700 {{ request()->routeIs('settings.*') ? 'text-primary-600 dark:text-primary-400 font-medium' : 'text-gray-500 dark:text-slate-400 hover:text-primary-600' }}">Settings</a>
+                <a href="{{ route('integrations.index') }}" class="block px-3 py-2 text-xs rounded-lg hover:bg-gray-50 dark:hover:bg-slate-700 {{ request()->routeIs('integrations.*') ? 'text-primary-600 dark:text-primary-400 font-medium' : 'text-gray-500 dark:text-slate-400 hover:text-primary-600' }}">Integrations</a>
+            </div>
+        </div>
 
     </nav>
 
@@ -765,6 +753,24 @@
 </div>
 
 @stack('scripts')
+
+{{-- Global double-submit guard: disables a form's submit button after it
+     submits (post-submit, so the button's value is still sent), preventing
+     accidental duplicate payments/tasks/orders. Opt out with data-no-lock. --}}
+<script>
+document.addEventListener('submit', function (e) {
+    var form = e.target;
+    if (!form || form.tagName !== 'FORM' || form.hasAttribute('data-no-lock')) return;
+    var btn = form.querySelector('button[type="submit"], input[type="submit"]');
+    if (!btn || btn.disabled) return;
+    // Defer so the click's name/value is included in the submission.
+    setTimeout(function () {
+        btn.disabled = true;
+        btn.style.opacity = '0.6';
+        btn.style.cursor = 'wait';
+    }, 0);
+}, true);
+</script>
 
 {{-- PWA Service Worker --}}
 <script>
