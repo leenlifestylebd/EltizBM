@@ -72,11 +72,15 @@
 
     <div class="bg-primary-50 dark:bg-primary-900/20 rounded-xl p-4 border border-primary-100 dark:border-primary-900/40">
         <p class="text-xs text-primary-600 dark:text-primary-400 font-medium mb-1">
-            {{ $employee->type === 'salary' ? 'Monthly Salary' : 'P.Bill (This Month)' }}
+            {{ (float)$employee->salary > 0 ? 'Earned This Month' : 'P.Bill (This Month)' }}
         </p>
         <p class="text-2xl font-bold text-primary-700 dark:text-primary-300">৳{{ number_format($monthEarned) }}</p>
         <p class="text-xs text-primary-500 mt-1">
-            {{ $employee->type === 'salary' ? 'Fixed monthly' : $entries->sum('quantity').' pieces' }}
+            @if((float)$employee->salary > 0)
+                ৳{{ number_format($employee->salary) }} salary{{ $entries->sum('amount') > 0 ? ' + ৳'.number_format($entries->sum('amount')).' production' : '' }}
+            @else
+                {{ $entries->sum('quantity') }} pieces
+            @endif
         </p>
     </div>
     <div class="bg-green-50 dark:bg-green-900/20 rounded-xl p-4 border border-green-100 dark:border-green-900/40">
