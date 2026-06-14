@@ -267,7 +267,7 @@
                     @if($totalDeducted > 0)
                     <div class="flex justify-between text-xs">
                         <span class="text-gray-500 dark:text-slate-400">Deductions</span>
-                        <span class="font-medium text-red-600 dark:text-red-400">+ ৳{{ number_format($totalDeducted, 0) }}</span>
+                        <span class="font-medium text-red-600 dark:text-red-400">- ৳{{ number_format($totalDeducted, 0) }}</span>
                     </div>
                     @endif
                     <div class="border-t border-gray-100 dark:border-slate-600 pt-2 flex justify-between text-xs font-bold">

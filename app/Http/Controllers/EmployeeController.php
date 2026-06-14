@@ -82,7 +82,7 @@ class EmployeeController extends Controller
             // Unified: net = base salary + production − paid + deductions.
             // Base uses the salary effective for this month (salary-revision aware).
             $emp->month_base = $emp->salaryForMonth($monthStart);
-            $emp->month_net  = $emp->month_base + $emp->month_earning - $emp->month_advance + $emp->month_deducted;
+            $emp->month_net  = $emp->month_base + $emp->month_earning - $emp->month_advance - $emp->month_deducted;
             $emp->is_hybrid  = $emp->month_base > 0 && $emp->month_earning > 0;
         }
 
@@ -176,7 +176,7 @@ class EmployeeController extends Controller
         // Unified net = base salary + production earning − paid + deductions.
         // Base = the salary effective for this month (salary-revision aware).
         $monthBase        = $employee->salaryForMonth($monthStart);
-        $monthNetPayable  = $monthBase + (float)$monthEarning - (float)$monthTotalPaid + (float)$monthDeductions;
+        $monthNetPayable  = $monthBase + (float)$monthEarning - (float)$monthTotalPaid - (float)$monthDeductions;
         $isHybrid         = $monthBase > 0 && (float)$monthEarning > 0;
 
         $recentPayments   = EmployeePayment::where('employee_id', $employee->id)
