@@ -455,7 +455,7 @@ class ProductionController extends Controller
             ->pluck('cnt', 'employee_id');
 
         // Per-employee stats
-        $employeeStats = $employees->map(function ($emp) use ($allTasks, $earnings, $advances, $salaryPaid, $salaryDeductions, $attendanceCounts) {
+        $employeeStats = $employees->map(function ($emp) use ($allTasks, $earnings, $advances, $salaryPaid, $salaryDeductions, $attendanceCounts, $fromDate) {
             $tasks    = $allTasks->where('employee_id', $emp->id);
             $earning  = $earnings[$emp->id] ?? null;
             $advance  = $advances[$emp->id] ?? 0;
