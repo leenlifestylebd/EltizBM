@@ -633,10 +633,17 @@ class ProductionController extends Controller
                 ->where('payment_date', '<', $monthStart)
                 ->where('type', 'deduction')->sum('amount');
 
-            $openingBalance = $salaryOwedBefore - $paidBefore + $deductedBefore;
+            // Production piece-rate (salary + production hybrids) — count it as earned,
+            // same as the Worker Ledger, so both screens show the same net.
+            $monthProduction  = (float)ProductionEntry::where('employee_id', $employee->id)
+                ->whereBetween('entry_date', [$monthStart, $monthEnd])->sum('amount');
+            $productionBefore = (float)ProductionEntry::where('employee_id', $employee->id)
+                ->where('entry_date', '<', $monthStart)->sum('amount');
+
+            $openingBalance = $salaryOwedBefore + $productionBefore - $paidBefore + $deductedBefore;
             // openingBalance: + employee is owed carry-in, − was overpaid (reduces this month's due)
 
-            $netPayable = $openingBalance + (float)$employee->salary - $totalPaid + $totalDeducted;
+            $netPayable = $openingBalance + (float)$employee->salary + $monthProduction - $totalPaid + $totalDeducted;
 
             $calendarMap   = $attendance->keyBy(fn($a) => Carbon::parse($a->attendance_date)->format('Y-m-d'));
             $calendarStart = Carbon::parse($monthStart)->dayOfWeek;
@@ -654,6 +661,7 @@ class ProductionController extends Controller
                 'attendance', 'daysInMonth', 'daysPresent', 'daysAbsent',
                 'daysHalfDay', 'daysHoliday', 'daysNotMarked',
                 'payments', 'totalPaid', 'totalDeducted', 'netPayable', 'openingBalance',
+                'monthProduction',
                 'calendarMap', 'calendarStart', 'allMonths',
                 'notifications', 'notifUnread'
             ));

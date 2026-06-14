@@ -155,9 +155,13 @@
         {{-- Fixed salary employee: show salary / attendance / paid / net payable --}}
         <div class="grid grid-cols-2 md:grid-cols-4 divide-x divide-gray-50 dark:divide-slate-700">
             <div class="px-3 py-3 text-center">
-                <p class="text-xs text-gray-400 mb-1">মাসিক বেতন</p>
-                <p class="text-xl font-bold text-indigo-600 dark:text-indigo-400">৳{{ number_format($stat['monthly_salary'], 0) }}</p>
-                <span class="text-xs text-indigo-400">Fixed</span>
+                <p class="text-xs text-gray-400 mb-1">{{ ($stat['total_earning'] ?? 0) > 0 ? 'বেতন + প্রোডাকশন' : 'মাসিক বেতন' }}</p>
+                <p class="text-xl font-bold text-indigo-600 dark:text-indigo-400">৳{{ number_format($stat['monthly_salary'] + ($stat['total_earning'] ?? 0), 0) }}</p>
+                @if(($stat['total_earning'] ?? 0) > 0)
+                    <span class="text-xs text-purple-500">৳{{ number_format($stat['monthly_salary'], 0) }} + ৳{{ number_format($stat['total_earning'], 0) }}</span>
+                @else
+                    <span class="text-xs text-indigo-400">Fixed</span>
+                @endif
             </div>
             <div class="px-3 py-3 text-center">
                 <p class="text-xs text-gray-400 mb-1">উপস্থিতি</p>
