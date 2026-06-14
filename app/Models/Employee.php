@@ -26,6 +26,42 @@ class Employee extends Model
     public function attendance()      { return $this->hasMany(Attendance::class); }
     public function attendances()     { return $this->hasMany(Attendance::class); }
     public function productionTasks() { return $this->hasMany(ProductionTask::class); }
+    public function salaries()        { return $this->hasMany(EmployeeSalary::class)->orderByDesc('effective_from'); }
+
+    /**
+     * The monthly salary in effect for a given month — the latest revision whose
+     * effective_from is on or before that month. Falls back to the `salary`
+     * column when there is no history (so a raise never rewrites past months).
+     */
+    public function salaryForMonth($month): float
+    {
+        $m = ($month instanceof \Carbon\Carbon ? $month->copy() : \Carbon\Carbon::parse($month))
+                ->startOfMonth()->toDateString();
+
+        $rec = $this->salaries
+            ? $this->salaries->firstWhere(fn($s) => $s->effective_from->toDateString() <= $m)
+            : null;
+
+        if ($rec) return (float) $rec->amount;
+
+        // Not eager-loaded or none cached → query, then fall back to the column.
+        $rec = $this->salaries()->where('effective_from', '<=', $m)->first();
+        return $rec ? (float) $rec->amount : (float) $this->salary;
+    }
+
+    /** Sum of the effective monthly salary across every month in [$from, $to]. */
+    public function salaryOwedForRange($from, $to): float
+    {
+        $start = \Carbon\Carbon::parse($from)->startOfMonth();
+        $end   = \Carbon\Carbon::parse($to)->startOfMonth();
+        if ($end->lt($start)) return 0.0;
+
+        $total = 0.0;
+        for ($m = $start->copy(); $m->lte($end); $m->addMonth()) {
+            $total += $this->salaryForMonth($m);
+        }
+        return $total;
+    }
 
     public function todayProduction(): int
     {
@@ -83,12 +119,9 @@ class Employee extends Model
 
         $production = (float) $this->productionEntries()->whereBetween('entry_date', [$from, $to])->sum('amount');
 
-        $base = 0.0;
-        if ((float) $this->salary > 0) {
-            $months = \Carbon\Carbon::parse($from)->startOfMonth()
-                        ->diffInMonths(\Carbon\Carbon::parse($to)->startOfMonth()) + 1;
-            $base = $months * (float) $this->salary;
-        }
+        // Base = sum of the effective salary for each month in the range, so a
+        // later raise never changes past months.
+        $base = $this->salaryOwedForRange($from, $to);
 
         $advance   = (float) $this->payments()->whereBetween('payment_date', [$from, $to])->where('type', 'advance')->sum('amount');
         $bonus     = (float) $this->payments()->whereBetween('payment_date', [$from, $to])->where('type', 'bonus')->sum('amount');

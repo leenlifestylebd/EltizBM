@@ -18,7 +18,7 @@ class EmployeeController extends Controller
     {
         $bizId = auth()->user()->business_id;
 
-        $query = Employee::where('business_id', $bizId)->orderBy('name');
+        $query = Employee::where('business_id', $bizId)->with('salaries')->orderBy('name');
 
         if ($search = $request->search) {
             $query->where(function ($q) use ($search) {
@@ -79,8 +79,8 @@ class EmployeeController extends Controller
             $emp->days_present     = $att->days_present ?? 0;
 
             // Unified: net = base salary + production − paid + deductions.
-            // Handles salary-only, production-only, and salary+production workers.
-            $emp->month_base = (float)$emp->salary > 0 ? (float)$emp->salary : 0;
+            // Base uses the salary effective for this month (salary-revision aware).
+            $emp->month_base = $emp->salaryForMonth($monthStart);
             $emp->month_net  = $emp->month_base + $emp->month_earning - $emp->month_advance + $emp->month_deducted;
             $emp->is_hybrid  = $emp->month_base > 0 && $emp->month_earning > 0;
         }
@@ -159,7 +159,8 @@ class EmployeeController extends Controller
             ->whereBetween('payment_date', [$monthStart, $monthEnd])
             ->where('type', 'deduction')->sum('amount');
         // Unified net = base salary + production earning − paid + deductions.
-        $monthBase        = (float)$employee->salary > 0 ? (float)$employee->salary : 0;
+        // Base = the salary effective for this month (salary-revision aware).
+        $monthBase        = $employee->salaryForMonth($monthStart);
         $monthNetPayable  = $monthBase + (float)$monthEarning - (float)$monthTotalPaid + (float)$monthDeductions;
         $isHybrid         = $monthBase > 0 && (float)$monthEarning > 0;
 
