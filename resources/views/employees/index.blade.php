@@ -76,8 +76,8 @@
             </span>
         </div>
 
-        @if($emp->type === 'salary' && (float)$emp->salary > 0)
-        {{-- Salary employee card --}}
+        @if((float)$emp->salary > 0)
+        {{-- Base-salary card (+ production line below if the worker also does piece-work) --}}
         <div class="grid grid-cols-2 gap-2 mb-3">
             <div class="bg-indigo-50 dark:bg-indigo-900/20 rounded-lg p-2 text-center">
                 <p class="text-sm font-bold text-indigo-600 dark:text-indigo-400">৳{{ number_format($emp->salary) }}</p>
@@ -98,6 +98,13 @@
                 <p class="text-xs text-gray-400 dark:text-slate-500">{{ $emp->month_net >= 0 ? 'Net Payable' : 'Overpaid' }}</p>
             </div>
         </div>
+        @if($emp->month_earning > 0)
+        {{-- Salary + Production (hybrid): show the piece-rate earning on top of base --}}
+        <div class="flex items-center justify-between px-2 py-1.5 rounded-lg mb-2 bg-purple-50 dark:bg-purple-900/20">
+            <span class="text-xs text-gray-500 dark:text-slate-400">+ Production ({{ $emp->month_production }} pcs)</span>
+            <span class="text-sm font-bold text-purple-600 dark:text-purple-400">৳{{ number_format($emp->month_earning) }}</span>
+        </div>
+        @endif
         @else
         {{-- Production employee card --}}
         <div class="grid grid-cols-2 gap-2 mb-3">

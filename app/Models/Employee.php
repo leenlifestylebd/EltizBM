@@ -66,4 +66,49 @@ class Employee extends Model
 
         return compact('opening', 'earned', 'advance', 'bonus', 'deduction', 'paid', 'closing');
     }
+
+    /**
+     * Unified compensation for a period — works for every worker type at once:
+     *   - Fixed base salary  (monthly salary × months in range; 0 if none)
+     *   - Variable earnings  (production piece-rate; 0 if none)
+     * A worker can have one, the other, or both. Net keeps the same convention
+     * used across the app: net = base + production − paid + deduction, where
+     * `paid` = salary/advance/bonus payments. This reduces exactly to the old
+     * salary-only and production-only formulas.
+     */
+    public function compensation($from, $to): array
+    {
+        $from = is_string($from) ? $from : $from->toDateString();
+        $to   = is_string($to)   ? $to   : $to->toDateString();
+
+        $production = (float) $this->productionEntries()->whereBetween('entry_date', [$from, $to])->sum('amount');
+
+        $base = 0.0;
+        if ((float) $this->salary > 0) {
+            $months = \Carbon\Carbon::parse($from)->startOfMonth()
+                        ->diffInMonths(\Carbon\Carbon::parse($to)->startOfMonth()) + 1;
+            $base = $months * (float) $this->salary;
+        }
+
+        $advance   = (float) $this->payments()->whereBetween('payment_date', [$from, $to])->where('type', 'advance')->sum('amount');
+        $bonus     = (float) $this->payments()->whereBetween('payment_date', [$from, $to])->where('type', 'bonus')->sum('amount');
+        $deduction = (float) $this->payments()->whereBetween('payment_date', [$from, $to])->where('type', 'deduction')->sum('amount');
+        $paid      = (float) $this->payments()->whereBetween('payment_date', [$from, $to])->whereIn('type', ['salary', 'advance', 'bonus'])->sum('amount');
+
+        $gross = $base + $production;
+        $net   = $gross - $paid + $deduction;
+
+        return [
+            'base'           => $base,
+            'production'     => $production,
+            'gross'          => $gross,
+            'advance'        => $advance,
+            'bonus'          => $bonus,
+            'deduction'      => $deduction,
+            'paid'           => $paid,
+            'net'            => $net,
+            'has_base'       => $base > 0,
+            'has_production' => $production > 0,
+        ];
+    }
 }

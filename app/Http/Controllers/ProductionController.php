@@ -465,13 +465,15 @@ class ProductionController extends Controller
                 $deducted = (float)($salaryDeductions[$emp->id] ?? 0);
                 $present  = (int)($attendanceCounts[$emp->id] ?? 0);
                 // Task stats still shown for salary employees (they may have tasks too)
+                // Unified: a base-salary worker may also earn production piece-rate.
+                // net = base salary + production − paid + deductions.
                 return [
                     'employee'       => $emp,
                     'type'           => 'salary',
                     'monthly_salary' => (float)$emp->salary,
                     'present_days'   => $present,
                     'total_paid'     => $paid,
-                    'net_payable'    => (float)$emp->salary - $paid + $deducted,
+                    'net_payable'    => (float)$emp->salary + (float)$totalAmt - $paid + $deducted,
                     'total_tasks'    => $tasks->count(),
                     'assigned'       => $tasks->where('status', 'assigned')->count(),
                     'in_progress'    => $tasks->where('status', 'in_progress')->count(),
@@ -480,7 +482,8 @@ class ProductionController extends Controller
                     'total_assigned' => $tasks->sum('assigned_quantity'),
                     'total_done'     => $tasks->sum('completed_quantity'),
                     'total_pending'  => $tasks->sum('assigned_quantity') - $tasks->sum('completed_quantity'),
-                    'total_qty'      => 0, 'total_earning' => 0,
+                    'total_qty'      => $earning['total_qty'] ?? 0,
+                    'total_earning'  => (float)$totalAmt,
                     'advance'        => 0, 'completion_pct' => $tasks->sum('assigned_quantity') > 0
                         ? round(($tasks->sum('completed_quantity') / $tasks->sum('assigned_quantity')) * 100) : 0,
                 ];
