@@ -35,4 +35,11 @@ return [
         ],
     ],
 
+    // SufiAI bot API (consumed by n8n). Token guards /api/v1/bot/* ; business_id
+    // scopes all data. Falls back to the first business if BOT_BUSINESS_ID unset.
+    'bot' => [
+        'token'       => env('BOT_API_TOKEN'),
+        'business_id' => env('BOT_BUSINESS_ID'),
+    ],
+
 ];
