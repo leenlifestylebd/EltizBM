@@ -172,7 +172,6 @@
                         <option value="advance">Advance</option>
                         <option value="salary">Salary</option>
                         <option value="bonus">Bonus</option>
-                        <option value="deduction">Deduction</option>
                     </select>
                 </div>
                 <div>
