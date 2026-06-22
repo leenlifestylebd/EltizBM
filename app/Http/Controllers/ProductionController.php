@@ -275,23 +275,13 @@ class ProductionController extends Controller
 
         $employee = Employee::where('business_id', $bizId)->findOrFail($request->employee_id);
 
-        EmployeePayment::create([
-            'business_id'    => $bizId,
-            'employee_id'    => $employee->id,
-            'created_by'     => auth()->id(),
-            'payment_date'   => $request->payment_date,
-            'amount'         => $request->amount,
-            'type'           => $request->type,
-            'payment_method' => $request->payment_method,
-            'notes'          => $request->notes,
-        ]);
-
         // Only advance and salary move cash out of the business, so only those become
         // expense transactions. Bonus (extra owed) and deduction (reduces what's owed)
         // are payroll adjustments — they affect the worker's ledger, not the cash book,
         // and become an expense only when actually paid out as salary.
+        $transactionId = null;
         if (in_array($request->type, ['advance', 'salary'])) {
-            Transaction::create([
+            $transactionId = Transaction::create([
                 'business_id'      => $bizId,
                 'created_by'       => auth()->id(),
                 'type'             => 'expense',
@@ -300,8 +290,20 @@ class ProductionController extends Controller
                 'payment_method'   => $request->payment_method,
                 'reference'        => 'EMPPAY-' . $employee->id,
                 'transaction_date' => $request->payment_date,
-            ]);
+            ])->id;
         }
+
+        EmployeePayment::create([
+            'business_id'    => $bizId,
+            'employee_id'    => $employee->id,
+            'created_by'     => auth()->id(),
+            'transaction_id' => $transactionId,
+            'payment_date'   => $request->payment_date,
+            'amount'         => $request->amount,
+            'type'           => $request->type,
+            'payment_method' => $request->payment_method,
+            'notes'          => $request->notes,
+        ]);
 
         $typeLabels = ['advance' => 'অগ্রিম', 'salary' => 'বেতন', 'bonus' => 'বোনাস', 'deduction' => 'কর্তন'];
         EmployeeNotification::notify(
@@ -312,6 +314,26 @@ class ProductionController extends Controller
         );
 
         return back()->with('success', 'Payment recorded!');
+    }
+
+    /**
+     * Admin: delete an employee payment and reverse its cash-book expense
+     * (if any). Fixes mistaken payments — the worker's ledger and the business
+     * expense both correct themselves. Workers cannot reach this route.
+     */
+    public function destroyPayment(EmployeePayment $payment)
+    {
+        $bizId = auth()->user()->business_id;
+        abort_if($payment->business_id !== $bizId, 403);
+        abort_if(auth()->user()->role === 'employee', 403);
+
+        if ($payment->transaction_id) {
+            Transaction::where('id', $payment->transaction_id)->where('business_id', $bizId)->delete();
+        }
+
+        $payment->delete();
+
+        return back()->with('success', 'Payment deleted — worker ledger and cash book reversed.');
     }
 
     /**

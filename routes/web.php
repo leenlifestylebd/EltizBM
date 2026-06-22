@@ -253,6 +253,7 @@ Route::middleware(['auth', 'business'])->group(function () {
         Route::delete('/rates/{rate}', [App\Http\Controllers\ProductionController::class, 'destroyRate'])->name('rates.destroy');
         Route::get('/payroll',                           [App\Http\Controllers\ProductionController::class, 'payroll'])->name('payroll');
         Route::post('/payment',                          [App\Http\Controllers\ProductionController::class, 'storePayment'])->name('payment.store');
+        Route::delete('/payment/{payment}',              [App\Http\Controllers\ProductionController::class, 'destroyPayment'])->name('payment.destroy');
         Route::post('/payroll/{employee}/finalize',      [App\Http\Controllers\ProductionController::class, 'finalizePayroll'])->name('payroll.finalize');
         Route::post('/payroll/{payrollPeriod}/unfinalize',[App\Http\Controllers\ProductionController::class, 'unfinalizePayroll'])->name('payroll.unfinalize');
         Route::get('/my-dashboard',    [App\Http\Controllers\ProductionController::class, 'workerDashboard'])->name('worker.dashboard');

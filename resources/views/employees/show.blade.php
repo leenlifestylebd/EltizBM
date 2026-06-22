@@ -274,6 +274,9 @@
                         <th class="text-left px-4 py-2.5 text-xs font-medium text-gray-500 dark:text-slate-400">Type</th>
                         <th class="text-right px-4 py-2.5 text-xs font-medium text-gray-500 dark:text-slate-400">Amount</th>
                         <th class="text-left px-4 py-2.5 text-xs font-medium text-gray-500 dark:text-slate-400">Note</th>
+                        @if(in_array(auth()->user()->role, ['admin','owner']))
+                        <th class="text-center px-4 py-2.5 text-xs font-medium text-gray-500 dark:text-slate-400">Action</th>
+                        @endif
                     </tr>
                 </thead>
                 <tbody class="divide-y divide-gray-50 dark:divide-slate-700">
@@ -285,6 +288,15 @@
                             {{ $pay->type === 'deduction' ? '-' : '' }}৳{{ number_format($pay->amount, 0) }}
                         </td>
                         <td class="px-4 py-2.5 text-xs text-gray-400 dark:text-slate-500 truncate max-w-[140px]">{{ $pay->notes ?? '—' }}</td>
+                        @if(in_array(auth()->user()->role, ['admin','owner']))
+                        <td class="px-4 py-2.5 text-center">
+                            <form method="POST" action="{{ route('production.payment.destroy', $pay) }}"
+                                  onsubmit="return confirm('Delete this {{ $pay->type }} payment of ৳{{ number_format($pay->amount,0) }}? Its cash-book expense will also be reversed.')">
+                                @csrf @method('DELETE')
+                                <button type="submit" class="text-xs text-red-600 hover:underline">Delete</button>
+                            </form>
+                        </td>
+                        @endif
                     </tr>
                     @endforeach
                 </tbody>
