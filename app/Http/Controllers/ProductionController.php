@@ -457,7 +457,7 @@ class ProductionController extends Controller
         // Salary employee payments and attendance for the period
         $salaryPaid = \App\Models\EmployeePayment::where('business_id', $bizId)
             ->whereBetween('payment_date', [$fromDate, $toDate])
-            ->whereIn('type', ['salary', 'advance', 'bonus'])
+            ->whereIn('type', ['salary', 'advance'])
             ->selectRaw('employee_id, SUM(amount) as total')
             ->groupBy('employee_id')
             ->pluck('total', 'employee_id');
@@ -635,7 +635,7 @@ class ProductionController extends Controller
                 ->orderByDesc('payment_date')
                 ->get();
 
-            $totalPaid     = (float)$payments->whereIn('type', ['salary', 'advance', 'bonus'])->sum('amount');
+            $totalPaid     = (float)$payments->whereIn('type', ['salary', 'advance'])->sum('amount');
             $totalDeducted = (float)$payments->where('type', 'deduction')->sum('amount');
 
             // Opening balance: salary owed for all months before this one minus payments already made.
@@ -656,7 +656,7 @@ class ProductionController extends Controller
 
             $paidBefore     = (float)EmployeePayment::where('employee_id', $employee->id)
                 ->where('payment_date', '<', $monthStart)
-                ->whereIn('type', ['salary', 'advance', 'bonus'])->sum('amount');
+                ->whereIn('type', ['salary', 'advance'])->sum('amount');
             $deductedBefore = (float)EmployeePayment::where('employee_id', $employee->id)
                 ->where('payment_date', '<', $monthStart)
                 ->where('type', 'deduction')->sum('amount');
@@ -934,7 +934,7 @@ class ProductionController extends Controller
             $allTimePaidBefore = (float)EmployeePayment::where('business_id', $bizId)
                 ->where('employee_id', $employee->id)
                 ->where('payment_date', '<', $from)
-                ->whereIn('type', ['salary', 'advance', 'bonus'])
+                ->whereIn('type', ['salary', 'advance'])
                 ->sum('amount');
             $allTimeDeductBefore = (float)EmployeePayment::where('business_id', $bizId)
                 ->where('employee_id', $employee->id)

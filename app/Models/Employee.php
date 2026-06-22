@@ -99,7 +99,7 @@ class Employee extends Model
         }
 
         $priorProduction = (float)$this->productionEntries()->where('entry_date', '<', $from)->sum('amount');
-        $priorPaid       = $this->payments()->where('payment_date', '<', $from)->whereIn('type', ['salary', 'advance', 'bonus'])->sum('amount');
+        $priorPaid       = $this->payments()->where('payment_date', '<', $from)->whereIn('type', ['salary', 'advance'])->sum('amount');
         $priorDeducted   = $this->payments()->where('payment_date', '<', $from)->where('type', 'deduction')->sum('amount');
         $opening         = $priorBase + (float)$priorProduction - (float)$priorPaid - (float)$priorDeducted;
 
@@ -110,7 +110,7 @@ class Employee extends Model
         $advance    = (float)$this->payments()->whereBetween('payment_date', [$from, $to])->where('type', 'advance')->sum('amount');
         $bonus      = (float)$this->payments()->whereBetween('payment_date', [$from, $to])->where('type', 'bonus')->sum('amount');
         $deduction  = (float)$this->payments()->whereBetween('payment_date', [$from, $to])->where('type', 'deduction')->sum('amount');
-        $paid       = (float)$this->payments()->whereBetween('payment_date', [$from, $to])->whereIn('type', ['salary', 'advance', 'bonus'])->sum('amount');
+        $paid       = (float)$this->payments()->whereBetween('payment_date', [$from, $to])->whereIn('type', ['salary', 'advance'])->sum('amount');
         $closing    = $opening + $earned - $deduction - $paid;
 
         return compact('opening', 'earned', 'base', 'production', 'advance', 'bonus', 'deduction', 'paid', 'closing');
@@ -139,7 +139,7 @@ class Employee extends Model
         $advance   = (float) $this->payments()->whereBetween('payment_date', [$from, $to])->where('type', 'advance')->sum('amount');
         $bonus     = (float) $this->payments()->whereBetween('payment_date', [$from, $to])->where('type', 'bonus')->sum('amount');
         $deduction = (float) $this->payments()->whereBetween('payment_date', [$from, $to])->where('type', 'deduction')->sum('amount');
-        $paid      = (float) $this->payments()->whereBetween('payment_date', [$from, $to])->whereIn('type', ['salary', 'advance', 'bonus'])->sum('amount');
+        $paid      = (float) $this->payments()->whereBetween('payment_date', [$from, $to])->whereIn('type', ['salary', 'advance'])->sum('amount');
 
         $gross = $base + $production;
         $net   = $gross - $paid - $deduction;

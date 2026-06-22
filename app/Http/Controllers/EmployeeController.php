@@ -53,7 +53,7 @@ class EmployeeController extends Controller
         $paymentStats = EmployeePayment::whereIn('employee_id', $empIds)
             ->whereBetween('payment_date', [$monthStart, $today])
             ->selectRaw('employee_id,
-                SUM(CASE WHEN type IN (\'salary\',\'advance\',\'bonus\') THEN amount ELSE 0 END) as month_paid,
+                SUM(CASE WHEN type IN (\'salary\',\'advance\') THEN amount ELSE 0 END) as month_paid,
                 SUM(CASE WHEN type = \'deduction\' THEN amount ELSE 0 END) as month_deducted')
             ->groupBy('employee_id')
             ->get()
@@ -169,7 +169,7 @@ class EmployeeController extends Controller
         // Salary-employee extras: total paid this month and recent payments
         $monthTotalPaid   = EmployeePayment::where('employee_id', $employee->id)
             ->whereBetween('payment_date', [$monthStart, $monthEnd])
-            ->whereIn('type', ['salary', 'advance', 'bonus'])->sum('amount');
+            ->whereIn('type', ['salary', 'advance'])->sum('amount');
         $monthDeductions  = EmployeePayment::where('employee_id', $employee->id)
             ->whereBetween('payment_date', [$monthStart, $monthEnd])
             ->where('type', 'deduction')->sum('amount');
