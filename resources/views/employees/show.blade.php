@@ -97,9 +97,10 @@
     {{-- Tabs --}}
     @php
         $hasBase = (float)$employee->salary > 0;
+        $hasPayments = \App\Models\EmployeePayment::where('employee_id', $employee->id)->exists();
         $hasProd = $monthEarning > 0 || $employee->type === 'production' || !$hasBase;
         $tabs = [['key'=>'overview','label'=>'Overview']];
-        if ($hasBase) $tabs[] = ['key'=>'payments','label'=>'Payments'];
+        if ($hasBase || $hasPayments) $tabs[] = ['key'=>'payments','label'=>'Payments'];
         if ($hasProd) $tabs[] = ['key'=>'production','label'=>'Production'];
         $tabs[] = ['key'=>'attendance','label'=>'Attendance'];
     @endphp
@@ -253,7 +254,7 @@
     </div>
 
     {{-- Tab: Payments (any worker with a base salary) --}}
-    @if((float)$employee->salary > 0)
+    @if($hasBase || $hasPayments)
     <div x-show="tab === 'payments'" x-cloak>
         <div class="bg-white dark:bg-slate-800 rounded-xl border border-gray-100 dark:border-slate-700 overflow-hidden">
             <div class="px-4 py-3 border-b border-gray-50 dark:border-slate-700 flex items-center justify-between">
