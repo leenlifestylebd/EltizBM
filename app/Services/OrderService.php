@@ -109,8 +109,10 @@ class OrderService
     /**
      * Record a partial or full payment against an existing order.
      */
-    public function collectPayment(Order $order, float $amount): void
+    public function collectPayment(Order $order, float $amount, ?string $date = null): void
     {
+        $entryDate = !empty($date) ? Carbon::parse($date) : now();
+
         $newPaid = min($order->total, $order->paid_amount + $amount);
         $newDue  = max(0, $order->total - $newPaid);
         $payStatus = $newDue <= 0 ? 'paid' : 'partial';
@@ -129,7 +131,7 @@ class OrderService
             'title'            => 'Payment collected for Order #' . $order->order_number,
             'amount'           => $amount,
             'payment_method'   => $order->payment_method,
-            'transaction_date' => today(),
+            'transaction_date' => $entryDate->toDateString(),
         ]);
 
         if ($order->customer_id) {

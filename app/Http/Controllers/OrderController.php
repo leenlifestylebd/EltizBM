@@ -244,7 +244,8 @@ class OrderController extends Controller
             if ($amount <= 0) {
                 return back()->with('error', 'This order has no outstanding due.');
             }
-            $this->orderService->collectPayment($order, $amount);
+            $request->validate(['collect_date' => 'nullable|date|before_or_equal:today']);
+            $this->orderService->collectPayment($order, $amount, $request->collect_date);
             $this->orderService->notifyPaymentReceived($order, $amount, $bizName);
             return back()->with('success', "৳{$amount} collected!");
         }

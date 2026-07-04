@@ -262,6 +262,8 @@
                             <input type="number" name="collect_amount" placeholder="Amount" min="0"
                                    value="{{ $order->due_amount }}"
                                    class="flex-1 px-2.5 py-2 text-xs border border-gray-200 dark:border-slate-600 rounded-lg bg-white dark:bg-slate-700 text-gray-900 dark:text-white focus:outline-none focus:ring-1 focus:ring-primary-500">
+                            <input type="date" name="collect_date" value="{{ now()->format('Y-m-d') }}" max="{{ now()->format('Y-m-d') }}"
+                                   class="w-36 px-2.5 py-2 text-xs border border-gray-200 dark:border-slate-600 rounded-lg bg-white dark:bg-slate-700 text-gray-900 dark:text-white focus:outline-none focus:ring-1 focus:ring-primary-500">
                             <button type="submit" class="px-3 py-2 text-xs font-medium bg-green-600 text-white rounded-lg hover:bg-green-700 transition-colors">
                                 Collect
                             </button>
