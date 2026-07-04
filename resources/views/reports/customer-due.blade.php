@@ -95,7 +95,12 @@
                         <option value="card">Card</option>
                     </select>
                 </div>
-                <p class="text-xs text-gray-400 dark:text-slate-500">Applied oldest-first to this customer's unpaid orders.</p>
+                <div>
+                    <label class="block text-xs font-semibold text-gray-500 uppercase tracking-wider mb-1.5">Date</label>
+                    <input type="date" name="payment_date" value="{{ now()->format('Y-m-d') }}" max="{{ now()->format('Y-m-d') }}"
+                           class="w-full px-4 py-2.5 bg-gray-50 dark:bg-slate-700 border border-gray-200 dark:border-slate-600 rounded-xl text-gray-900 dark:text-white text-sm focus:outline-none focus:ring-2 focus:ring-emerald-500">
+                </div>
+                <p class="text-xs text-gray-400 dark:text-slate-500">Applied oldest-first to this customer's unpaid orders. আগের দিনের হলে তারিখ বদলে দিন।</p>
                 <button type="submit" class="w-full bg-emerald-600 hover:bg-emerald-700 text-white font-semibold py-2.5 rounded-xl text-sm transition-colors">
                     Collect payment
                 </button>

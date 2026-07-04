@@ -77,6 +77,7 @@ class PeopleController extends Controller
         $request->validate([
             'amount'         => "required|numeric|min:0.01|max:{$customerDue}",
             'payment_method' => 'required|string|max:30',
+            'payment_date'   => 'nullable|date|before_or_equal:today',
         ]);
 
         if ($customerDue <= 0) {
@@ -97,7 +98,7 @@ class PeopleController extends Controller
             foreach ($orders as $order) {
                 if ($remaining <= 0) break;
                 $pay = min($remaining, (float) $order->due_amount);
-                $orderService->collectPayment($order, $pay);
+                $orderService->collectPayment($order, $pay, $request->payment_date);
                 $remaining -= $pay;
             }
 
@@ -115,7 +116,9 @@ class PeopleController extends Controller
                         'amount'           => $apply,
                         'payment_method'   => $request->payment_method,
                         'reference'        => 'CUSTOMER-PAY-' . $customer->id,
-                        'transaction_date' => today(),
+                        'transaction_date' => $request->filled('payment_date')
+                            ? \Illuminate\Support\Carbon::parse($request->payment_date)->toDateString()
+                            : today(),
                     ]);
                     $remaining -= $apply;
                 }

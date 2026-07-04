@@ -54,6 +54,15 @@
                         </div>
                     </div>
 
+                    <div class="mb-3">
+                        <label class="block text-xs font-medium text-gray-700 dark:text-slate-300 mb-1.5">Order Date</label>
+                        <input type="date" name="order_date"
+                               value="{{ old('order_date', isset($order) ? optional($order->created_at)->format('Y-m-d') : now()->format('Y-m-d')) }}"
+                               max="{{ now()->format('Y-m-d') }}"
+                               class="w-full px-3 py-2.5 text-sm border border-gray-200 dark:border-slate-600 rounded-lg bg-white dark:bg-slate-700 text-gray-900 dark:text-white focus:outline-none focus:ring-2 focus:ring-primary-500">
+                        <p class="text-[11px] text-gray-400 dark:text-slate-500 mt-1">আগের কোনো দিনের বিক্রি হলে সেই তারিখ দিন — না দিলে আজকের তারিখ ধরা হবে।</p>
+                    </div>
+
                     <div class="grid grid-cols-1 sm:grid-cols-2 gap-3">
                         <div>
                             <label class="block text-xs font-medium text-gray-700 dark:text-slate-300 mb-1.5">Name <span class="text-red-500">*</span></label>

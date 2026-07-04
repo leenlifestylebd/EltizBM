@@ -65,12 +65,18 @@ class PosController extends Controller
             'items.*.total'        => 'required|numeric|min:0',
             'total'          => 'required|numeric|min:0',
             'payment_method' => 'required|string',
+            'order_date'     => 'nullable|date|before_or_equal:today',
         ]);
 
         $bizId = auth()->user()->business_id;
 
         try {
             $order = DB::transaction(function () use ($request, $bizId) {
+
+                // Back-dated sale: chosen order_date (current clock time on that day) or now()
+                $entryDate = $request->filled('order_date')
+                    ? \Illuminate\Support\Carbon::parse($request->order_date)->setTimeFrom(now())
+                    : now();
 
                 $subtotal   = collect($request->items)->sum('total');
                 $discount   = floatval($request->discount ?? 0);
@@ -101,6 +107,12 @@ class PosController extends Controller
                     'due_amount'     => $due,
                 ]);
 
+                // Persist back-dated timestamp when order_date supplied
+                if ($request->filled('order_date')) {
+                    $order->created_at = $entryDate;
+                    $order->save();
+                }
+
                 // Create items
                 foreach ($request->items as $item) {
                     OrderItem::create([
@@ -127,7 +139,7 @@ class PosController extends Controller
                     'title'            => 'POS Sale #' . $order->order_number,
                     'amount'           => $paid,
                     'payment_method'   => $request->payment_method,
-                    'transaction_date' => today(),
+                    'transaction_date' => $entryDate->toDateString(),
                 ]);
 
                 // Update customer due
