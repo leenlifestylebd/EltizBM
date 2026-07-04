@@ -13,6 +13,7 @@ use App\Models\Transaction;
 use Illuminate\Support\Facades\DB;
 use Illuminate\Support\Facades\Log;
 use Illuminate\Support\Facades\Mail;
+use Illuminate\Support\Carbon;
 use Illuminate\Support\Str;
 
 /**
@@ -36,6 +37,11 @@ class OrderService
     public function create(array $data, int $bizId, string $source = 'manual'): Order
     {
         return DB::transaction(function () use ($data, $bizId, $source) {
+            // Back-dated entry: use chosen order_date (keep current clock time on that day) or now()
+            $entryDate = !empty($data['order_date'])
+                ? Carbon::parse($data['order_date'])->setTimeFrom(now())
+                : now();
+
             $subtotal = collect($data['items'])->sum('total');
             $discount = (float) ($data['discount'] ?? 0);
             $shipping = (float) ($data['shipping_charge'] ?? $data['shipping_cost'] ?? 0);
@@ -70,6 +76,12 @@ class OrderService
                 'notes'             => $data['notes'] ?? null,
             ]);
 
+            // Persist back-dated timestamp when order_date supplied
+            if (!empty($data['order_date'])) {
+                $order->created_at = $entryDate;
+                $order->save();
+            }
+
             $this->syncItems($order, $data['items'], deductStock: true);
 
             if ($paid > 0) {
@@ -81,7 +93,7 @@ class OrderService
                     'title'            => 'Payment for Order #' . $order->order_number,
                     'amount'           => $paid,
                     'payment_method'   => $order->payment_method,
-                    'transaction_date' => today(),
+                    'transaction_date' => $entryDate->toDateString(),
                 ]);
             }
 

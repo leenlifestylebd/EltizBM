@@ -18,6 +18,7 @@ class StoreOrderRequest extends FormRequest
             'customer_id'          => 'nullable|exists:customers,id',
             'customer_phone'       => 'nullable|string|max:20',
             'source'               => 'nullable|string|max:50',
+            'order_date'           => 'nullable|date|before_or_equal:today',
             'status'               => 'required|string|max:30',
             'payment_method'       => 'required|string|max:50',
             'payment_status'       => 'nullable|string|max:30',

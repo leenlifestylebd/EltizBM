@@ -203,6 +203,13 @@
                     <span class="text-white text-xl font-bold" x-text="'৳' + total.toLocaleString()"></span>
                 </div>
 
+                {{-- Sale Date (back-date supported) --}}
+                <div>
+                    <label class="block text-xs text-gray-500 dark:text-slate-400 mb-1">Sale Date</label>
+                    <input type="date" x-model="orderDate" max="{{ now()->format('Y-m-d') }}"
+                           class="w-full px-3 py-2 text-sm border border-gray-200 dark:border-slate-600 rounded-xl bg-white dark:bg-slate-700 text-gray-900 dark:text-white focus:outline-none focus:ring-2 focus:ring-primary-500">
+                </div>
+
                 {{-- Payment Method --}}
                 <div class="grid grid-cols-4 gap-1.5">
                     @foreach(['cash'=>'💵','bkash'=>'📱','nagad'=>'🟠','card'=>'💳'] as $method => $icon)
@@ -403,6 +410,7 @@ function posApp() {
         change:         0,
         paymentMethod:  'cash',
         quickAmounts:   [100, 200, 500, 1000],
+        orderDate:      '{{ now()->format('Y-m-d') }}',
 
         customerName:  '',
         customerPhone: '',
@@ -470,7 +478,7 @@ function posApp() {
             this.calcTotals();
         },
 
-        newSale() { this.showSuccess = false; this.clearCart(); this.customerName = ''; this.customerPhone = ''; document.getElementById('barcodeInput')?.focus(); },
+        newSale() { this.showSuccess = false; this.clearCart(); this.customerName = ''; this.customerPhone = ''; this.orderDate = new Date(Date.now() - new Date().getTimezoneOffset()*60000).toISOString().slice(0,10); document.getElementById('barcodeInput')?.focus(); },
 
         calcTotals() {
             this.subtotal = this.cart.reduce((s,i) => s + i.price * i.qty, 0);
@@ -500,6 +508,7 @@ function posApp() {
                         paid_amount:    this.paidAmount,
                         due_amount:     Math.max(0, this.total - this.paidAmount),
                         payment_method: this.paymentMethod,
+                        order_date:     this.orderDate,
                         source:         'pos',
                         status:         'completed',
                     }),

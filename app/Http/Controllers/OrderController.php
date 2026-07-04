@@ -143,6 +143,7 @@ class OrderController extends Controller
             'customer_name' => 'required|string|max:100',
             'status'        => 'required|string',
             'payment_method'=> 'required|string',
+            'order_date'    => 'nullable|date|before_or_equal:today',
         ]);
 
         $bizId = $order->business_id;
@@ -212,6 +213,12 @@ class OrderController extends Controller
                 'due_amount'       => $due,
                 'notes'            => $request->notes,
             ]);
+
+            // Allow correcting the order (sale) date, keeping clock time on that day.
+            if ($request->filled('order_date')) {
+                $order->created_at = \Illuminate\Support\Carbon::parse($request->order_date)->setTimeFrom($order->created_at ?? now());
+                $order->save();
+            }
         });
 
         return redirect()->route('orders.show', $order)
