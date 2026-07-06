@@ -5,7 +5,7 @@
 <style>
     /* DomPDF: no flexbox — everything is table-based. Currency uses "Tk" so no
        glyph breaks in the bundled DejaVu font. */
-    @page { margin: 22px 24px; }
+    @page { margin: 28px 36px; }
     * { margin: 0; padding: 0; box-sizing: border-box; }
     body { font-family: DejaVu Sans, sans-serif; font-size: 10px; color: #1f2937; }
 
