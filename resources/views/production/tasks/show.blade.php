@@ -218,10 +218,17 @@
                     </select>
                 </div>
             </div>
-            <div>
-                <label class="block text-xs font-medium text-gray-700 dark:text-slate-300 mb-1">Deadline</label>
-                <input type="date" name="deadline" value="{{ $task->deadline?->toDateString() }}"
-                       class="w-full px-3 py-2 text-sm border border-gray-200 dark:border-slate-600 rounded-lg bg-white dark:bg-slate-700 text-gray-900 dark:text-white focus:outline-none">
+            <div class="grid grid-cols-2 gap-3">
+                <div>
+                    <label class="block text-xs font-medium text-gray-700 dark:text-slate-300 mb-1">Assign Date</label>
+                    <input type="date" name="assigned_date" value="{{ optional($task->assigned_at)->toDateString() }}" max="{{ today()->toDateString() }}"
+                           class="w-full px-3 py-2 text-sm border border-gray-200 dark:border-slate-600 rounded-lg bg-white dark:bg-slate-700 text-gray-900 dark:text-white focus:outline-none">
+                </div>
+                <div>
+                    <label class="block text-xs font-medium text-gray-700 dark:text-slate-300 mb-1">Deadline</label>
+                    <input type="date" name="deadline" value="{{ $task->deadline?->toDateString() }}"
+                           class="w-full px-3 py-2 text-sm border border-gray-200 dark:border-slate-600 rounded-lg bg-white dark:bg-slate-700 text-gray-900 dark:text-white focus:outline-none">
+                </div>
             </div>
             <div>
                 <label class="block text-xs font-medium text-gray-700 dark:text-slate-300 mb-1">Notes</label>
