@@ -3,7 +3,8 @@
 
 @push('styles')
 <style>
-    nav.lg\:hidden { display: none !important; }
+    /* Hide the app's fixed bottom nav on POS so it doesn't cover the checkout button */
+    nav.fixed.bottom-0 { display: none !important; }
     main { padding-bottom: 0 !important; }
     .product-card { transition: transform 0.1s ease, box-shadow 0.1s ease; cursor: pointer; }
     .product-card:active { transform: scale(0.96); }
