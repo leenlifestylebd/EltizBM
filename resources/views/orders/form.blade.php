@@ -204,8 +204,13 @@
                                     </div>
                                     <div class="flex-1 min-w-0">
                                         <p class="text-sm font-medium text-gray-900 dark:text-white truncate" x-text="p.name"></p>
-                                        <p class="text-xs text-gray-400 dark:text-slate-500" x-text="'SKU: ' + (p.sku || 'N/A') + ' · Stock: ' + p.stock"></p>
+                                        <p class="text-xs" :class="p.stock <= 0 ? 'text-red-500' : 'text-gray-400 dark:text-slate-500'"
+                                           x-text="'SKU: ' + (p.sku || 'N/A') + ' · ' + (p.stock <= 0 ? 'Out of stock' : 'Stock: ' + p.stock)"></p>
                                     </div>
+                                    <template x-if="cart.some(i => i.product_id === p.id)">
+                                        <span class="text-xs font-medium text-green-600 dark:text-green-400 flex-shrink-0"
+                                              x-text="'✓ ' + cart.find(i => i.product_id === p.id).qty"></span>
+                                    </template>
                                     <span class="text-sm font-semibold text-gray-900 dark:text-white flex-shrink-0" x-text="'৳' + p.price"></span>
                                 </div>
                             </template>
@@ -450,8 +455,8 @@ function orderForm() {
                     discount: 0,
                 });
             }
-            this.productResults = [];
-            document.getElementById('productSearch').value = '';
+            // Keep the search results open so multiple variants (e.g. same size,
+            // different colour) can be added without re-typing. Clear the box to close.
             this.calcTotals();
         },
 

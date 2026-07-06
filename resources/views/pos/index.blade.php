@@ -101,9 +101,9 @@
                 {{-- All Products --}}
                 <div x-show="searchTerm.length === 0" class="grid grid-cols-2 sm:grid-cols-3 xl:grid-cols-4 gap-2">
                     <template x-for="p in filteredProducts" :key="p.id">
-                        <div @click="p.stock > 0 && addToCart(p)"
-                             class="product-card bg-white dark:bg-slate-800 rounded-xl border border-gray-100 dark:border-slate-700 p-3 hover:border-primary-300 hover:shadow-sm"
-                             :class="p.stock <= 0 ? 'opacity-50 cursor-not-allowed' : ''">
+                        <div @click="addToCart(p)"
+                             class="product-card bg-white dark:bg-slate-800 rounded-xl border border-gray-100 dark:border-slate-700 p-3 hover:border-primary-300 hover:shadow-sm cursor-pointer"
+                             :class="p.stock <= 0 ? 'opacity-70' : ''">
                             <div class="relative w-full aspect-square rounded-lg bg-gray-100 dark:bg-slate-700 mb-2 overflow-hidden flex items-center justify-center">
                                 <img x-show="p.image" :src="p.image" class="w-full h-full object-cover">
                                 <svg x-show="!p.image" class="w-8 h-8 text-gray-300 dark:text-slate-600" fill="none" stroke="currentColor" viewBox="0 0 24 24"><path stroke-linecap="round" stroke-linejoin="round" stroke-width="1.5" d="M20 7l-8-4-8 4m16 0l-8 4m8-4v10l-8 4m0-10L4 7m8 4v10M4 7v10l8 4"/></svg>
@@ -467,15 +467,15 @@ function posApp() {
         },
 
         addToCart(p) {
-            if (p.stock <= 0) return;
+            // Overselling allowed — stock-out items can still be sold (wholesale/POS/custom).
             const ex = this.cart.find(i => i.product_id === p.id);
-            if (ex) { if (ex.qty < p.stock) ex.qty++; }
+            if (ex) { ex.qty++; }
             else this.cart.push({ product_id: p.id, name: p.name, price: parseFloat(p.price), cost_price: parseFloat(p.cost_price||0), qty: 1, unit: p.unit||'pcs', stock: p.stock });
             this.calcTotals();
             this.showCart = true;
         },
 
-        increaseQty(i) { if (this.cart[i].qty < this.cart[i].stock) this.cart[i].qty++; this.calcTotals(); },
+        increaseQty(i) { this.cart[i].qty++; this.calcTotals(); },
         decreaseQty(i) { if (this.cart[i].qty > 1) this.cart[i].qty--; else this.cart.splice(i,1); this.calcTotals(); },
         getCartQty(id)  { return this.cart.find(i=>i.product_id===id)?.qty || 0; },
 
