@@ -3,161 +3,165 @@
 <head>
 <meta charset="utf-8">
 <style>
+    /* DomPDF: no flexbox — everything is table-based. Currency uses "Tk" so no
+       glyph breaks in the bundled DejaVu font. */
+    @page { margin: 22px 24px; }
     * { margin: 0; padding: 0; box-sizing: border-box; }
-    body { font-family: DejaVu Sans, Arial, sans-serif; font-size: 10px; color: #1a202c; background: #fff; }
+    body { font-family: DejaVu Sans, sans-serif; font-size: 10px; color: #1f2937; }
 
-    .header { background: #1a3a5c; color: #fff; padding: 14px 20px; margin-bottom: 14px; }
-    .header h1 { font-size: 15px; font-weight: bold; margin-bottom: 2px; }
-    .header p { font-size: 9.5px; opacity: 0.8; }
-    .header .meta { display: flex; justify-content: space-between; align-items: flex-end; }
-    .header .right { text-align: right; font-size: 9px; opacity: 0.75; }
+    .header { background: #0f2f4c; color: #fff; border-radius: 8px; padding: 12px 16px; margin-bottom: 14px; }
+    .header table { width: 100%; }
+    .header h1 { font-size: 16px; font-weight: bold; letter-spacing: 0.3px; }
+    .header .sub { font-size: 9.5px; color: #b9d0e2; margin-top: 3px; }
+    .header .right { text-align: right; font-size: 8.5px; color: #9db9cd; vertical-align: bottom; }
 
-    .worker-info { margin: 0 20px 12px; display: flex; align-items: center; gap: 12px; }
-    .worker-avatar { width: 40px; height: 40px; background: #ebf8ff; border-radius: 50%; display: flex; align-items: center; justify-content: center; font-size: 16px; font-weight: bold; color: #2b6cb0; border: 2px solid #bee3f8; }
-    .worker-name { font-size: 14px; font-weight: bold; color: #2d3748; }
-    .worker-meta { font-size: 9px; color: #718096; margin-top: 2px; }
+    .worker { width: 100%; margin-bottom: 12px; }
+    .worker .avatar { width: 42px; }
+    .worker .avatar span { display: inline-block; width: 38px; height: 38px; line-height: 38px; text-align: center;
+        background: #e6f0f8; color: #1d5f92; border: 2px solid #c4dcef; border-radius: 50%; font-size: 17px; font-weight: bold; }
+    .worker .name { font-size: 14px; font-weight: bold; color: #111827; }
+    .worker .meta { font-size: 9px; color: #6b7280; margin-top: 2px; }
 
-    .summary-row { display: flex; gap: 10px; margin: 0 20px 12px; }
-    .summary-card { flex: 1; border-radius: 6px; padding: 8px 12px; }
-    .summary-card.blue { background: #ebf8ff; border: 1px solid #bee3f8; }
-    .summary-card.green { background: #f0fff4; border: 1px solid #c6f6d5; }
-    .summary-card.red { background: #fff5f5; border: 1px solid #fed7d7; }
-    .summary-card.purple { background: #faf5ff; border: 1px solid #e9d8fd; }
-    .summary-card.gray { background: #f7fafc; border: 1px solid #e2e8f0; }
-    .summary-card .label { font-size: 7.5px; text-transform: uppercase; letter-spacing: 0.5px; margin-bottom: 3px; font-weight: 600; }
-    .summary-card.blue .label { color: #2b6cb0; }
-    .summary-card.green .label { color: #276749; }
-    .summary-card.red .label { color: #c53030; }
-    .summary-card.purple .label { color: #553c9a; }
-    .summary-card.gray .label { color: #4a5568; }
-    .summary-card .value { font-size: 13px; font-weight: bold; }
-    .summary-card.blue .value { color: #2b6cb0; }
-    .summary-card.green .value { color: #276749; }
-    .summary-card.red .value { color: #c53030; }
-    .summary-card.purple .value { color: #553c9a; }
-    .summary-card.gray .value { color: #2d3748; }
-    .summary-card .sub { font-size: 8px; color: #a0aec0; margin-top: 2px; }
+    .cards { width: 100%; border-collapse: separate; border-spacing: 6px 0; margin-bottom: 4px; }
+    .cards td { width: 25%; border-radius: 7px; padding: 9px 11px; vertical-align: top; }
+    .cards .label { font-size: 7.5px; text-transform: uppercase; letter-spacing: 0.4px; font-weight: bold; }
+    .cards .value { font-size: 14px; font-weight: bold; margin-top: 4px; }
+    .cards .sub { font-size: 7.5px; color: #9aa5b1; margin-top: 3px; }
+    .c-blue   { background: #eaf3fb; border: 1px solid #c4dcef; } .c-blue   .label, .c-blue   .value { color: #1d5f92; }
+    .c-green  { background: #eafaf0; border: 1px solid #bfe8cf; } .c-green  .label, .c-green  .value { color: #1f7a44; }
+    .c-red    { background: #fdeeee; border: 1px solid #f4c9c9; } .c-red    .label, .c-red    .value { color: #b3382f; }
+    .c-purple { background: #f4eefb; border: 1px solid #ddc9f0; } .c-purple .label, .c-purple .value { color: #6b3fa0; }
+    .c-gray   { background: #f4f6f8; border: 1px solid #dfe4ea; } .c-gray   .label { color: #55606d; } .c-gray .value { color: #1f2937; }
 
-    .carry-banner { margin: 0 20px 10px; padding: 6px 10px; border-radius: 5px; font-size: 9px; font-weight: 600; }
-    .carry-banner.overpay { background: #f0fff4; border: 1px solid #9ae6b4; color: #276749; }
-    .carry-banner.due { background: #fff5f5; border: 1px solid #feb2b2; color: #c53030; }
+    .banner { border-radius: 6px; padding: 7px 11px; font-size: 9px; font-weight: bold; margin-bottom: 12px; }
+    .banner.overpay { background: #eafaf0; border: 1px solid #a9dfbf; color: #1f7a44; }
+    .banner.due { background: #fdeeee; border: 1px solid #f0b4b4; color: #b3382f; }
 
-    .section { margin: 0 20px 14px; }
-    .section-title { font-size: 11px; font-weight: bold; color: #2d3748; border-bottom: 2px solid #e2e8f0; padding-bottom: 4px; margin-bottom: 7px; }
+    .section { margin-bottom: 14px; }
+    .section-title { font-size: 10.5px; font-weight: bold; color: #1f2937; border-bottom: 2px solid #e5e9ee; padding-bottom: 4px; margin-bottom: 7px; }
 
-    table { width: 100%; border-collapse: collapse; font-size: 9px; }
-    thead tr { background: #2d3748; color: #fff; }
-    thead th { padding: 5px 7px; text-align: left; font-weight: 600; font-size: 8.5px; }
-    thead th.right { text-align: right; }
-    thead th.center { text-align: center; }
-    tbody tr { border-bottom: 1px solid #f0f0f0; }
-    tbody tr:nth-child(even) { background: #f7fafc; }
-    tbody td { padding: 4.5px 7px; }
-    tbody td.right { text-align: right; }
-    tbody td.center { text-align: center; }
-    tfoot tr td { font-weight: bold; background: #edf2f7; padding: 5px 7px; border-top: 2px solid #cbd5e0; }
-    tfoot tr td.right { text-align: right; }
+    table.grid { width: 100%; border-collapse: collapse; font-size: 9px; }
+    table.grid thead tr { background: #26374b; color: #fff; }
+    table.grid thead th { padding: 5px 8px; text-align: left; font-weight: bold; font-size: 8.5px; }
+    table.grid th.r, table.grid td.r { text-align: right; }
+    table.grid th.c, table.grid td.c { text-align: center; }
+    table.grid tbody td { padding: 5px 8px; border-bottom: 1px solid #eef1f4; }
+    table.grid tbody tr:nth-child(even) { background: #f7f9fb; }
+    table.grid tfoot td { font-weight: bold; background: #eef2f6; padding: 5px 8px; border-top: 2px solid #cbd5e0; }
+    table.grid tfoot td.r { text-align: right; }
+    .muted { color: #9aa5b1; }
 
-    .two-col { display: flex; gap: 14px; margin: 0 20px 14px; }
-    .two-col .left { flex: 1.4; }
-    .two-col .right { flex: 1; }
-    .two-col .section { margin: 0 0 10px; }
+    .cols { width: 100%; border-collapse: collapse; }
+    .cols > tbody > tr > td { vertical-align: top; }
+    .cols .left  { width: 58%; padding-right: 8px; }
+    .cols .right { width: 42%; padding-left: 8px; }
 
-    .balance-box { border: 1.5px solid #e2e8f0; border-radius: 6px; padding: 10px 12px; font-size: 9px; }
-    .balance-row { display: flex; justify-content: space-between; padding: 3px 0; border-bottom: 1px dotted #e2e8f0; }
-    .balance-row:last-child { border-bottom: none; }
-    .balance-row.total { font-weight: bold; font-size: 10px; padding-top: 5px; margin-top: 2px; }
-    .balance-row.total.due { color: #c53030; }
-    .balance-row.total.overpay { color: #553c9a; }
-    .balance-row.total.clear { color: #276749; }
+    .box { border: 1px solid #e5e9ee; border-radius: 7px; padding: 4px 10px; }
+    .row { width: 100%; border-collapse: collapse; font-size: 9px; }
+    .row td { padding: 4px 0; border-bottom: 1px dotted #e5e9ee; }
+    .row tr:last-child td { border-bottom: none; }
+    .row td.r { text-align: right; font-weight: bold; }
+    .row .date { color: #6b7280; }
+    .row .method { font-size: 7.5px; color: #9aa5b1; }
+    .row .note { font-size: 7.5px; color: #9aa5b1; }
+    .total-row td { font-weight: bold; border-top: 1.5px solid #d5dbe1; padding-top: 6px; }
 
-    .payment-item { display: flex; justify-content: space-between; padding: 5px 0; border-bottom: 1px dotted #e2e8f0; font-size: 9px; }
-    .payment-item:last-child { border-bottom: none; }
-    .payment-date { color: #718096; }
-    .payment-amount { font-weight: bold; color: #276749; }
-    .payment-method { font-size: 8px; color: #a0aec0; }
+    .balance td { padding: 4px 0; border-bottom: 1px dotted #e5e9ee; font-size: 9px; }
+    .balance tr:last-child td { border-bottom: none; }
+    .balance td.r { text-align: right; }
+    .balance .grand td { font-weight: bold; font-size: 11px; border-top: 1.5px solid #cbd5e0; padding-top: 6px; }
 
-    .footer { margin: 10px 20px 0; padding-top: 7px; border-top: 1px solid #e2e8f0; display: flex; justify-content: space-between; font-size: 8px; color: #718096; }
-    .page-break { page-break-after: always; }
+    .footer { margin-top: 12px; padding-top: 7px; border-top: 1px solid #e5e9ee; font-size: 8px; color: #9aa5b1; }
+    .footer td.r { text-align: right; }
 </style>
 </head>
 <body>
 
+@php
+    $money = fn ($n) => 'Tk ' . number_format((float) $n);
+    $monthLabel = \Carbon\Carbon::parse($month.'-01')->format('F Y');
+    $monthBalance = $monthEarned - $monthPaid;
+@endphp
+
+{{-- Header --}}
 <div class="header">
-    <div class="meta">
-        <div>
-            <h1>Worker Ledger</h1>
-            <p>{{ $biz->name ?? 'Business' }} &mdash; {{ \Carbon\Carbon::parse($month.'-01')->format('F Y') }}</p>
-        </div>
-        <div class="right">
-            Generated: {{ now()->format('d M Y, h:i A') }}<br>
-            P.Bill vs Paid vs Due
-        </div>
-    </div>
+    <table>
+        <tr>
+            <td>
+                <h1>Worker Ledger</h1>
+                <div class="sub">{{ $biz->name ?? 'Business' }} &mdash; {{ $monthLabel }}</div>
+            </td>
+            <td class="right">
+                Generated {{ now()->format('d M Y, h:i A') }}<br>
+                Piece-bill &middot; Paid &middot; Due
+            </td>
+        </tr>
+    </table>
 </div>
 
-{{-- Worker Info --}}
-<div class="worker-info">
-    <div class="worker-avatar">{{ strtoupper(substr($employee->name, 0, 1)) }}</div>
-    <div>
-        <div class="worker-name">{{ $employee->name }}</div>
-        <div class="worker-meta">
-            {{ $employee->designation ?? $employee->type ?? 'Worker' }}
-            @if($employee->phone) &bull; {{ $employee->phone }} @endif
-        </div>
-    </div>
-</div>
+{{-- Worker --}}
+<table class="worker">
+    <tr>
+        <td class="avatar"><span>{{ strtoupper(substr($employee->name, 0, 1)) }}</span></td>
+        <td>
+            <div class="name">{{ $employee->name }}</div>
+            <div class="meta">
+                {{ $employee->designation ?? $employee->type ?? 'Worker' }}
+                @if($employee->phone) &bull; {{ $employee->phone }} @endif
+            </div>
+        </td>
+    </tr>
+</table>
 
 {{-- Summary Cards --}}
-<div class="summary-row">
-    <div class="summary-card blue">
-        <div class="label">P.Bill (This Month)</div>
-        <div class="value">৳{{ number_format($monthEarned) }}</div>
-        <div class="sub">{{ $entries->sum('quantity') }} pieces</div>
-    </div>
-    <div class="summary-card green">
-        <div class="label">Paid (This Month)</div>
-        <div class="value">৳{{ number_format($monthPaid) }}</div>
-        <div class="sub">{{ $payments->count() }} payment(s)</div>
-    </div>
-    @php
-        $monthBalance = $monthEarned - $monthPaid;
-    @endphp
-    <div class="summary-card {{ $monthBalance > 0 ? 'red' : ($monthBalance < 0 ? 'purple' : 'gray') }}">
-        <div class="label">{{ $monthBalance > 0 ? 'Due (This Month)' : ($monthBalance < 0 ? 'Overpay' : 'Status') }}</div>
-        <div class="value">{{ $monthBalance == 0 ? 'Clear' : '৳'.number_format(abs($monthBalance)) }}</div>
-        <div class="sub">current month only</div>
-    </div>
-    <div class="summary-card {{ $runningDue > 0 ? 'red' : ($runningDue < 0 ? 'purple' : 'gray') }}">
-        <div class="label">All-time Balance</div>
-        <div class="value">{{ $runningDue == 0 ? 'Clear' : '৳'.number_format(abs($runningDue)) }}</div>
-        <div class="sub">{{ $runningDue > 0 ? 'due' : ($runningDue < 0 ? 'advance' : '') }}</div>
-    </div>
-</div>
+<table class="cards">
+    <tr>
+        <td class="c-blue">
+            <div class="label">Piece-bill ({{ $monthLabel }})</div>
+            <div class="value">{{ $money($monthEarned) }}</div>
+            <div class="sub">{{ number_format($entries->sum('quantity')) }} pieces</div>
+        </td>
+        <td class="c-green">
+            <div class="label">Paid (this month)</div>
+            <div class="value">{{ $money($monthPaid) }}</div>
+            <div class="sub">{{ $payments->count() }} payment(s)</div>
+        </td>
+        <td class="{{ $monthBalance > 0 ? 'c-red' : ($monthBalance < 0 ? 'c-purple' : 'c-gray') }}">
+            <div class="label">{{ $monthBalance > 0 ? 'Due (this month)' : ($monthBalance < 0 ? 'Overpay' : 'Status') }}</div>
+            <div class="value">{{ $monthBalance == 0 ? 'Clear' : $money(abs($monthBalance)) }}</div>
+            <div class="sub">current month only</div>
+        </td>
+        <td class="{{ $runningDue > 0 ? 'c-red' : ($runningDue < 0 ? 'c-purple' : 'c-gray') }}">
+            <div class="label">All-time balance</div>
+            <div class="value">{{ $runningDue == 0 ? 'Clear' : $money(abs($runningDue)) }}</div>
+            <div class="sub">{{ $runningDue > 0 ? 'due' : ($runningDue < 0 ? 'advance' : 'settled') }}</div>
+        </td>
+    </tr>
+</table>
 
-{{-- Carry-over Banner --}}
+{{-- Carry-over --}}
 @if($carryOver != 0)
-<div class="carry-banner {{ $carryOver > 0 ? 'overpay' : 'due' }}">
+<div class="banner {{ $carryOver > 0 ? 'overpay' : 'due' }}">
     @if($carryOver > 0)
-        Carry-over from previous months: ৳{{ number_format($carryOver) }} advance (overpayment)
+        Carry-over from previous months: {{ $money($carryOver) }} advance (overpayment)
     @else
-        Carry-over from previous months: ৳{{ number_format(abs($carryOver)) }} due (unpaid)
+        Carry-over from previous months: {{ $money(abs($carryOver)) }} due (unpaid)
     @endif
 </div>
 @endif
 
-{{-- Product Breakdown --}}
+{{-- Product Summary --}}
 <div class="section">
-    <div class="section-title">Product Summary — {{ \Carbon\Carbon::parse($month.'-01')->format('F Y') }}</div>
-    <table>
+    <div class="section-title">Product Summary &mdash; {{ $monthLabel }}</div>
+    <table class="grid">
         <thead>
             <tr>
                 <th>Product</th>
                 <th>Color</th>
                 <th>Size</th>
-                <th class="right">Pieces</th>
-                <th class="right">Rate</th>
-                <th class="right">Amount</th>
+                <th class="r">Pieces</th>
+                <th class="r">Rate</th>
+                <th class="r">Amount</th>
             </tr>
         </thead>
         <tbody>
@@ -166,136 +170,142 @@
                 <td>{{ $pb['product_name'] ?? '—' }}</td>
                 <td>{{ $pb['color'] ?? '—' }}</td>
                 <td>{{ $pb['size'] ?? '—' }}</td>
-                <td class="right">{{ number_format($pb['qty'] ?? 0) }}</td>
-                <td class="right">৳{{ number_format($pb['rate'] ?? 0, 2) }}</td>
-                <td class="right">৳{{ number_format($pb['amount'] ?? 0) }}</td>
+                <td class="r">{{ number_format($pb['qty'] ?? 0) }}</td>
+                <td class="r">{{ $money($pb['rate'] ?? 0) }}</td>
+                <td class="r">{{ $money($pb['amount'] ?? 0) }}</td>
             </tr>
             @empty
-            <tr><td colspan="6" class="center" style="color:#a0aec0; padding:10px;">No entries</td></tr>
+            <tr><td colspan="6" class="c muted" style="padding:10px;">No entries</td></tr>
             @endforelse
         </tbody>
         @if($productBreakdown->isNotEmpty())
         <tfoot>
             <tr>
                 <td colspan="3">Total</td>
-                <td class="right">{{ number_format($productBreakdown->sum('qty')) }}</td>
+                <td class="r">{{ number_format($productBreakdown->sum('qty')) }}</td>
                 <td></td>
-                <td class="right">৳{{ number_format($productBreakdown->sum('amount')) }}</td>
+                <td class="r">{{ $money($productBreakdown->sum('amount')) }}</td>
             </tr>
         </tfoot>
         @endif
     </table>
 </div>
 
-{{-- Daily Entries + Payments side by side --}}
-<div class="two-col">
-    <div class="left">
-        <div class="section">
-            <div class="section-title">Daily Production Entries</div>
-            <table>
-                <thead>
-                    <tr>
-                        <th>Date</th>
-                        <th>Product</th>
-                        <th>Color / Size</th>
-                        <th class="right">Pcs</th>
-                        <th class="right">Rate</th>
-                        <th class="right">Amount</th>
-                    </tr>
-                </thead>
-                <tbody>
-                    @forelse($entries as $e)
-                    <tr>
-                        <td>{{ \Carbon\Carbon::parse($e->entry_date)->format('d M') }}</td>
-                        <td>{{ optional($e->productionRate)->product_name ?? '—' }}</td>
-                        <td style="font-size:8px; color:#718096;">
-                            {{ optional($e->productionRate)->color ?? '' }}
-                            @if(optional($e->productionRate)->size) / {{ $e->productionRate->size }} @endif
-                        </td>
-                        <td class="right">{{ number_format($e->quantity) }}</td>
-                        <td class="right">{{ $e->productionRate ? '৳'.number_format($e->productionRate->rate_per_piece,2) : '—' }}</td>
-                        <td class="right">৳{{ number_format($e->amount) }}</td>
-                    </tr>
-                    @empty
-                    <tr><td colspan="6" class="center" style="color:#a0aec0; padding:8px;">No entries this month</td></tr>
-                    @endforelse
-                </tbody>
-                @if($entries->isNotEmpty())
-                <tfoot>
-                    <tr>
-                        <td colspan="3">Total</td>
-                        <td class="right">{{ number_format($entries->sum('quantity')) }}</td>
-                        <td></td>
-                        <td class="right">৳{{ number_format($entries->sum('amount')) }}</td>
-                    </tr>
-                </tfoot>
-                @endif
-            </table>
-        </div>
-    </div>
-
-    <div class="right">
-        <div class="section">
-            <div class="section-title">Payments Received</div>
-            @forelse($payments as $pay)
-            <div class="payment-item">
-                <div>
-                    <div class="payment-date">{{ \Carbon\Carbon::parse($pay->payment_date)->format('d M Y') }}</div>
-                    <div class="payment-method">{{ ucfirst(str_replace('_',' ',$pay->payment_method ?? 'cash')) }}</div>
-                    @if($pay->notes) <div style="font-size:7.5px; color:#a0aec0;">{{ $pay->notes }}</div> @endif
-                </div>
-                <div class="payment-amount">৳{{ number_format($pay->amount) }}</div>
+{{-- Daily entries + Payments/Balance --}}
+<table class="cols">
+    <tr>
+        <td class="left">
+            <div class="section">
+                <div class="section-title">Daily Production Entries</div>
+                <table class="grid">
+                    <thead>
+                        <tr>
+                            <th>Date</th>
+                            <th>Product</th>
+                            <th>Color / Size</th>
+                            <th class="r">Pcs</th>
+                            <th class="r">Amount</th>
+                        </tr>
+                    </thead>
+                    <tbody>
+                        @forelse($entries as $e)
+                        <tr>
+                            <td>{{ \Carbon\Carbon::parse($e->entry_date)->format('d M') }}</td>
+                            <td>{{ optional($e->productionRate)->product_name ?? '—' }}</td>
+                            <td class="muted" style="font-size:8px;">
+                                {{ optional($e->productionRate)->color ?? '' }}
+                                @if(optional($e->productionRate)->size) / {{ $e->productionRate->size }} @endif
+                            </td>
+                            <td class="r">{{ number_format($e->quantity) }}</td>
+                            <td class="r">{{ $money($e->amount) }}</td>
+                        </tr>
+                        @empty
+                        <tr><td colspan="5" class="c muted" style="padding:8px;">No entries this month</td></tr>
+                        @endforelse
+                    </tbody>
+                    @if($entries->isNotEmpty())
+                    <tfoot>
+                        <tr>
+                            <td colspan="3">Total</td>
+                            <td class="r">{{ number_format($entries->sum('quantity')) }}</td>
+                            <td class="r">{{ $money($entries->sum('amount')) }}</td>
+                        </tr>
+                    </tfoot>
+                    @endif
+                </table>
             </div>
-            @empty
-            <div style="color:#a0aec0; font-size:9px; padding:8px 0;">No payments this month</div>
-            @endforelse
+        </td>
 
-            @if($payments->isNotEmpty())
-            <div class="payment-item" style="font-weight:bold; border-top: 1.5px solid #e2e8f0; margin-top:4px; padding-top:5px;">
-                <div>Total Paid</div>
-                <div style="color:#276749;">৳{{ number_format($payments->sum('amount')) }}</div>
-            </div>
-            @endif
-        </div>
-
-        <div class="section">
-            <div class="section-title">Balance Summary</div>
-            <div class="balance-box">
-                @if($carryOver != 0)
-                <div class="balance-row">
-                    <span>Carry-over {{ $carryOver > 0 ? '(advance)' : '(due)' }}</span>
-                    <span style="{{ $carryOver > 0 ? 'color:#276749;' : 'color:#c53030;' }}">
-                        {{ $carryOver > 0 ? '+' : '-' }}৳{{ number_format(abs($carryOver)) }}
-                    </span>
-                </div>
-                @endif
-                <div class="balance-row">
-                    <span>P.Bill ({{ \Carbon\Carbon::parse($month.'-01')->format('M Y') }})</span>
-                    <span style="color:#2b6cb0;">৳{{ number_format($monthEarned) }}</span>
-                </div>
-                <div class="balance-row">
-                    <span>Paid ({{ \Carbon\Carbon::parse($month.'-01')->format('M Y') }})</span>
-                    <span style="color:#276749;">- ৳{{ number_format($monthPaid) }}</span>
-                </div>
-                @php $allTimeBalance = $runningDue; @endphp
-                <div class="balance-row total {{ $allTimeBalance > 0 ? 'due' : ($allTimeBalance < 0 ? 'overpay' : 'clear') }}">
-                    <span>All-time Balance</span>
-                    <span>
-                        @if($allTimeBalance == 0) ✓ Clear
-                        @elseif($allTimeBalance > 0) ৳{{ number_format($allTimeBalance) }} Due
-                        @else ৳{{ number_format(abs($allTimeBalance)) }} Advance
+        <td class="right">
+            <div class="section">
+                <div class="section-title">Payments Received</div>
+                <div class="box">
+                    <table class="row">
+                        @forelse($payments as $pay)
+                        <tr>
+                            <td>
+                                <span class="date">{{ \Carbon\Carbon::parse($pay->payment_date)->format('d M Y') }}</span>
+                                <span class="method">&bull; {{ ucfirst(str_replace('_',' ', $pay->payment_method ?? 'cash')) }}</span>
+                                @if($pay->notes)<br><span class="note">{{ $pay->notes }}</span>@endif
+                            </td>
+                            <td class="r" style="color:#1f7a44;">{{ $money($pay->amount) }}</td>
+                        </tr>
+                        @empty
+                        <tr><td class="muted" style="padding:8px 0;">No payments this month</td></tr>
+                        @endforelse
+                        @if($payments->isNotEmpty())
+                        <tr class="total-row">
+                            <td>Total Paid</td>
+                            <td class="r" style="color:#1f7a44;">{{ $money($payments->sum('amount')) }}</td>
+                        </tr>
                         @endif
-                    </span>
+                    </table>
                 </div>
             </div>
-        </div>
-    </div>
-</div>
 
-<div class="footer">
-    <span>{{ $biz->name ?? '' }} &mdash; Worker Ledger &mdash; {{ $employee->name }}</span>
-    <span>{{ now()->format('d/m/Y H:i') }}</span>
-</div>
+            <div class="section">
+                <div class="section-title">Balance Summary</div>
+                <div class="box">
+                    <table class="balance">
+                        @if($carryOver != 0)
+                        <tr>
+                            <td>Carry-over {{ $carryOver > 0 ? '(advance)' : '(due)' }}</td>
+                            <td class="r" style="{{ $carryOver > 0 ? 'color:#1f7a44;' : 'color:#b3382f;' }}">
+                                {{ $carryOver > 0 ? '+' : '-' }}{{ $money(abs($carryOver)) }}
+                            </td>
+                        </tr>
+                        @endif
+                        <tr>
+                            <td>Piece-bill ({{ \Carbon\Carbon::parse($month.'-01')->format('M Y') }})</td>
+                            <td class="r" style="color:#1d5f92;">{{ $money($monthEarned) }}</td>
+                        </tr>
+                        <tr>
+                            <td>Paid ({{ \Carbon\Carbon::parse($month.'-01')->format('M Y') }})</td>
+                            <td class="r" style="color:#1f7a44;">- {{ $money($monthPaid) }}</td>
+                        </tr>
+                        <tr class="grand">
+                            <td>All-time Balance</td>
+                            <td class="r" style="{{ $runningDue > 0 ? 'color:#b3382f;' : ($runningDue < 0 ? 'color:#6b3fa0;' : 'color:#1f7a44;') }}">
+                                @if($runningDue == 0) Clear
+                                @elseif($runningDue > 0) {{ $money($runningDue) }} Due
+                                @else {{ $money(abs($runningDue)) }} Advance
+                                @endif
+                            </td>
+                        </tr>
+                    </table>
+                </div>
+            </div>
+        </td>
+    </tr>
+</table>
+
+{{-- Footer --}}
+<table class="footer">
+    <tr>
+        <td>{{ $biz->name ?? '' }} &mdash; Worker Ledger &mdash; {{ $employee->name }}</td>
+        <td class="r">{{ now()->format('d/m/Y H:i') }}</td>
+    </tr>
+</table>
 
 </body>
 </html>
