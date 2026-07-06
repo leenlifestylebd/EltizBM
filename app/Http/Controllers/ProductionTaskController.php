@@ -297,7 +297,13 @@ class ProductionTaskController extends Controller
         $request->validate([
             'submitted_quantity' => ['required', 'integer', 'min:1', "max:{$remaining}"],
             'rate_used'          => ['nullable', 'numeric', 'min:0'],
+            'submitted_date'     => ['nullable', 'date', 'before_or_equal:today'],
         ]);
+
+        // Back-dated submission: the earning + submission are attributed to this day.
+        $entryDate = $request->filled('submitted_date')
+            ? \Carbon\Carbon::parse($request->submitted_date)->toDateString()
+            : today()->toDateString();
 
         // Determine effective rate: use override if provided, else fall back to task rate
         $defaultRate  = $task->production_rate_id
@@ -312,7 +318,7 @@ class ProductionTaskController extends Controller
             'business_id'       => $task->business_id,
             'employee_id'       => $task->employee_id,
             'production_rate_id'=> $task->production_rate_id,
-            'entry_date'        => today()->toDateString(),
+            'entry_date'        => $entryDate,
             'quantity'          => $request->submitted_quantity,
             'amount'            => $amount,
             'notes'             => "Task #{$task->id}: {$task->product_name}" . ($task->color ? " ({$task->color})" : '') . ($task->size ? " sz {$task->size}" : ''),
@@ -327,7 +333,7 @@ class ProductionTaskController extends Controller
             'rate_used'          => $rateUsed > 0 ? $rateUsed : null,
             'amount'             => $amount > 0 ? $amount : null,
             'quality_note'       => $request->quality_note,
-            'submitted_at'       => today()->toDateString(),
+            'submitted_at'       => $entryDate,
             'notes'              => $request->notes,
         ]);
 
@@ -367,9 +373,13 @@ class ProductionTaskController extends Controller
         $request->validate([
             'submitted_quantity' => ['required', 'integer', 'min:1', "max:{$maxQty}"],
             'rate_used'          => ['nullable', 'numeric', 'min:0'],
+            'submitted_date'     => ['nullable', 'date', 'before_or_equal:today'],
         ]);
 
         $newQty = (int) $request->submitted_quantity;
+        $entryDate = $request->filled('submitted_date')
+            ? \Carbon\Carbon::parse($request->submitted_date)->toDateString()
+            : null;
 
         // Can't drop completed below what's already forwarded to the next stage.
         $forwarded = $task->forwardedQuantity();
@@ -382,16 +392,19 @@ class ProductionTaskController extends Controller
 
         if ($submission->production_entry_id) {
             ProductionEntry::where('id', $submission->production_entry_id)
-                ->update(['quantity' => $newQty, 'amount' => $amount]);
+                ->update(array_merge(
+                    ['quantity' => $newQty, 'amount' => $amount],
+                    $entryDate ? ['entry_date' => $entryDate] : []
+                ));
         }
 
-        $submission->update([
+        $submission->update(array_merge([
             'submitted_quantity' => $newQty,
             'rate_used'          => $rateUsed > 0 ? $rateUsed : null,
             'amount'             => $amount > 0 ? $amount : null,
             'quality_note'       => $request->input('quality_note', $submission->quality_note),
             'notes'              => $request->input('notes', $submission->notes),
-        ]);
+        ], $entryDate ? ['submitted_at' => $entryDate] : []));
 
         $task->completed_quantity = $completedExcl + $newQty;
         $task->save();
