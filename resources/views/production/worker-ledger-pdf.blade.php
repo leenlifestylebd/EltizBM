@@ -16,9 +16,9 @@
     .header .right { text-align: right; font-size: 8.5px; color: #9db9cd; vertical-align: bottom; }
 
     .worker { width: 100%; margin-bottom: 12px; }
-    .worker .avatar { width: 42px; }
-    .worker .avatar span { display: inline-block; width: 38px; height: 38px; line-height: 38px; text-align: center;
-        background: #e6f0f8; color: #1d5f92; border: 2px solid #c4dcef; border-radius: 50%; font-size: 17px; font-weight: bold; }
+    .worker .avatar { width: 46px; }
+    .worker .avatar span { display: inline-block; width: 40px; height: 40px; line-height: 40px; text-align: center;
+        background: #1d5f92; color: #fff; border-radius: 50%; font-size: 18px; font-weight: bold; }
     .worker .name { font-size: 14px; font-weight: bold; color: #111827; }
     .worker .meta { font-size: 9px; color: #6b7280; margin-top: 2px; }
 
@@ -53,8 +53,8 @@
 
     .cols { width: 100%; border-collapse: collapse; }
     .cols > tbody > tr > td { vertical-align: top; }
-    .cols .left  { width: 58%; padding-right: 8px; }
-    .cols .right { width: 42%; padding-left: 8px; }
+    .cols .left  { width: 50%; padding-right: 7px; }
+    .cols .right { width: 50%; padding-left: 7px; }
 
     .box { border: 1px solid #e5e9ee; border-radius: 7px; padding: 4px 10px; }
     .row { width: 100%; border-collapse: collapse; font-size: 9px; }
@@ -71,7 +71,7 @@
     .balance td.r { text-align: right; }
     .balance .grand td { font-weight: bold; font-size: 11px; border-top: 1.5px solid #cbd5e0; padding-top: 6px; }
 
-    .footer { margin-top: 12px; padding-top: 7px; border-top: 1px solid #e5e9ee; font-size: 8px; color: #9aa5b1; }
+    .footer { width: 100%; margin-top: 12px; padding-top: 7px; border-top: 1px solid #e5e9ee; font-size: 8px; color: #9aa5b1; }
     .footer td.r { text-align: right; }
 </style>
 </head>
@@ -80,6 +80,7 @@
 @php
     $money = fn ($n) => 'Tk ' . number_format((float) $n);
     $monthLabel = \Carbon\Carbon::parse($month.'-01')->format('F Y');
+    $monthShort = \Carbon\Carbon::parse($month.'-01')->format('M Y');
     $monthBalance = $monthEarned - $monthPaid;
 @endphp
 
@@ -117,7 +118,7 @@
 <table class="cards">
     <tr>
         <td class="c-blue">
-            <div class="label">Piece-bill ({{ $monthLabel }})</div>
+            <div class="label">Piece-bill ({{ $monthShort }})</div>
             <div class="value">{{ $money($monthEarned) }}</div>
             <div class="sub">{{ number_format($entries->sum('quantity')) }} pieces</div>
         </td>
@@ -191,52 +192,53 @@
     </table>
 </div>
 
-{{-- Daily entries + Payments/Balance --}}
+{{-- Daily Production Entries: full width so it flows across pages (no big gap) --}}
+<div class="section">
+    <div class="section-title">Daily Production Entries</div>
+    <table class="grid">
+        <thead>
+            <tr>
+                <th>Date</th>
+                <th>Product</th>
+                <th>Color / Size</th>
+                <th class="r">Pcs</th>
+                <th class="r">Rate</th>
+                <th class="r">Amount</th>
+            </tr>
+        </thead>
+        <tbody>
+            @forelse($entries as $e)
+            <tr>
+                <td>{{ \Carbon\Carbon::parse($e->entry_date)->format('d M Y') }}</td>
+                <td>{{ optional($e->productionRate)->product_name ?? '—' }}</td>
+                <td class="muted">
+                    {{ optional($e->productionRate)->color ?? '—' }}@if(optional($e->productionRate)->size) / {{ $e->productionRate->size }}@endif
+                </td>
+                <td class="r">{{ number_format($e->quantity) }}</td>
+                <td class="r">{{ $e->productionRate ? $money($e->productionRate->rate) : '—' }}</td>
+                <td class="r">{{ $money($e->amount) }}</td>
+            </tr>
+            @empty
+            <tr><td colspan="6" class="c muted" style="padding:8px;">No entries this month</td></tr>
+            @endforelse
+        </tbody>
+        @if($entries->isNotEmpty())
+        <tfoot>
+            <tr>
+                <td colspan="3">Total</td>
+                <td class="r">{{ number_format($entries->sum('quantity')) }}</td>
+                <td></td>
+                <td class="r">{{ $money($entries->sum('amount')) }}</td>
+            </tr>
+        </tfoot>
+        @endif
+    </table>
+</div>
+
+{{-- Payments + Balance: short, side by side at the end --}}
 <table class="cols">
     <tr>
         <td class="left">
-            <div class="section">
-                <div class="section-title">Daily Production Entries</div>
-                <table class="grid">
-                    <thead>
-                        <tr>
-                            <th>Date</th>
-                            <th>Product</th>
-                            <th>Color / Size</th>
-                            <th class="r">Pcs</th>
-                            <th class="r">Amount</th>
-                        </tr>
-                    </thead>
-                    <tbody>
-                        @forelse($entries as $e)
-                        <tr>
-                            <td>{{ \Carbon\Carbon::parse($e->entry_date)->format('d M') }}</td>
-                            <td>{{ optional($e->productionRate)->product_name ?? '—' }}</td>
-                            <td class="muted" style="font-size:8px;">
-                                {{ optional($e->productionRate)->color ?? '' }}
-                                @if(optional($e->productionRate)->size) / {{ $e->productionRate->size }} @endif
-                            </td>
-                            <td class="r">{{ number_format($e->quantity) }}</td>
-                            <td class="r">{{ $money($e->amount) }}</td>
-                        </tr>
-                        @empty
-                        <tr><td colspan="5" class="c muted" style="padding:8px;">No entries this month</td></tr>
-                        @endforelse
-                    </tbody>
-                    @if($entries->isNotEmpty())
-                    <tfoot>
-                        <tr>
-                            <td colspan="3">Total</td>
-                            <td class="r">{{ number_format($entries->sum('quantity')) }}</td>
-                            <td class="r">{{ $money($entries->sum('amount')) }}</td>
-                        </tr>
-                    </tfoot>
-                    @endif
-                </table>
-            </div>
-        </td>
-
-        <td class="right">
             <div class="section">
                 <div class="section-title">Payments Received</div>
                 <div class="box">
@@ -262,7 +264,8 @@
                     </table>
                 </div>
             </div>
-
+        </td>
+        <td class="right">
             <div class="section">
                 <div class="section-title">Balance Summary</div>
                 <div class="box">
@@ -276,11 +279,11 @@
                         </tr>
                         @endif
                         <tr>
-                            <td>Piece-bill ({{ \Carbon\Carbon::parse($month.'-01')->format('M Y') }})</td>
+                            <td>Piece-bill ({{ $monthShort }})</td>
                             <td class="r" style="color:#1d5f92;">{{ $money($monthEarned) }}</td>
                         </tr>
                         <tr>
-                            <td>Paid ({{ \Carbon\Carbon::parse($month.'-01')->format('M Y') }})</td>
+                            <td>Paid ({{ $monthShort }})</td>
                             <td class="r" style="color:#1f7a44;">- {{ $money($monthPaid) }}</td>
                         </tr>
                         <tr class="grand">
