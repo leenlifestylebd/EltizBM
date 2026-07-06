@@ -81,6 +81,7 @@ class ProductionTaskController extends Controller
             'product_name'       => 'required|string|max:255',
             'assigned_quantity'  => 'required|integer|min:1',
             'deadline'           => 'nullable|date|after_or_equal:today',
+            'assigned_date'      => 'nullable|date|before_or_equal:today',
         ]);
 
         $employee = Employee::where('business_id', $bizId)->findOrFail($request->employee_id);
@@ -109,7 +110,9 @@ class ProductionTaskController extends Controller
             'status'             => 'assigned',
             'deadline'           => $request->deadline ?: null,
             'notes'              => $request->notes,
-            'assigned_at'        => now(),
+            'assigned_at'        => $request->filled('assigned_date')
+                ? \Carbon\Carbon::parse($request->assigned_date)->setTimeFrom(now())
+                : now(),
         ]);
 
         $details = $request->product_name
@@ -245,9 +248,16 @@ class ProductionTaskController extends Controller
             'assigned_quantity' => 'sometimes|integer|min:1',
             'status'            => 'sometimes|in:assigned,in_progress,partial,completed,cancelled',
             'deadline'          => 'nullable|date',
+            'assigned_date'     => 'nullable|date|before_or_equal:today',
         ]);
 
         $task->update($request->only(['product_name', 'color', 'size', 'assigned_quantity', 'status', 'deadline', 'notes']));
+
+        // Allow correcting the assigned date, even for already-completed tasks.
+        if ($request->filled('assigned_date')) {
+            $task->assigned_at = \Carbon\Carbon::parse($request->assigned_date)->setTimeFrom($task->assigned_at ?? now());
+            $task->save();
+        }
 
         return back()->with('success', 'Task updated!');
     }
