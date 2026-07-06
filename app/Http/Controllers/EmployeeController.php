@@ -300,6 +300,72 @@ class EmployeeController extends Controller
         return back()->with('success', 'Attendance saved!');
     }
 
+    /**
+     * Set / reset a worker's app-login PIN (phone + PIN). Creates or updates the
+     * linked employee-role User so the worker can log in via /worker-login.
+     */
+    public function setPin(Request $request, Employee $employee)
+    {
+        $this->authorize($employee);
+        abort_unless(in_array(auth()->user()->role, ['owner', 'admin']), 403);
+
+        $data = $request->validate([
+            'phone' => 'required|string|max:20',
+            'pin'   => ['required', 'string', 'regex:/^\d{4,6}$/'],
+        ], [
+            'pin.regex' => 'PIN must be 4–6 digits.',
+        ]);
+
+        $bizId = $employee->business_id;
+        $user  = $employee->user;
+
+        // Refuse to overwrite a real staff/admin account's password with a worker PIN.
+        if ($user && $user->role !== 'employee') {
+            return back()->with('error', 'এই কর্মী একটি admin/staff account-এর সাথে যুক্ত — আলাদা worker PIN দিতে আগে unlink করুন।');
+        }
+
+        // The login phone must be unique among worker accounts in this business.
+        $clash = User::where('business_id', $bizId)
+            ->where('role', 'employee')
+            ->where('phone', $data['phone'])
+            ->when($user, fn ($q) => $q->where('id', '!=', $user->id))
+            ->exists();
+        if ($clash) {
+            return back()->with('error', 'এই ফোন নম্বর আরেকজন কর্মীর লগইনে ব্যবহৃত হচ্ছে।');
+        }
+
+        DB::transaction(function () use ($employee, $data, $bizId, $user) {
+            if ($user) {
+                $user->update([
+                    'phone'       => $data['phone'],
+                    'password'    => \Illuminate\Support\Facades\Hash::make($data['pin']),
+                    'is_active'   => true,
+                    'is_approved' => true,
+                ]);
+            } else {
+                $user = User::create([
+                    'business_id' => $bizId,
+                    'name'        => $employee->name,
+                    'phone'       => $data['phone'],
+                    'email'       => null,
+                    'password'    => \Illuminate\Support\Facades\Hash::make($data['pin']),
+                    'role'        => 'employee',
+                    'is_active'   => true,
+                    'is_approved' => true,
+                    'approved_by' => auth()->id(),
+                    'approved_at' => now(),
+                ]);
+                $employee->update(['user_id' => $user->id]);
+            }
+
+            if ($employee->phone !== $data['phone']) {
+                $employee->update(['phone' => $data['phone']]);
+            }
+        });
+
+        return back()->with('success', 'Worker login সেট হয়েছে — কর্মী ফোন ' . $data['phone'] . ' ও এই PIN দিয়ে লগইন করতে পারবে।');
+    }
+
     public function attendanceOverview(Request $request)
     {
         $bizId = auth()->user()->business_id;

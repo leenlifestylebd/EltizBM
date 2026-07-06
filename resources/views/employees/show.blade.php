@@ -116,6 +116,44 @@
 
     {{-- Tab: Overview --}}
     <div x-show="tab === 'overview'">
+        @if(in_array(auth()->user()->role, ['admin','owner']))
+        {{-- Worker App Access / Login PIN --}}
+        <div x-data="{ open: false }" class="bg-white dark:bg-slate-800 rounded-xl border border-gray-100 dark:border-slate-700 p-4 mb-4">
+            <div class="flex items-center justify-between">
+                <div>
+                    <h3 class="text-sm font-semibold text-gray-900 dark:text-white flex items-center gap-2">
+                        App Access (Worker Login)
+                        @if($employee->user && $employee->user->role === 'employee')
+                            <span class="px-2 py-0.5 text-xs rounded-full bg-green-100 text-green-700 dark:bg-green-900/30 dark:text-green-400">Enabled</span>
+                        @else
+                            <span class="px-2 py-0.5 text-xs rounded-full bg-gray-100 text-gray-500 dark:bg-slate-700 dark:text-slate-400">Not set</span>
+                        @endif
+                    </h3>
+                    <p class="text-xs text-gray-400 dark:text-slate-500 mt-0.5">
+                        কর্মী <strong>ফোন + PIN</strong> দিয়ে <span class="font-mono">/worker-login</span>-এ ঢুকবে।
+                    </p>
+                </div>
+                <button type="button" @click="open = !open" class="px-3 py-1.5 text-xs font-medium text-primary-600 dark:text-primary-400 bg-primary-50 dark:bg-primary-900/20 rounded-lg hover:bg-primary-100">
+                    {{ ($employee->user && $employee->user->role === 'employee') ? 'Reset PIN' : 'Set PIN' }}
+                </button>
+            </div>
+            <form x-show="open" x-cloak method="POST" action="{{ route('employees.set-pin', $employee) }}" class="mt-3 pt-3 border-t border-gray-100 dark:border-slate-700 grid grid-cols-1 sm:grid-cols-3 gap-2 items-end">
+                @csrf
+                <div>
+                    <label class="block text-xs text-gray-500 dark:text-slate-400 mb-1">Login Phone</label>
+                    <input type="text" name="phone" value="{{ old('phone', $employee->phone) }}" required placeholder="01XXXXXXXXX"
+                           class="w-full px-3 py-2 text-sm border border-gray-200 dark:border-slate-600 rounded-lg bg-white dark:bg-slate-700 text-gray-900 dark:text-white focus:outline-none focus:ring-1 focus:ring-primary-500">
+                </div>
+                <div>
+                    <label class="block text-xs text-gray-500 dark:text-slate-400 mb-1">PIN (4–6 digits)</label>
+                    <input type="text" name="pin" inputmode="numeric" pattern="\d{4,6}" maxlength="6" required placeholder="e.g. 1234"
+                           class="w-full px-3 py-2 text-sm border border-gray-200 dark:border-slate-600 rounded-lg bg-white dark:bg-slate-700 text-gray-900 dark:text-white focus:outline-none focus:ring-1 focus:ring-primary-500">
+                </div>
+                <button type="submit" class="px-3 py-2 text-sm font-medium bg-primary-600 text-white rounded-lg hover:bg-primary-700">Save PIN</button>
+            </form>
+        </div>
+        @endif
+
         @if((float)$employee->salary > 0)
         {{-- Base-salary overview (+ production line when the worker also does piece-work) --}}
         <div class="bg-white dark:bg-slate-800 rounded-xl border border-gray-100 dark:border-slate-700 p-4 mb-4">
