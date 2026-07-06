@@ -225,8 +225,14 @@ class OrderController extends Controller
 
             // Allow correcting the order (sale) date, keeping clock time on that day.
             if ($request->filled('order_date')) {
-                $order->created_at = \Illuminate\Support\Carbon::parse($request->order_date)->setTimeFrom($order->created_at ?? now());
+                $newDate = \Illuminate\Support\Carbon::parse($request->order_date);
+                $order->created_at = $newDate->copy()->setTimeFrom($order->created_at ?? now());
                 $order->save();
+
+                // Keep the linked income transactions on the same day so dashboard,
+                // Accounts > Income and P&L all reflect the corrected sale date.
+                \App\Models\Transaction::where('order_id', $order->id)
+                    ->update(['transaction_date' => $newDate->toDateString()]);
             }
         });
 
