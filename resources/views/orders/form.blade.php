@@ -179,7 +179,46 @@
 
                 {{-- Product Search + Cart --}}
                 <div class="bg-white dark:bg-slate-800 rounded-xl border border-gray-100 dark:border-slate-700 p-4">
-                    <h3 class="text-sm font-semibold text-gray-900 dark:text-white mb-3">Order Items</h3>
+                    <div class="flex items-center justify-between mb-3">
+                        <h3 class="text-sm font-semibold text-gray-900 dark:text-white">Order Items</h3>
+                        <button type="button" @click="bulkOpen = !bulkOpen"
+                                class="flex items-center gap-1.5 px-3 py-1.5 text-xs font-medium rounded-lg transition-colors"
+                                :class="bulkOpen ? 'bg-primary-600 text-white' : 'bg-primary-50 dark:bg-primary-900/20 text-primary-600 dark:text-primary-400 hover:bg-primary-100'">
+                            ⚡ Bulk Add
+                        </button>
+                    </div>
+
+                    {{-- Bulk Add Grid (fast entry: type qty down the list, add all at once) --}}
+                    <div x-show="bulkOpen" x-cloak class="mb-4 border border-primary-200 dark:border-primary-800 rounded-xl overflow-hidden">
+                        <div class="p-2.5 bg-primary-50 dark:bg-slate-700/40 border-b border-primary-100 dark:border-slate-600">
+                            <input type="text" x-model="bulkSearch" placeholder="Filter products by name / SKU..."
+                                   class="w-full px-3 py-2 text-sm border border-gray-200 dark:border-slate-600 rounded-lg bg-white dark:bg-slate-700 text-gray-900 dark:text-white focus:outline-none focus:ring-1 focus:ring-primary-500">
+                        </div>
+                        <div class="max-h-72 overflow-y-auto divide-y divide-gray-50 dark:divide-slate-700">
+                            <template x-for="p in bulkFiltered" :key="p.id">
+                                <div class="flex items-center gap-2 px-3 py-2">
+                                    <div class="flex-1 min-w-0">
+                                        <p class="text-sm text-gray-900 dark:text-white truncate" x-text="p.name"></p>
+                                        <p class="text-xs" :class="p.stock <= 0 ? 'text-red-500' : 'text-gray-400 dark:text-slate-500'"
+                                           x-text="'৳' + p.price + ' · ' + (p.sku ? p.sku + ' · ' : '') + (p.stock <= 0 ? 'Out of stock' : 'Stock: ' + p.stock)"></p>
+                                    </div>
+                                    <input type="number" min="0" x-model.number="p.qty" placeholder="0"
+                                           class="w-16 px-2 py-1.5 text-sm text-center border border-gray-200 dark:border-slate-600 rounded-lg bg-white dark:bg-slate-700 text-gray-900 dark:text-white focus:outline-none focus:ring-1 focus:ring-primary-500">
+                                </div>
+                            </template>
+                            <div x-show="bulkFiltered.length === 0" class="px-3 py-6 text-center text-xs text-gray-400">No products match</div>
+                        </div>
+                        <div class="p-2.5 bg-gray-50 dark:bg-slate-700/40 border-t border-gray-100 dark:border-slate-600 flex items-center justify-between">
+                            <span class="text-xs text-gray-500 dark:text-slate-400"><span x-text="bulkSelectedCount"></span> item(s) with qty</span>
+                            <div class="flex gap-2">
+                                <button type="button" @click="bulkOpen = false" class="px-3 py-1.5 text-xs bg-white dark:bg-slate-600 border border-gray-200 dark:border-slate-500 text-gray-600 dark:text-slate-200 rounded-lg">Close</button>
+                                <button type="button" @click="addBulk()" :disabled="bulkSelectedCount === 0"
+                                        class="px-3 py-1.5 text-xs font-medium bg-primary-600 text-white rounded-lg hover:bg-primary-700 disabled:opacity-40 disabled:cursor-not-allowed">
+                                    Add <span x-text="bulkSelectedCount"></span> to order
+                                </button>
+                            </div>
+                        </div>
+                    </div>
 
                     <div class="relative mb-4">
                         <svg class="absolute left-3 top-1/2 -translate-y-1/2 w-4 h-4 text-gray-400" fill="none" stroke="currentColor" viewBox="0 0 24 24">
@@ -384,6 +423,15 @@ function orderForm() {
         cart: @json($cartItems ?? []),
         productResults: [],
         customerResults: [],
+
+        // --- Bulk add grid (fast wholesale entry) ---
+        bulkOpen: false,
+        bulkSearch: '',
+        bulkProducts: [
+            @foreach($products as $p)
+            { id: {{ $p->id }}, name: @js($p->name), sku: @js($p->sku ?? ''), price: {{ (float) $p->current_price }}, cost_price: {{ (float) ($p->cost_price ?? 0) }}, stock: {{ (float) $p->stock }}, unit: @js($p->unit ?? 'pcs'), qty: null },
+            @endforeach
+        ],
         discount: {{ old('discount', isset($order) ? $order->discount : 0) }},
         shippingCharge: {{ old('shipping_charge', isset($order) ? $order->shipping_charge : 0) }},
         paidAmount: {{ old('paid_amount', isset($order) ? $order->paid_amount : 0) }},
@@ -457,6 +505,36 @@ function orderForm() {
             }
             // Keep the search results open so multiple variants (e.g. same size,
             // different colour) can be added without re-typing. Clear the box to close.
+            this.calcTotals();
+        },
+
+        // --- Bulk add grid ---
+        get bulkFiltered() {
+            const q = this.bulkSearch.trim().toLowerCase();
+            if (!q) return this.bulkProducts;
+            return this.bulkProducts.filter(p =>
+                p.name.toLowerCase().includes(q) || (p.sku || '').toLowerCase().includes(q));
+        },
+        get bulkSelectedCount() {
+            return this.bulkProducts.filter(p => (parseInt(p.qty) || 0) > 0).length;
+        },
+        addBulk() {
+            this.bulkProducts.forEach(p => {
+                const q = parseInt(p.qty) || 0;
+                if (q <= 0) return;
+                const ex = this.cart.find(i => i.product_id === p.id);
+                if (ex) { ex.qty += q; }
+                else {
+                    this.cart.push({
+                        product_id: p.id, name: p.name, price: parseFloat(p.price),
+                        cost_price: parseFloat(p.cost_price || 0), qty: q,
+                        unit: p.unit || 'pcs', discount: 0,
+                    });
+                }
+                p.qty = null;
+            });
+            this.bulkOpen = false;
+            this.bulkSearch = '';
             this.calcTotals();
         },
 
