@@ -246,6 +246,7 @@ Route::middleware(['auth', 'business'])->group(function () {
         Route::put('/{employee}',             [EmployeeController::class, 'update'])->name('update');
         Route::get('/{employee}/attendance',  [EmployeeController::class, 'attendance'])->name('attendance');
         Route::post('/{employee}/attendance', [EmployeeController::class, 'storeAttendance'])->name('attendance.store');
+        Route::post('/{employee}/set-pin',    [EmployeeController::class, 'setPin'])->name('set-pin');
     });
 
     Route::get('/attendance', [EmployeeController::class, 'attendanceOverview'])->name('attendance.index');
