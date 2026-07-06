@@ -102,6 +102,12 @@ Route::middleware(['auth', 'business'])->group(function () {
         Route::get('/{order}/print',            [OrderController::class, 'printInvoice'])->name('print');
     });
 
+    // ---- WHOLESALE (reuses OrderController, filtered to source=wholesale) ----
+    Route::prefix('wholesale')->name('wholesale.')->group(function () {
+        Route::get('/',        [OrderController::class, 'index'])->name('index');
+        Route::get('/create',  [OrderController::class, 'create'])->name('create');
+    });
+
     // ---- WEB ORDERS (WooCommerce) ----
     Route::prefix('web-orders')->name('web-orders.')->group(function () {
         Route::get('/',                [WebOrderController::class, 'index'])->name('index');

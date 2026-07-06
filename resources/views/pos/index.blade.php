@@ -150,7 +150,12 @@
                     <div class="cart-item flex items-center gap-2 p-2.5 bg-gray-50 dark:bg-slate-700/50 rounded-xl">
                         <div class="flex-1 min-w-0">
                             <p class="text-xs font-medium text-gray-900 dark:text-white truncate" x-text="item.name"></p>
-                            <p class="text-xs text-primary-600 dark:text-primary-400 font-semibold mt-0.5" x-text="'৳' + item.price + ' × ' + item.qty"></p>
+                            <div class="flex items-center gap-1 mt-0.5">
+                                <span class="text-xs text-primary-600 dark:text-primary-400 font-semibold">৳</span>
+                                <input type="number" min="0" step="0.01" x-model.number="item.price" @input="calcTotals()"
+                                       class="w-16 px-1 py-0.5 text-xs font-semibold border border-gray-200 dark:border-slate-600 rounded bg-white dark:bg-slate-700 text-primary-600 dark:text-primary-400 focus:outline-none focus:ring-1 focus:ring-primary-500">
+                                <span class="text-xs text-gray-400" x-text="'× ' + item.qty"></span>
+                            </div>
                         </div>
                         <div class="flex items-center gap-1 flex-shrink-0">
                             <button @click="decreaseQty(idx)" class="w-6 h-6 bg-white dark:bg-slate-600 border border-gray-200 dark:border-slate-500 rounded-lg flex items-center justify-center text-gray-600 dark:text-slate-200 hover:bg-red-50 hover:text-red-500 transition-colors font-bold text-sm">−</button>
