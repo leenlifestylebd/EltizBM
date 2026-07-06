@@ -165,7 +165,7 @@
         </a>
 
         {{-- Sales group --}}
-        @php $salesActive = request()->routeIs('orders.*') || request()->routeIs('web-orders.*') || request()->routeIs('pos.*') || request()->routeIs('returns.*') || request()->routeIs('steadfast.*'); @endphp
+        @php $salesActive = request()->routeIs('orders.*') || request()->routeIs('web-orders.*') || request()->routeIs('pos.*') || request()->routeIs('wholesale.*') || request()->routeIs('returns.*') || request()->routeIs('steadfast.*'); @endphp
         <div x-data="{ open: {{ $salesActive ? 'true' : 'false' }} }">
             <button @click="open = !open" class="w-full flex items-center gap-3 px-3 py-2.5 rounded-lg text-sm text-gray-600 dark:text-slate-300 hover:bg-gray-50 dark:hover:bg-slate-700 mb-0.5 {{ $salesActive ? 'nav-active' : '' }}">
                 <svg class="w-4 h-4 flex-shrink-0" fill="none" stroke="currentColor" viewBox="0 0 24 24"><path stroke-linecap="round" stroke-linejoin="round" stroke-width="2" d="M3 3h2l.4 2M7 13h10l4-8H5.4M7 13L5.4 5M7 13l-2.293 2.293c-.63.63-.184 1.707.707 1.707H17m0 0a2 2 0 100 4 2 2 0 000-4zm-8 2a2 2 0 11-4 0 2 2 0 014 0z"/></svg>
@@ -181,6 +181,7 @@
                     @endif
                 </a>
                 <a href="{{ route('pos.index') }}" class="block px-3 py-2 text-xs rounded-lg hover:bg-gray-50 dark:hover:bg-slate-700 {{ request()->routeIs('pos.*') ? 'text-primary-600 dark:text-primary-400 font-medium' : 'text-gray-500 dark:text-slate-400 hover:text-primary-600' }}">POS</a>
+                <a href="{{ route('wholesale.index') }}" class="block px-3 py-2 text-xs rounded-lg hover:bg-gray-50 dark:hover:bg-slate-700 {{ request()->routeIs('wholesale.*') ? 'text-primary-600 dark:text-primary-400 font-medium' : 'text-gray-500 dark:text-slate-400 hover:text-primary-600' }}">Wholesale</a>
                 <a href="{{ route('returns.index') }}" class="block px-3 py-2 text-xs rounded-lg hover:bg-gray-50 dark:hover:bg-slate-700 {{ request()->routeIs('returns.*') ? 'text-primary-600 dark:text-primary-400 font-medium' : 'text-gray-500 dark:text-slate-400 hover:text-primary-600' }}">Returns &amp; RMA</a>
                 <a href="{{ route('steadfast.index') }}" class="block px-3 py-2 text-xs rounded-lg hover:bg-gray-50 dark:hover:bg-slate-700 {{ request()->routeIs('steadfast.*') ? 'text-primary-600 dark:text-primary-400 font-medium' : 'text-gray-500 dark:text-slate-400 hover:text-primary-600' }}">Steadfast Courier</a>
             </div>

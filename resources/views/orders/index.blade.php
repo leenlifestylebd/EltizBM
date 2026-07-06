@@ -1,20 +1,28 @@
 ﻿@extends('layouts.app')
-@section('title', 'Orders')
+@php $wholesale = $wholesale ?? false; $idxRoute = $wholesale ? 'wholesale.index' : 'orders.index'; @endphp
+@section('title', $wholesale ? 'Wholesale' : 'Orders')
 
 @section('content')
 
 {{-- Header --}}
 <div class="flex items-center justify-between mb-4">
     <div>
-        <h2 class="text-base font-semibold text-gray-900 dark:text-white">Orders</h2>
-        <p class="text-xs text-gray-500 dark:text-slate-400 mt-0.5">{{ $orders->total() }} total orders</p>
+        <h2 class="text-base font-semibold text-gray-900 dark:text-white">{{ $wholesale ? 'Wholesale Orders' : 'Orders' }}</h2>
+        <p class="text-xs text-gray-500 dark:text-slate-400 mt-0.5">{{ $orders->total() }} total {{ $wholesale ? 'wholesale ' : '' }}orders</p>
     </div>
     <div class="flex items-center gap-2">
+        <a href="{{ route($wholesale ? 'wholesale.create' : 'orders.create') }}"
+           class="flex items-center gap-1.5 px-3 py-2 text-xs font-medium text-white bg-primary-600 rounded-lg hover:bg-primary-700 transition-colors">
+            <svg class="w-3.5 h-3.5" fill="none" stroke="currentColor" viewBox="0 0 24 24"><path stroke-linecap="round" stroke-linejoin="round" stroke-width="2" d="M12 4v16m8-8H4"/></svg>
+            New {{ $wholesale ? 'Wholesale' : 'Order' }}
+        </a>
+        @unless($wholesale)
         <a href="{{ route('orders.export', request()->query()) }}"
            class="hidden sm:flex items-center gap-1.5 px-3 py-2 text-xs font-medium text-gray-600 dark:text-slate-300 bg-white dark:bg-slate-700 border border-gray-200 dark:border-slate-600 rounded-lg hover:bg-gray-50 transition-colors">
             <svg class="w-3.5 h-3.5" fill="none" stroke="currentColor" viewBox="0 0 24 24"><path stroke-linecap="round" stroke-linejoin="round" stroke-width="2" d="M4 16v1a3 3 0 003 3h10a3 3 0 003-3v-1m-4-4l-4 4m0 0l-4-4m4 4V4"/></svg>
             Export CSV
         </a>
+        @endunless
     </div>
 </div>
 
@@ -34,7 +42,7 @@
     @endphp
 
     @foreach($tabs as $tab)
-    <a href="{{ route('orders.index', array_merge(request()->except('status','page'), $tab['key'] ? ['status' => $tab['key']] : [])) }}"
+    <a href="{{ route($idxRoute, array_merge(request()->except('status','page'), $tab['key'] ? ['status' => $tab['key']] : [])) }}"
        class="flex-shrink-0 flex items-center gap-1.5 px-3 py-1.5 rounded-lg text-xs font-medium transition-colors whitespace-nowrap
               {{ $activeTab === $tab['key']
                   ? 'bg-primary-600 text-white'
@@ -52,7 +60,7 @@
 
 {{-- Search & Filter --}}
 <div class="bg-white dark:bg-slate-800 rounded-xl border border-gray-100 dark:border-slate-700 p-3 mb-4">
-    <form method="GET" action="{{ route('orders.index') }}" class="flex flex-col sm:flex-row gap-2">
+    <form method="GET" action="{{ route($idxRoute) }}" class="flex flex-col sm:flex-row gap-2">
         @if(request('status'))
             <input type="hidden" name="status" value="{{ request('status') }}">
         @endif

@@ -1,5 +1,6 @@
 ﻿@extends('layouts.app')
-@section('title', isset($order) ? 'Edit Order' : 'New Order')
+@php $isWholesale = $wholesale ?? (isset($order) && $order->source === 'wholesale'); @endphp
+@section('title', isset($order) ? 'Edit Order' : ($isWholesale ? 'New Wholesale Order' : 'New Order'))
 
 @section('content')
 
@@ -7,12 +8,19 @@
 
     {{-- Header --}}
     <div class="flex items-center gap-3 mb-5">
-        <a href="{{ route('orders.index') }}" class="p-2 text-gray-400 hover:text-gray-600 hover:bg-gray-100 dark:hover:bg-slate-700 rounded-lg">
+        <a href="{{ route($isWholesale ? 'wholesale.index' : 'orders.index') }}" class="p-2 text-gray-400 hover:text-gray-600 hover:bg-gray-100 dark:hover:bg-slate-700 rounded-lg">
             <svg class="w-5 h-5" fill="none" stroke="currentColor" viewBox="0 0 24 24"><path stroke-linecap="round" stroke-linejoin="round" stroke-width="2" d="M10 19l-7-7m0 0l7-7m-7 7h18"/></svg>
         </a>
         <h2 class="text-base font-semibold text-gray-900 dark:text-white">
-            {{ isset($order) ? 'Edit Order #'.$order->order_number : 'Create New Order' }}
+            @if(isset($order))
+                Edit Order #{{ $order->order_number }}
+            @else
+                Create New {{ $isWholesale ? 'Wholesale ' : '' }}Order
+            @endif
         </h2>
+        @if($isWholesale)
+        <span class="px-2 py-0.5 text-xs font-medium bg-amber-100 text-amber-700 dark:bg-amber-900/30 dark:text-amber-400 rounded-full">Wholesale</span>
+        @endif
     </div>
 
     <form method="POST"
@@ -20,6 +28,7 @@
           id="orderForm">
         @csrf
         @if(isset($order)) @method('PUT') @endif
+        @if($isWholesale && !isset($order)) <input type="hidden" name="source" value="wholesale"> @endif
 
         <div class="grid grid-cols-1 lg:grid-cols-3 gap-4">
 
@@ -209,10 +218,15 @@
                             <div class="flex items-center gap-2 p-3 bg-gray-50 dark:bg-slate-700/50 rounded-xl">
                                 <div class="flex-1 min-w-0">
                                     <p class="text-sm font-medium text-gray-900 dark:text-white truncate" x-text="item.name"></p>
-                                    <p class="text-xs text-gray-400 dark:text-slate-500" x-text="'৳' + item.price + ' / ' + item.unit"></p>
+                                    <div class="flex items-center gap-1 mt-1">
+                                        <span class="text-xs text-gray-400 dark:text-slate-500">৳</span>
+                                        <input type="number" min="0" step="0.01" x-model.number="item.price" @input="calcTotals()"
+                                               :name="'items[' + index + '][price]'"
+                                               class="w-20 px-1.5 py-0.5 text-xs border border-gray-200 dark:border-slate-600 rounded bg-white dark:bg-slate-700 text-gray-900 dark:text-white focus:outline-none focus:ring-1 focus:ring-primary-500">
+                                        <span class="text-xs text-gray-400 dark:text-slate-500" x-text="'/ ' + item.unit"></span>
+                                    </div>
                                     <input type="hidden" :name="'items[' + index + '][product_id]'" :value="item.product_id">
                                     <input type="hidden" :name="'items[' + index + '][product_name]'" :value="item.name">
-                                    <input type="hidden" :name="'items[' + index + '][price]'" :value="item.price">
                                     <input type="hidden" :name="'items[' + index + '][cost_price]'" :value="item.cost_price || 0">
                                     <input type="hidden" :name="'items[' + index + '][quantity]'" :value="item.qty">
                                     <input type="hidden" :name="'items[' + index + '][discount]'" :value="item.discount || 0">

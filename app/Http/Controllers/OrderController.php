@@ -26,7 +26,11 @@ class OrderController extends Controller
     {
         $bizId = auth()->user()->business_id;
 
+        // Wholesale channel reuses this list, filtered to source=wholesale.
+        $wholesale = $request->routeIs('wholesale.*');
+
         $query = Order::where('business_id', $bizId)
+            ->when($wholesale, fn ($q) => $q->where('source', 'wholesale'))
             ->orderByDesc('created_at');
 
         // Status filter
@@ -55,6 +59,7 @@ class OrderController extends Controller
 
         // Status counts for tabs — one grouped query instead of seven COUNTs.
         $counts = Order::where('business_id', $bizId)
+            ->when($wholesale, fn ($q) => $q->where('source', 'wholesale'))
             ->selectRaw('status, COUNT(*) as c')
             ->groupBy('status')
             ->pluck('c', 'status');
@@ -69,7 +74,7 @@ class OrderController extends Controller
             'cancelled'  => (int) ($counts['cancelled']  ?? 0),
         ];
 
-        return view('orders.index', compact('orders', 'statusCounts'));
+        return view('orders.index', compact('orders', 'statusCounts', 'wholesale'));
     }
 
     // =============================================
@@ -81,7 +86,8 @@ class OrderController extends Controller
     $products  = \App\Models\Product::where('business_id', $bizId)->where('is_active', true)->get();
     $customers = \App\Models\Customer::where('business_id', $bizId)->orderBy('name')->get();
     $cartItems = [];
-    return view('orders.form', compact('products', 'customers', 'cartItems'));
+    $wholesale = request()->routeIs('wholesale.*');
+    return view('orders.form', compact('products', 'customers', 'cartItems', 'wholesale'));
 }
     // =============================================
     // STORE
@@ -89,13 +95,16 @@ class OrderController extends Controller
     public function store(StoreOrderRequest $request)
     {
         $bizId = auth()->user()->business_id;
-        $order = $this->orderService->create($request->validated() + ['created_by' => auth()->id()], $bizId, 'manual');
+        // Only manual and wholesale channels create orders through this form.
+        $source = $request->input('source') === 'wholesale' ? 'wholesale' : 'manual';
+        $order = $this->orderService->create($request->validated() + ['created_by' => auth()->id()], $bizId, $source);
 
         if ($request->status === 'confirmed') {
             $this->orderService->notifyConfirmed($order, auth()->user()->business->name);
         }
 
-        return redirect()->route('orders.index')->with('success', 'Order placed successfully!');
+        $redirect = $source === 'wholesale' ? 'wholesale.index' : 'orders.index';
+        return redirect()->route($redirect)->with('success', ucfirst($source) . ' order placed successfully!');
     }
 
     // =============================================
