@@ -164,6 +164,7 @@
             Dashboard
         </a>
 
+        @if(auth()->user()->hasPermission('orders') || auth()->user()->hasPermission('pos'))
         {{-- Sales group --}}
         @php $salesActive = request()->routeIs('orders.*') || request()->routeIs('web-orders.*') || request()->routeIs('pos.*') || request()->routeIs('wholesale.*') || request()->routeIs('returns.*') || request()->routeIs('steadfast.*'); @endphp
         <div x-data="{ open: {{ $salesActive ? 'true' : 'false' }} }">
@@ -187,6 +188,9 @@
             </div>
         </div>
 
+        @endif
+
+        @if(auth()->user()->hasPermission('products'))
         <div x-data="{ open: {{ request()->routeIs('products.*') ? 'true' : 'false' }} }">
             <button @click="open = !open" class="w-full flex items-center gap-3 px-3 py-2.5 rounded-lg text-sm text-gray-600 dark:text-slate-300 hover:bg-gray-50 dark:hover:bg-slate-700 mb-0.5 {{ request()->routeIs('products.*') ? 'nav-active' : '' }}">
                 <svg class="w-4 h-4 flex-shrink-0" fill="none" stroke="currentColor" viewBox="0 0 24 24"><path stroke-linecap="round" stroke-linejoin="round" stroke-width="2" d="M20 7l-8-4-8 4m16 0l-8 4m8-4v10l-8 4m0-10L4 7m8 4v10M4 7v10l8 4"/></svg>
@@ -202,8 +206,11 @@
             </div>
         </div>
 
+        @endif
+
         <p class="text-xs font-semibold text-gray-400 dark:text-slate-500 uppercase tracking-wider px-3 mb-2 mt-4">Operations</p>
 
+        @if(auth()->user()->hasPermission('inventory'))
         <div x-data="{ open: {{ request()->routeIs('inventory.*') ? 'true' : 'false' }} }">
             <button @click="open = !open" class="w-full flex items-center gap-3 px-3 py-2.5 rounded-lg text-sm text-gray-600 dark:text-slate-300 hover:bg-gray-50 dark:hover:bg-slate-700 mb-0.5 {{ request()->routeIs('inventory.*') ? 'nav-active' : '' }}">
                 <svg class="w-4 h-4 flex-shrink-0" fill="none" stroke="currentColor" viewBox="0 0 24 24"><path stroke-linecap="round" stroke-linejoin="round" stroke-width="2" d="M5 8h14M5 8a2 2 0 110-4h14a2 2 0 110 4M5 8v10a2 2 0 002 2h10a2 2 0 002-2V8m-9 4h4"/></svg>
@@ -221,6 +228,8 @@
                 <a href="{{ route('inventory.barcode') }}" class="block px-3 py-2 text-xs text-gray-500 dark:text-slate-400 hover:text-primary-600 rounded-lg hover:bg-gray-50 dark:hover:bg-slate-700">Barcode Print</a>
             </div>
         </div>
+
+        @endif
 
         @if(auth()->user()->hasPermission('accounts'))
         <div x-data="{ open: {{ request()->routeIs('accounts.*') ? 'true' : 'false' }} }">
@@ -255,6 +264,7 @@
         </div>
         @endif
 
+        @if(auth()->user()->hasPermission('orders'))
         {{-- Tailoring --}}
         <a href="{{ route('tailoring.index') }}"
            class="nav-item flex items-center gap-3 px-3 py-2.5 rounded-lg text-sm text-gray-600 dark:text-slate-300 hover:bg-gray-50 dark:hover:bg-slate-700 mb-0.5 {{ request()->routeIs('tailoring.*') ? 'nav-active' : '' }}">
@@ -264,6 +274,9 @@
             Tailoring
         </a>
 
+        @endif
+
+        @if(auth()->user()->hasPermission('employees'))
         <div x-data="{ open: {{ request()->routeIs('production.*') ? 'true' : 'false' }} }">
             <button @click="open = !open" class="w-full flex items-center gap-3 px-3 py-2.5 rounded-lg text-sm text-gray-600 dark:text-slate-300 hover:bg-gray-50 dark:hover:bg-slate-700 mb-0.5 {{ request()->routeIs('production.*') ? 'nav-active' : '' }}">
                 <svg class="w-4 h-4 flex-shrink-0" fill="none" stroke="currentColor" viewBox="0 0 24 24"><path stroke-linecap="round" stroke-linejoin="round" stroke-width="2" d="M19.428 15.428a2 2 0 00-1.022-.547l-2.387-.477a6 6 0 00-3.86.517l-.318.158a6 6 0 01-3.86.517L6.05 15.21a2 2 0 00-1.806.547M8 4h8l-1 1v5.172a2 2 0 00.586 1.414l5 5c1.26 1.26.367 3.414-1.415 3.414H4.828c-1.782 0-2.674-2.154-1.414-3.414l5-5A2 2 0 009 10.172V5L8 4z"/></svg>
@@ -281,12 +294,17 @@
             </div>
         </div>
 
+        @endif
+
+        @if(auth()->user()->hasPermission('inventory'))
         <a href="{{ route('materials.index') }}"
            class="nav-item flex items-center gap-3 px-3 py-2.5 rounded-lg text-sm text-gray-600 dark:text-slate-300 hover:bg-gray-50 dark:hover:bg-slate-700 mb-0.5 {{ request()->routeIs('materials.*') ? 'nav-active' : '' }}">
             <svg class="w-4 h-4 flex-shrink-0" fill="none" stroke="currentColor" viewBox="0 0 24 24"><path stroke-linecap="round" stroke-linejoin="round" stroke-width="2" d="M20 7l-8-4-8 4m16 0l-8 4m8-4v10l-8 4m0-10L4 7m8 4v10M4 7v10l8 4"/></svg>
             Materials
         </a>
+        @endif
 
+        @if(auth()->user()->hasPermission('employees') || auth()->user()->hasPermission('people'))
         {{-- People & Staff group --}}
         @php $peopleActive = request()->routeIs('employees.*') || request()->routeIs('people.*') || request()->routeIs('tasks.*'); @endphp
         <div x-data="{ open: {{ $peopleActive ? 'true' : 'false' }} }">
@@ -304,6 +322,9 @@
             </div>
         </div>
 
+        @endif
+
+        @if(auth()->user()->hasPermission('settings') || auth()->user()->hasPermission('integrations'))
         <p class="text-xs font-semibold text-gray-400 dark:text-slate-500 uppercase tracking-wider px-3 mb-2 mt-4">System</p>
 
         {{-- System group --}}
@@ -319,6 +340,7 @@
                 <a href="{{ route('integrations.index') }}" class="block px-3 py-2 text-xs rounded-lg hover:bg-gray-50 dark:hover:bg-slate-700 {{ request()->routeIs('integrations.*') ? 'text-primary-600 dark:text-primary-400 font-medium' : 'text-gray-500 dark:text-slate-400 hover:text-primary-600' }}">Integrations</a>
             </div>
         </div>
+        @endif
 
     </nav>
 
