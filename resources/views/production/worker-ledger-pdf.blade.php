@@ -163,12 +163,12 @@
         <tbody>
             @forelse($productBreakdown as $pb)
             <tr>
-                <td>{{ $pb->product_name ?? '—' }}</td>
-                <td>{{ $pb->color ?? '—' }}</td>
-                <td>{{ $pb->size ?? '—' }}</td>
-                <td class="right">{{ number_format($pb->total_qty) }}</td>
-                <td class="right">৳{{ number_format($pb->avg_rate, 2) }}</td>
-                <td class="right">৳{{ number_format($pb->total_amount) }}</td>
+                <td>{{ $pb['product_name'] ?? '—' }}</td>
+                <td>{{ $pb['color'] ?? '—' }}</td>
+                <td>{{ $pb['size'] ?? '—' }}</td>
+                <td class="right">{{ number_format($pb['qty'] ?? 0) }}</td>
+                <td class="right">৳{{ number_format($pb['rate'] ?? 0, 2) }}</td>
+                <td class="right">৳{{ number_format($pb['amount'] ?? 0) }}</td>
             </tr>
             @empty
             <tr><td colspan="6" class="center" style="color:#a0aec0; padding:10px;">No entries</td></tr>
@@ -178,9 +178,9 @@
         <tfoot>
             <tr>
                 <td colspan="3">Total</td>
-                <td class="right">{{ number_format($productBreakdown->sum('total_qty')) }}</td>
+                <td class="right">{{ number_format($productBreakdown->sum('qty')) }}</td>
                 <td></td>
-                <td class="right">৳{{ number_format($productBreakdown->sum('total_amount')) }}</td>
+                <td class="right">৳{{ number_format($productBreakdown->sum('amount')) }}</td>
             </tr>
         </tfoot>
         @endif
