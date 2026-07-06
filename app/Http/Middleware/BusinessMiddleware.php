@@ -20,9 +20,10 @@ class BusinessMiddleware
         view()->share('themePalette', $business->themePalette());
         view()->share('themeSettings', $business->theme_settings ?? []);
 
-        // Worker/Employee role → only production dashboard
+        // Worker/Employee role → worker dashboard, plus any back-office modules
+        // explicitly granted to this account via Settings → Users (permissions).
         if ($user->role === 'employee') {
-            $allowed = [
+            $workerRoutes = [
                 'production.worker.dashboard',
                 'production.store',
                 'production.tasks.submit',
@@ -30,11 +31,41 @@ class BusinessMiddleware
                 'production.notifications.read',
                 'logout',
             ];
-            if (!in_array($request->route()->getName(), $allowed)) {
-                return redirect()->route('production.worker.dashboard');
+            $routeName = optional($request->route())->getName();
+
+            if (!in_array($routeName, $workerRoutes)) {
+                $perms  = $user->permissions ?? [];
+                $module = $this->moduleForRoute($routeName);
+                // Empty perms = pure worker (locked). Granted perms unlock those modules.
+                $allowed = !empty($perms)
+                    && ($routeName === 'dashboard' || ($module && in_array($module, $perms)));
+
+                if (!$allowed) {
+                    return redirect()->route('production.worker.dashboard');
+                }
             }
         }
 
         return $next($request);
+    }
+
+    /** Map a route name to its permission module key (see User::MODULES). */
+    private function moduleForRoute(?string $name): ?string
+    {
+        if (!$name) return null;
+        return match (explode('.', $name)[0]) {
+            'orders', 'wholesale', 'web-orders', 'returns', 'tailoring' => 'orders',
+            'pos'                          => 'pos',
+            'products', 'categories', 'brands', 'attributes' => 'products',
+            'inventory', 'materials'       => 'inventory',
+            'accounts'                     => 'accounts',
+            'reports'                      => 'reports',
+            'people'                       => 'people',
+            'employees', 'production', 'attendance' => 'employees',
+            'steadfast', 'courier'         => 'courier',
+            'settings'                     => 'settings',
+            'integrations'                 => 'integrations',
+            default                        => null,
+        };
     }
 }
