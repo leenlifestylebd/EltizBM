@@ -151,6 +151,11 @@
                            class="w-full px-2 py-1.5 text-sm border border-gray-200 dark:border-slate-600 rounded-lg bg-white dark:bg-slate-700 text-gray-900 dark:text-white">
                 </div>
                 <div>
+                    <label class="block text-xs text-gray-500 mb-1">Date</label>
+                    <input type="date" name="submitted_date" value="{{ today()->toDateString() }}" max="{{ today()->toDateString() }}"
+                           class="w-full px-2 py-1.5 text-sm border border-gray-200 dark:border-slate-600 rounded-lg bg-white dark:bg-slate-700 text-gray-900 dark:text-white">
+                </div>
+                <div>
                     <label class="block text-xs text-gray-500 mb-1">Rate (৳/pc)</label>
                     <input type="number" name="rate_used" min="0" step="0.01" placeholder="{{ $assignedRate ?: 'optional' }}"
                            class="w-full px-2 py-1.5 text-sm border border-gray-200 dark:border-slate-600 rounded-lg bg-white dark:bg-slate-700 text-gray-900 dark:text-white">
@@ -317,6 +322,11 @@
                     <div>
                         <label class="block text-xs text-gray-500 mb-1">Rate (৳)</label>
                         <input type="number" name="rate_used" value="{{ $sub->rate_used }}" min="0" step="0.01" placeholder="{{ $assignedRate }}"
+                               class="w-full px-2 py-1.5 text-sm border border-gray-200 dark:border-slate-600 rounded-lg bg-white dark:bg-slate-700 text-gray-900 dark:text-white">
+                    </div>
+                    <div>
+                        <label class="block text-xs text-gray-500 mb-1">Date</label>
+                        <input type="date" name="submitted_date" value="{{ optional($sub->submitted_at)->toDateString() }}" max="{{ today()->toDateString() }}"
                                class="w-full px-2 py-1.5 text-sm border border-gray-200 dark:border-slate-600 rounded-lg bg-white dark:bg-slate-700 text-gray-900 dark:text-white">
                     </div>
                     <div>
