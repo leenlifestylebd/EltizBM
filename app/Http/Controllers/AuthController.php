@@ -80,14 +80,20 @@ class AuthController extends Controller
             return back()->withErrors(['phone' => "Too many attempts. Try again in {$secs}s."])->onlyInput('phone');
         }
 
-        $user = User::where('role', 'employee')
+        // A phone can (via re-linking or accidental duplicates) map to more than one
+        // worker account. Log in whichever active account's PIN actually matches —
+        // not just the newest by id, which rejected valid PINs once a second account
+        // existed for the same number (login worked at first, then "wrong password").
+        $candidates = User::where('role', 'employee')
             ->where('phone', $request->phone)
             ->where('is_active', true)
             ->where('is_approved', 1)
             ->orderByDesc('id')
-            ->first();
+            ->get();
 
-        if (!$user || !Hash::check($request->pin, $user->password)) {
+        $user = $candidates->first(fn ($u) => $u->password && Hash::check($request->pin, $u->password));
+
+        if (!$user) {
             \Illuminate\Support\Facades\RateLimiter::hit($key, 60);
             return back()->withErrors(['phone' => 'Wrong phone or PIN.'])->onlyInput('phone');
         }
