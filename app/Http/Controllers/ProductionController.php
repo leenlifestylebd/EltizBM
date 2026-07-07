@@ -888,7 +888,29 @@ class ProductionController extends Controller
         $bizId = auth()->user()->business_id;
         abort_if($employee->business_id !== $bizId, 403);
 
-        $month = $request->month ?? now()->format('Y-m');
+        $requestedMonth = $request->month;
+        $month = $requestedMonth ?? now()->format('Y-m');
+
+        // When no month is explicitly chosen and the current month has no entries
+        // for this worker, jump to their most recent active month so the ledger
+        // isn't blank for workers who last submitted in an earlier month.
+        if (!$requestedMonth) {
+            $curFrom = Carbon::parse($month . '-01')->startOfMonth()->toDateString();
+            $curTo   = Carbon::parse($month . '-01')->endOfMonth()->toDateString();
+            $hasThisMonth = ProductionEntry::where('business_id', $bizId)
+                ->where('employee_id', $employee->id)
+                ->whereBetween('entry_date', [$curFrom, $curTo])
+                ->exists();
+            if (!$hasThisMonth) {
+                $latest = ProductionEntry::where('business_id', $bizId)
+                    ->where('employee_id', $employee->id)
+                    ->max('entry_date');
+                if ($latest) {
+                    $month = Carbon::parse($latest)->format('Y-m');
+                }
+            }
+        }
+
         $from  = Carbon::parse($month . '-01')->startOfMonth()->toDateString();
         $to    = Carbon::parse($month . '-01')->endOfMonth()->toDateString();
 
