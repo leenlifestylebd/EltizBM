@@ -107,7 +107,7 @@
     {{-- LEFT: Production Entries / Salary Info --}}
     <div class="lg:col-span-2 space-y-4">
 
-        @if($employee->type === 'salary')
+        @if($employee->type === 'salary' || (float)$employee->salary > 0)
         {{-- Salary employee: show attendance summary for this month --}}
         @php
             $attRecs = \App\Models\Attendance::where('employee_id', $employee->id)
@@ -146,7 +146,11 @@
             <div class="py-8 text-center text-xs text-gray-400 dark:text-slate-500">No attendance records for this month.</div>
             @endif
         </div>
-        @else
+        @endif
+
+        {{-- Production sections — shown whenever the worker has piece-work, so a
+             salary + production (hybrid) worker sees their entries too. --}}
+        @if($entries->isNotEmpty() || $employee->type !== 'salary')
 
         {{-- Product Breakdown (summary) --}}
         @if($productBreakdown->isNotEmpty())
