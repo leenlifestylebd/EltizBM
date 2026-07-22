@@ -29,8 +29,9 @@
         .cut-wrap::before { background: #e5e7eb; }
 
         @media print {
-            @page { size: 2in 3in; margin: 0 0.1in; }
-            body { background: #fff !important; }
+            /* Follow the printer's page setup / selected paper size. */
+            @page { size: auto; margin: 0; }
+            body { background: #fff !important; margin: 0; }
             .page-content { padding: 0; }
             .cut-wrap {
                 display: block;
@@ -41,7 +42,7 @@
                 page-break-after: always;
             }
             .cut-wrap::before { display: none; }
-            .label { width: 1.8in; height: 3in; border: none; }
+            .label { width: 100%; height: 100vh; border: none; }
         }
     </style>
 </head>
@@ -52,7 +53,7 @@
         🖨️ Print {{ $shipments->count() }} Label{{ $shipments->count() > 1 ? 's' : '' }}
     </button>
     <a class="btn-back" href="{{ route('steadfast.index') }}">← Back</a>
-    <span class="label-info">{{ $shipments->count() }} labels &nbsp;·&nbsp; 2 × 3 in &nbsp;·&nbsp; DIY cut guides</span>
+    <span class="label-info">{{ $shipments->count() }} labels &nbsp;·&nbsp; fits your printer's page size</span>
 </div>
 
 <div class="page-content">

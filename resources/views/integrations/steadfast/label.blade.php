@@ -16,7 +16,7 @@
     <div class="action-bar no-print">
         <button class="btn-print" onclick="window.print()">🖨️ Print Label</button>
         <a class="btn-back" href="{{ route('steadfast.index') }}">← Back</a>
-        <span class="label-info">2 × 3 in &nbsp;·&nbsp; DIY cut guide</span>
+        <span class="label-info">Fits your printer's page size &nbsp;·&nbsp; set paper in the print dialog</span>
     </div>
 
     <div class="cut-wrap">
