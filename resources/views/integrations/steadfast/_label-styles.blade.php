@@ -309,19 +309,21 @@ body { font-family: Arial, Helvetica, sans-serif; background: #e5e7eb; }
 /* ════════════════════════════════════════════
    PRINT
    ════════════════════════════════════════════ */
+/* Follow the printer's own page setup / selected paper size instead of forcing
+   a fixed 2x3in. The label then fills whatever page size is chosen. */
 @page {
-    size: 2in 3in;
-    margin: 0 0.1in;
+    size: auto;
+    margin: 0;
 }
 @media print {
-    html, body { background: #fff !important; }
+    html, body { background: #fff !important; margin: 0; }
     .no-print   { display: none !important; }
     .preview-wrap { display: block; padding: 0; min-height: unset; }
     .cut-wrap   { display: block; padding: 0; border: none; }
     .cut-wrap::before { display: none; }
     .label {
-        width: 1.8in;
-        height: 3in;
+        width: 100%;
+        height: 100vh;
         border: none;
         page-break-inside: avoid;
         overflow: hidden;
