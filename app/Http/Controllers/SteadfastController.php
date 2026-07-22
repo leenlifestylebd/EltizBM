@@ -300,7 +300,7 @@ class SteadfastController extends Controller
     public function printLabel(Shipment $shipment)
     {
         abort_if($shipment->business_id !== auth()->user()->business_id, 403);
-        $shipment->load(['order.items.product', 'order.business']);
+        $shipment->load(['order.items.product', 'order.items.variant', 'order.business']);
         $business = auth()->user()->business;
         return view('integrations.steadfast.label', compact('shipment', 'business'));
     }
@@ -311,7 +311,7 @@ class SteadfastController extends Controller
         $bizId     = auth()->user()->business_id;
         $shipments = Shipment::whereIn('id', $request->shipment_ids)
             ->where('business_id', $bizId)
-            ->with(['order.items.product', 'order.business'])
+            ->with(['order.items.product', 'order.items.variant', 'order.business'])
             ->get();
         $business = auth()->user()->business;
         return view('integrations.steadfast.labels', compact('shipments', 'business'));
