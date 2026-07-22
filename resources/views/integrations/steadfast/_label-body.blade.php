@@ -71,27 +71,31 @@
     <div class="sec-items">
         @foreach($order->items->take(4) as $item)
         @php
-            $meta  = $item->product_options ?? $item->options ?? null;
-            $size  = null; $color = null;
-            if (is_array($meta)) {
-                $size  = $meta['size']  ?? $meta['Size']  ?? null;
-                $color = $meta['color'] ?? $meta['Color'] ?? null;
-            } elseif (is_string($meta)) {
-                $dec   = json_decode($meta, true);
-                $size  = $dec['size']  ?? $dec['Size']  ?? null;
-                $color = $dec['color'] ?? $dec['Color'] ?? null;
-            }
-            $size  = $size  ?? $item->size  ?? $item->variant_size  ?? null;
-            $color = $color ?? $item->color ?? $item->variant_color ?? null;
+            // Pull size/colour from the linked product variant's attributes.
+            $attrs = is_array(optional($item->variant)->attributes) ? $item->variant->attributes : [];
+            $pick  = function (array $keys) use ($attrs) {
+                foreach ($attrs as $ak => $av) {
+                    foreach ($keys as $k) {
+                        if (strcasecmp(trim($ak), $k) === 0 && $av !== null && $av !== '') return $av;
+                    }
+                }
+                return null;
+            };
+            $size  = $pick(['size', 'pa_size']);
+            $color = $pick(['color', 'colour', 'pa_color']);
+
+            // If a variant exists but we couldn't map named attributes, show its label.
+            $variantName = (!$size && !$color && optional($item->variant)->name) ? $item->variant->name : null;
 
             $detail = collect(array_filter([
-                $size  ? 'Sz:'.$size   : null,
-                $color ? 'Cl:'.$color  : null,
+                $size        ? 'Sz:'.$size    : null,
+                $color       ? 'Cl:'.$color   : null,
+                $variantName ? $variantName   : null,
                 '×'.$item->quantity,
             ]))->implode(' ');
         @endphp
         <div class="item-row">
-            <span class="item-name">{{ Str::limit($item->product_name, 24) }}</span>
+            <span class="item-name">{{ Str::limit($item->product_name, 42) }}</span>
             <span class="item-detail">{{ $detail }}</span>
         </div>
         @endforeach

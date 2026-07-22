@@ -244,11 +244,11 @@ body { font-family: Arial, Helvetica, sans-serif; background: #e5e7eb; }
     font-size: 8.5px;
     font-weight: 700;
     color: #111;
-    overflow: hidden;
-    text-overflow: ellipsis;
-    white-space: nowrap;
     flex: 1;
     min-width: 0;
+    white-space: normal;
+    line-height: 1.15;
+    word-break: break-word;
 }
 .item-detail {
     font-size: 8px;
