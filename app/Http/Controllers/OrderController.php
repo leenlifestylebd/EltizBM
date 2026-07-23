@@ -31,6 +31,7 @@ class OrderController extends Controller
 
         $query = Order::where('business_id', $bizId)
             ->when($wholesale, fn ($q) => $q->where('source', 'wholesale'))
+            ->with(['shipments' => fn ($q) => $q->where('courier_name', 'Steadfast')])
             ->orderByDesc('created_at');
 
         // Status filter
@@ -74,7 +75,12 @@ class OrderController extends Controller
             'cancelled'  => (int) ($counts['cancelled']  ?? 0),
         ];
 
-        return view('orders.index', compact('orders', 'statusCounts', 'wholesale'));
+        // Steadfast connection — enables the inline "Send to Steadfast" button.
+        $isConnected = \App\Models\CourierSetting::where('business_id', $bizId)
+            ->where('provider', 'steadfast')->where('is_active', true)
+            ->whereNotNull('api_key')->whereNotNull('api_secret')->exists();
+
+        return view('orders.index', compact('orders', 'statusCounts', 'wholesale', 'isConnected'));
     }
 
     // =============================================

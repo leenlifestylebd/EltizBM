@@ -180,7 +180,17 @@
                         <p class="text-xs text-gray-400 dark:text-slate-500">{{ $order->created_at->format('h:i A') }}</p>
                     </td>
                     <td class="px-4 py-3">
-                        <div class="flex items-center justify-center gap-1 opacity-0 group-hover:opacity-100 transition-opacity">
+                        <div class="flex items-center justify-center gap-1.5">
+                            @php $sfShip = $order->shipments->first(); @endphp
+                            @if($sfShip)
+                                <span class="inline-flex items-center gap-1 px-2 py-1 text-xs font-medium bg-green-50 dark:bg-green-900/20 text-green-700 dark:text-green-400 rounded-lg" title="{{ $sfShip->tracking_id }}">🚚 Sent</span>
+                            @elseif($isConnected ?? false)
+                                <form method="POST" action="{{ route('steadfast.send-order', $order) }}">
+                                    @csrf
+                                    <button type="submit" class="inline-flex items-center gap-1 px-2.5 py-1.5 text-xs font-semibold bg-primary-600 hover:bg-primary-700 text-white rounded-lg active:scale-95 transition-all" title="Send to Steadfast">🚚 Send</button>
+                                </form>
+                            @endif
+                            <div class="flex items-center gap-1 opacity-0 group-hover:opacity-100 transition-opacity">
                             <a href="{{ route('orders.show', $order) }}"
                                class="p-1.5 text-gray-400 hover:text-primary-600 hover:bg-primary-50 dark:hover:bg-primary-900/20 rounded-lg" title="View">
                                 <svg class="w-4 h-4" fill="none" stroke="currentColor" viewBox="0 0 24 24">
@@ -209,6 +219,7 @@
                                 </button>
                             </form>
                             @endif
+                            </div>
                         </div>
                     </td>
                 </tr>
@@ -261,6 +272,15 @@
                     </span>
                 </div>
                 <div class="flex items-center gap-1">
+                    @php $sfShip = $order->shipments->first(); @endphp
+                    @if($sfShip)
+                        <span class="inline-flex items-center gap-1 px-2 py-1 text-xs font-medium bg-green-50 dark:bg-green-900/20 text-green-700 dark:text-green-400 rounded-lg mr-auto">🚚 Sent</span>
+                    @elseif($isConnected ?? false)
+                        <form method="POST" action="{{ route('steadfast.send-order', $order) }}" class="mr-auto">
+                            @csrf
+                            <button type="submit" class="inline-flex items-center gap-1 px-2.5 py-1.5 text-xs font-semibold bg-primary-600 hover:bg-primary-700 text-white rounded-lg active:scale-95 transition-all">🚚 Send</button>
+                        </form>
+                    @endif
                     <a href="{{ route('orders.show', $order) }}"
                        class="p-1.5 text-gray-400 bg-gray-100 dark:bg-slate-700 rounded-lg hover:text-primary-600">
                         <svg class="w-3.5 h-3.5" fill="none" stroke="currentColor" viewBox="0 0 24 24"><path stroke-linecap="round" stroke-linejoin="round" stroke-width="2" d="M15 12a3 3 0 11-6 0 3 3 0 016 0z"/><path stroke-linecap="round" stroke-linejoin="round" stroke-width="2" d="M2.458 12C3.732 7.943 7.523 5 12 5c4.478 0 8.268 2.943 9.542 7-1.274 4.057-5.064 7-9.542 7-4.477 0-8.268-2.943-9.542-7z"/></svg>
