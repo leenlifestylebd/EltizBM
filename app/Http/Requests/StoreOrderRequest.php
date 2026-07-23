@@ -25,6 +25,7 @@ class StoreOrderRequest extends FormRequest
             'paid_amount'          => 'nullable|numeric|min:0',
             'total'                => 'required|numeric|min:0',
             'discount'             => 'nullable|numeric|min:0',
+            'shipping_charge'      => 'nullable|numeric|min:0',
             'shipping_cost'        => 'nullable|numeric|min:0',
             'shipping_address'     => 'nullable|string|max:500',
             'notes'                => 'nullable|string|max:1000',
