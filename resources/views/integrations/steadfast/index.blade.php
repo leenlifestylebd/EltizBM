@@ -172,35 +172,18 @@
 </div>
 @endif
 
-{{-- ── MAIN TABS ───────────────────────────────────────────── --}}
-<div class="flex gap-1 mb-3 bg-gray-100 dark:bg-slate-700/60 p-1 rounded-xl">
-    <button @click="tab = 'ready'"
-            class="flex-1 py-2.5 text-xs font-semibold rounded-lg transition-all"
-            :class="tab==='ready' ? 'bg-white dark:bg-slate-800 text-gray-900 dark:text-white shadow-sm' : 'text-gray-500 dark:text-slate-400 hover:text-gray-700'">
-        📦 Ready
-        <span class="ml-1 px-1.5 py-0.5 rounded-full text-xs"
-              :class="tab==='ready' ? 'bg-primary-100 text-primary-700 dark:bg-primary-900/30 dark:text-primary-400' : 'bg-gray-200 dark:bg-slate-600 text-gray-500'">
-            {{ $readyOrders->total() }}
-        </span>
-    </button>
-    <button @click="tab = 'sent'"
-            class="flex-1 py-2.5 text-xs font-semibold rounded-lg transition-all"
-            :class="tab==='sent' ? 'bg-white dark:bg-slate-800 text-gray-900 dark:text-white shadow-sm' : 'text-gray-500 dark:text-slate-400 hover:text-gray-700'">
-        🚚 Sent
-        <span class="ml-1 px-1.5 py-0.5 rounded-full text-xs"
-              :class="tab==='sent' ? 'bg-primary-100 text-primary-700 dark:bg-primary-900/30 dark:text-primary-400' : 'bg-gray-200 dark:bg-slate-600 text-gray-500'">
-            {{ $shipmentCounts[''] }}
-        </span>
-    </button>
+{{-- Orders are sent to Steadfast from the Web Orders page. This panel only shows
+     the shipments already sent, with live status / tracking. --}}
+<div class="flex items-center justify-between mb-3">
+    <a href="{{ route('web-orders.index') }}" class="text-xs font-medium text-primary-600 dark:text-primary-400 hover:underline">← Send new orders from Web Orders</a>
     <button @click="openTrack('')"
-            class="px-4 py-2.5 text-xs font-semibold text-violet-600 dark:text-violet-400 hover:bg-white dark:hover:bg-slate-800 rounded-lg transition-all">
-        🔍 Track
+            class="px-4 py-2 text-xs font-semibold text-violet-600 dark:text-violet-400 bg-white dark:bg-slate-800 border border-gray-200 dark:border-slate-700 rounded-xl hover:bg-violet-50 dark:hover:bg-slate-700 transition-all">
+        🔍 Track a Parcel
     </button>
 </div>
 
-{{-- ════════════════════════════════════════════════════════════
-     TAB 1 — READY TO SEND
-═════════════════════════════════════════════════════════════ --}}
+@if(false)
+{{-- (Removed) ready-to-send list — sending moved to the Web Orders page. --}}
 <div x-show="tab === 'ready'" x-cloak>
 
     {{-- Bulk Send Bar --}}
@@ -306,10 +289,10 @@
     @endif
 </div>
 
-{{-- ════════════════════════════════════════════════════════════
-     TAB 2 — SENT SHIPMENTS
-═════════════════════════════════════════════════════════════ --}}
-<div x-show="tab === 'sent'" x-cloak>
+@endif
+
+{{-- SENT SHIPMENTS — live status / tracking via the Steadfast API --}}
+<div>
 
     {{-- Status Filter Pills --}}
     <div class="flex gap-1.5 mb-3 overflow-x-auto pb-1 scrollbar-hide">

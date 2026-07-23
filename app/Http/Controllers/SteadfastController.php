@@ -83,16 +83,10 @@ class SteadfastController extends Controller
             'in_review'         => Shipment::where('business_id', $bizId)->where('courier_name', 'Steadfast')->where('status', 'in_review')->count(),
         ];
 
-        $readyOrders = Order::where('business_id', $bizId)
-            ->whereIn('status', ['pending', 'confirmed', 'processing'])
-            ->whereNotIn('source', ['pos'])
-            ->whereDoesntHave('shipments', fn($q) => $q->where('courier_name', 'Steadfast'))
-            ->with('customer')
-            ->orderByDesc('created_at')
-            ->paginate(20);
-
+        // Sending now happens from the Web Orders page; this panel only shows the
+        // post-send shipments and their live status/tracking.
         return view('integrations.steadfast.index', compact(
-            'isConnected', 'balance', 'shipments', 'readyOrders', 'shipmentCounts', 'statusFilter'
+            'isConnected', 'balance', 'shipments', 'shipmentCounts', 'statusFilter'
         ));
     }
 
