@@ -115,7 +115,10 @@ class OrderController extends Controller
         $this->authorize($order);
         $order->load(['items.product', 'shipments', 'customer']);
         $business = auth()->user()->business;
-        return view('orders.show', compact('order', 'business'));
+        $isConnected = \App\Models\CourierSetting::where('business_id', $order->business_id)
+            ->where('provider', 'steadfast')->where('is_active', true)
+            ->whereNotNull('api_key')->whereNotNull('api_secret')->exists();
+        return view('orders.show', compact('order', 'business', 'isConnected'));
     }
 
     // =============================================
