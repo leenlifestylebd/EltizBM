@@ -404,10 +404,13 @@ class WooCommerceService
             default      => 'pending',
         };
 
-        // Map payment status by the actual payment date, NOT the workflow status.
-        // COD orders sit in "processing" with no payment yet, so treating processing
-        // as paid wrongly zeroed the due (and the courier COD to collect).
-        $paymentStatus = !empty($wo['date_paid'] ?? $wo['date_paid_gmt'] ?? null) ? 'paid' : 'unpaid';
+        // Payment status: COD means pay-on-delivery, so it is NEVER paid at sync
+        // time (the courier collects it) — regardless of Woo's status/date_paid.
+        // Only a non-COD order with a real payment date counts as paid.
+        $method = strtolower($wo['payment_method'] ?? '');
+        $title  = strtolower($wo['payment_method_title'] ?? '');
+        $isCod  = $method === 'cod' || str_contains($method, 'cod') || str_contains($title, 'cash on delivery');
+        $paymentStatus = (!$isCod && !empty($wo['date_paid'] ?? $wo['date_paid_gmt'] ?? null)) ? 'paid' : 'unpaid';
 
         $total    = floatval($wo['total']);
         $shipping = floatval($wo['shipping_total']);
