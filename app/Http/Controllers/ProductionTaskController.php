@@ -350,7 +350,11 @@ class ProductionTaskController extends Controller
             return redirect()->route('production.worker.dashboard')->with('success', $message);
         }
 
-        return redirect()->route('production.tasks.show', $task->id)->with('success', $message);
+        // Admin: stay on whatever page the work was submitted from (a worker's task
+        // list/dashboard, team overview, the task page…) so several tasks can be
+        // submitted one after another without navigating back each time.
+        return redirect()->back(fallback: route('production.tasks.show', $task->id))
+            ->with('success', $message);
     }
 
     /**
