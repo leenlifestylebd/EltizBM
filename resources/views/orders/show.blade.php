@@ -193,6 +193,21 @@
                 </div>
                 @endforeach
             </div>
+            @elseif($isConnected ?? false)
+            {{-- Send to Steadfast (any order that isn't shipped yet) --}}
+            <div class="bg-white dark:bg-slate-800 rounded-xl border border-gray-100 dark:border-slate-700 p-4">
+                <div class="flex items-center justify-between mb-2">
+                    <h3 class="text-sm font-semibold text-gray-900 dark:text-white">Courier</h3>
+                    <span class="text-xs text-gray-400 dark:text-slate-500">COD: ৳{{ number_format($order->due_amount) }}</span>
+                </div>
+                <form method="POST" action="{{ route('steadfast.send-order', $order) }}">
+                    @csrf
+                    <button type="submit"
+                            class="w-full flex items-center justify-center gap-1.5 px-4 py-2.5 bg-primary-600 hover:bg-primary-700 text-white text-sm font-semibold rounded-xl active:scale-95 transition-all">
+                        🚚 Send to Steadfast
+                    </button>
+                </form>
+            </div>
             @endif
 
         </div>
