@@ -404,8 +404,10 @@ class WooCommerceService
             default      => 'pending',
         };
 
-        // Map payment status
-        $paymentStatus = in_array($wo['status'], ['completed', 'processing']) ? 'paid' : 'unpaid';
+        // Map payment status by the actual payment date, NOT the workflow status.
+        // COD orders sit in "processing" with no payment yet, so treating processing
+        // as paid wrongly zeroed the due (and the courier COD to collect).
+        $paymentStatus = !empty($wo['date_paid'] ?? $wo['date_paid_gmt'] ?? null) ? 'paid' : 'unpaid';
 
         $total    = floatval($wo['total']);
         $shipping = floatval($wo['shipping_total']);
