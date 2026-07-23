@@ -588,7 +588,7 @@ class ProductionController extends Controller
                 : $allEmployees->first();
 
             if (!$employee) {
-                return redirect()->route('production.index')->with('error', 'No employees found.');
+                return redirect()->route('production.admin-overview')->with('error', 'No employees found.');
             }
         } else {
             $employee = Employee::where('business_id', $bizId)
