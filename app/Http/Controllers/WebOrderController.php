@@ -3,6 +3,7 @@
 namespace App\Http\Controllers;
 
 use App\Models\Order;
+use App\Models\CourierSetting;
 use App\Models\WoocommerceSetting;
 use App\Services\WooCommerceService;
 use Illuminate\Http\Request;
@@ -15,6 +16,7 @@ class WebOrderController extends Controller
 
         $query = Order::where('business_id', $bizId)
             ->where('source', 'woocommerce')
+            ->with(['shipments' => fn ($q) => $q->where('courier_name', 'Steadfast')])
             ->orderByDesc('created_at');
 
         if ($status = $request->status) {
@@ -39,7 +41,12 @@ class WebOrderController extends Controller
             'cancelled'  => Order::where('business_id', $bizId)->where('source', 'woocommerce')->where('status', 'cancelled')->count(),
         ];
 
-        return view('web-orders.index', compact('orders', 'wooSettings', 'statusCounts'));
+        // Steadfast connection status — enables the "Send to Steadfast" action here.
+        $steadfast   = CourierSetting::where('business_id', $bizId)
+            ->where('provider', 'steadfast')->where('is_active', true)->first();
+        $isConnected = (bool) ($steadfast && $steadfast->api_key && $steadfast->api_secret);
+
+        return view('web-orders.index', compact('orders', 'wooSettings', 'statusCounts', 'isConnected'));
     }
 
     public function show(Order $order)
