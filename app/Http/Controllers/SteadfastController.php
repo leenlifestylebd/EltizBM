@@ -359,10 +359,9 @@ class SteadfastController extends Controller
                 $newStatus = SteadfastService::mapStatus($raw);
                 $shipment->update(['status' => $newStatus]);
 
-                if ($newStatus === 'delivered') {
-                    // partial_delivered maps to "delivered" — pass the flag so the full
-                    // total isn't booked when only part of the order was accepted.
-                    $this->applyDelivered($shipment, $result['cod_amount'] ?? null, $raw === 'partial_delivered');
+                if (in_array($newStatus, ['delivered', 'partial_delivered'])) {
+                    // Only the collected amount is booked for a partial delivery.
+                    $this->applyDelivered($shipment, $result['cod_amount'] ?? null, $newStatus === 'partial_delivered');
                 } elseif ($newStatus === 'cancelled') {
                     $this->applyCancelled($shipment);
                 }
@@ -383,7 +382,7 @@ class SteadfastController extends Controller
 
         $shipments = Shipment::where('business_id', $bizId)
             ->where('courier_name', 'Steadfast')
-            ->whereNotIn('status', ['delivered', 'cancelled'])
+            ->whereNotIn('status', ['delivered', 'partial_delivered', 'cancelled'])
             ->whereNotNull('tracking_id')
             ->with('order')
             ->get();
@@ -400,10 +399,9 @@ class SteadfastController extends Controller
                 if ($newStatus !== $shipment->status) {
                     $shipment->update(['status' => $newStatus]);
 
-                    if ($newStatus === 'delivered') {
-                        // partial_delivered also maps to "delivered" — flag it so only the
-                        // actually-collected amount is booked (never the full total).
-                        $this->applyDelivered($shipment, $result['cod_amount'] ?? null, $raw === 'partial_delivered');
+                    if (in_array($newStatus, ['delivered', 'partial_delivered'])) {
+                        // Only the collected amount is booked for a partial delivery.
+                        $this->applyDelivered($shipment, $result['cod_amount'] ?? null, $newStatus === 'partial_delivered');
                     } elseif ($newStatus === 'cancelled') {
                         $this->applyCancelled($shipment);
                     }
