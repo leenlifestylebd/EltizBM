@@ -92,6 +92,24 @@
                 </div>
             </form>
 
+            {{-- Webhook URL (paste this into the courier's merchant panel) --}}
+            @if($key === 'steadfast')
+            <div class="mt-3 p-3 bg-gray-50 dark:bg-slate-700/40 border border-gray-100 dark:border-slate-600 rounded-lg">
+                <p class="text-xs font-medium text-gray-700 dark:text-slate-200 mb-1">Webhook URL — for real-time status</p>
+                <p class="text-xs text-gray-500 dark:text-slate-400 mb-2">
+                    Paste this into your Steadfast merchant panel (Settings → Webhook / Notification URL).
+                    Without it, statuses update only when you press <strong>Sync Status</strong>.
+                </p>
+                <div class="flex items-center gap-2">
+                    <code class="flex-1 text-xs text-gray-700 dark:text-slate-200 font-mono break-all">{{ url('/webhook/steadfast') }}</code>
+                    <button type="button" onclick="navigator.clipboard.writeText('{{ url('/webhook/steadfast') }}'); this.textContent='Copied'"
+                            class="px-2.5 py-1 text-xs font-medium bg-white dark:bg-slate-600 border border-gray-200 dark:border-slate-500 text-gray-600 dark:text-slate-200 rounded-lg hover:bg-gray-50">
+                        Copy
+                    </button>
+                </div>
+            </div>
+            @endif
+
             {{-- Disconnect --}}
             @if($setting && $setting->api_key)
             <form method="POST" action="{{ route('integrations.courier-providers.save') }}" class="mt-2">
