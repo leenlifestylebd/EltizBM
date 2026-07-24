@@ -48,6 +48,59 @@ class SteadfastController extends Controller
         }
     }
 
+    /**
+     * Parcel delivered — COD collected: mark the order paid and book the income.
+     * Idempotent, so webhook + manual sync can both call it safely.
+     */
+    private function applyDelivered(Shipment $shipment, ?float $codAmount = null): void
+    {
+        $order = $shipment->order;
+        if (!$order || $order->status === 'delivered') return;
+
+        $amount = $codAmount !== null ? (float) $codAmount : (float) $order->total;
+
+        $order->update([
+            'status'         => 'delivered',
+            'paid_amount'    => $amount,
+            'due_amount'     => 0,
+            'payment_status' => 'paid',
+        ]);
+
+        $this->addIncomeTransaction($shipment, $amount);
+    }
+
+    /**
+     * Parcel cancelled/returned — put the stock back (warehouse-aware + logged)
+     * and reverse any COD income already booked. Idempotent.
+     */
+    private function applyCancelled(Shipment $shipment): void
+    {
+        $order = $shipment->order;
+        if (!$order || $order->status === 'returned') return;
+
+        app(\App\Services\StockService::class)->restoreForOrder($order->load('items'));
+
+        if ((float) $order->paid_amount > 0) {
+            Transaction::create([
+                'business_id'      => $shipment->business_id,
+                'created_by'       => auth()->id() ?? $order->created_by,
+                'order_id'         => $order->id,
+                'type'             => 'expense',
+                'title'            => 'Return/Cancel - Order #' . $order->order_number,
+                'amount'           => $order->paid_amount,
+                'payment_method'   => 'cod',
+                'transaction_date' => today(),
+            ]);
+        }
+
+        $order->update([
+            'status'         => 'returned',
+            'paid_amount'    => 0,
+            'due_amount'     => 0,
+            'payment_status' => 'refunded',
+        ]);
+    }
+
     public function index()
     {
         $bizId   = auth()->user()->business_id;
@@ -231,14 +284,9 @@ class SteadfastController extends Controller
                 $shipment->update(['status' => $newStatus]);
 
                 if ($newStatus === 'delivered') {
-                    $amount = $shipment->order->total;
-                    $shipment->order->update([
-                        'status'         => 'delivered',
-                        'paid_amount'    => $amount,
-                        'due_amount'     => 0,
-                        'payment_status' => 'paid',
-                    ]);
-                    $this->addIncomeTransaction($shipment, $amount);
+                    $this->applyDelivered($shipment);
+                } elseif ($newStatus === 'cancelled') {
+                    $this->applyCancelled($shipment);
                 }
             }
         }
@@ -274,14 +322,9 @@ class SteadfastController extends Controller
                     $shipment->update(['status' => $newStatus]);
 
                     if ($newStatus === 'delivered') {
-                        $amount = $shipment->order->total;
-                        $shipment->order->update([
-                            'status'         => 'delivered',
-                            'paid_amount'    => $amount,
-                            'due_amount'     => 0,
-                            'payment_status' => 'paid',
-                        ]);
-                        $this->addIncomeTransaction($shipment, $amount);
+                        $this->applyDelivered($shipment);
+                    } elseif ($newStatus === 'cancelled') {
+                        $this->applyCancelled($shipment);
                     }
                     $updated++;
                 }
@@ -370,43 +413,11 @@ class SteadfastController extends Controller
 
                 if (strtolower($payload['status']) === 'delivered') {
                     $shipment->update(['delivered_at' => now()]);
-                    $codAmount = $payload['cod_amount'] ?? $shipment->order->total;
-                    $shipment->order->update([
-                        'status'         => 'delivered',
-                        'paid_amount'    => $codAmount,
-                        'due_amount'     => 0,
-                        'payment_status' => 'paid',
-                    ]);
-                    $this->addIncomeTransaction($shipment, $codAmount);
+                    $this->applyDelivered($shipment, $payload['cod_amount'] ?? null);
                 }
 
                 if (in_array(strtolower($payload['status']), ['cancelled', 'unknown'])) {
-                    // Restore stock
-                    foreach ($shipment->order->items as $item) {
-                        if ($item->product_id) {
-                            \App\Models\Product::where('id', $item->product_id)
-                                ->increment('stock', $item->quantity);
-                        }
-                    }
-                    // Reverse income if already paid
-                    if ($shipment->order->paid_amount > 0) {
-                        Transaction::create([
-                            'business_id'      => $shipment->business_id,
-                            'created_by'       => auth()->id() ?? $shipment->order->created_by,
-                            'order_id'         => $shipment->order_id,
-                            'type'             => 'expense',
-                            'title'            => 'Return/Cancel - Order #' . $shipment->order->order_number,
-                            'amount'           => $shipment->order->paid_amount,
-                            'payment_method'   => 'cod',
-                            'transaction_date' => today(),
-                        ]);
-                    }
-                    $shipment->order->update([
-                        'status'         => 'returned',
-                        'paid_amount'    => 0,
-                        'due_amount'     => 0,
-                        'payment_status' => 'refunded',
-                    ]);
+                    $this->applyCancelled($shipment);
                 }
             }
         }
