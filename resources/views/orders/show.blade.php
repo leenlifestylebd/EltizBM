@@ -210,6 +210,34 @@
             </div>
             @endif
 
+            {{-- Partial delivery: return the unaccepted items to stock --}}
+            @if($order->payment_status === 'partial')
+            <div class="bg-white dark:bg-slate-800 rounded-xl border border-orange-200 dark:border-orange-900/40 p-4">
+                <h3 class="text-sm font-semibold text-gray-900 dark:text-white mb-1">Partial delivery — return to stock</h3>
+                <p class="text-xs text-gray-500 dark:text-slate-400 mb-3">
+                    Courier collected ৳{{ number_format($order->paid_amount) }} of ৳{{ number_format($order->total) }}.
+                    Enter how many of each item came back so stock is corrected.
+                </p>
+                <form method="POST" action="{{ route('orders.partial-return', $order) }}" class="space-y-2">
+                    @csrf
+                    @foreach($order->items as $item)
+                    <div class="flex items-center justify-between gap-2">
+                        <span class="text-xs text-gray-700 dark:text-slate-200 truncate">
+                            {{ $item->product_name }}
+                            <span class="text-gray-400">({{ $item->quantity }} sold)</span>
+                        </span>
+                        <input type="number" name="returns[{{ $item->id }}]" min="0" max="{{ $item->quantity }}" placeholder="0"
+                               class="w-16 px-2 py-1 text-xs text-center border border-gray-200 dark:border-slate-600 rounded-lg bg-white dark:bg-slate-700 text-gray-900 dark:text-white">
+                    </div>
+                    @endforeach
+                    <button type="submit"
+                            class="w-full mt-2 px-4 py-2 bg-orange-600 hover:bg-orange-700 text-white text-xs font-semibold rounded-xl active:scale-95 transition-all">
+                        ↩️ Return to stock
+                    </button>
+                </form>
+            </div>
+            @endif
+
         </div>
 
         {{-- RIGHT: Customer + Payment --}}

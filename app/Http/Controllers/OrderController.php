@@ -153,6 +153,39 @@ class OrderController extends Controller
     // =============================================
     // UPDATE
     // =============================================
+    /**
+     * Partial delivery: the courier tells us how much was collected but not WHICH
+     * items came back, so the admin picks them here and we return that stock.
+     */
+    public function partialReturn(Request $request, Order $order)
+    {
+        $this->authorize($order);
+
+        $request->validate([
+            'returns'   => 'required|array',
+            'returns.*' => 'nullable|integer|min:0',
+        ]);
+
+        $order->load('items');
+
+        // Never accept more than what was ordered for a line.
+        $lines = [];
+        foreach ($order->items as $item) {
+            if (!$item->product_id) continue;
+            $qty = (int) ($request->input("returns.{$item->id}") ?? 0);
+            if ($qty <= 0) continue;
+            $lines[$item->product_id] = ($lines[$item->product_id] ?? 0) + min($qty, (int) $item->quantity);
+        }
+
+        if (empty($lines)) {
+            return back()->with('error', 'Enter at least one returned quantity.');
+        }
+
+        $restored = app(\App\Services\StockService::class)->restorePartial($order, $lines);
+
+        return back()->with('success', "✅ {$restored} item(s) returned to stock.");
+    }
+
     public function update(Request $request, Order $order)
     {
         $this->authorize($order);

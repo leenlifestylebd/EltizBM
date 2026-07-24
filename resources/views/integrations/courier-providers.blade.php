@@ -74,6 +74,20 @@
                                placeholder="Enter {{ $provider['secret_label'] }}"
                                class="w-full px-3 py-2.5 text-sm border border-gray-200 dark:border-slate-600 rounded-lg bg-white dark:bg-slate-700 text-gray-900 dark:text-white focus:outline-none focus:ring-2 focus:ring-primary-500 font-mono">
                     </div>
+                    @if($key === 'steadfast')
+                    <div class="sm:col-span-2">
+                        <label class="block text-xs font-medium text-gray-700 dark:text-slate-300 mb-1.5">
+                            COD fee (%) <span class="text-gray-400 font-normal">— courier keeps this out of your remittance</span>
+                        </label>
+                        <input type="number" step="0.01" min="0" max="100" name="cod_fee_percent"
+                               value="{{ $setting->config['cod_fee_percent'] ?? '' }}"
+                               placeholder="e.g. 1"
+                               class="w-full px-3 py-2.5 text-sm border border-gray-200 dark:border-slate-600 rounded-lg bg-white dark:bg-slate-700 text-gray-900 dark:text-white focus:outline-none focus:ring-2 focus:ring-primary-500">
+                        <p class="text-xs text-gray-400 dark:text-slate-500 mt-1">
+                            Charged on (COD collected − delivery charge), booked as an expense when a parcel is delivered.
+                        </p>
+                    </div>
+                    @endif
                 </div>
 
                 <div class="flex items-center justify-between">
@@ -112,12 +126,9 @@
 
             {{-- Disconnect --}}
             @if($setting && $setting->api_key)
-            <form method="POST" action="{{ route('integrations.courier-providers.save') }}" class="mt-2">
+            <form method="POST" action="{{ route('integrations.courier-providers.disconnect') }}" class="mt-2">
                 @csrf
                 <input type="hidden" name="provider" value="{{ $key }}">
-                <input type="hidden" name="api_key" value="">
-                <input type="hidden" name="api_secret" value="">
-                <input type="hidden" name="is_active" value="0">
                 <button type="submit"
                         onclick="return confirm('Disconnect {{ $provider['name'] }}?')"
                         class="text-xs text-red-600 dark:text-red-400 hover:underline">

@@ -96,6 +96,7 @@ Route::middleware(['auth', 'business'])->group(function () {
         Route::put('/{order}',     [OrderController::class, 'update'])->name('update');
         Route::delete('/{order}',  [OrderController::class, 'destroy'])->name('destroy');
         Route::post('/{order}/status', [OrderController::class, 'updateStatus'])->name('status');
+        Route::post('/{order}/partial-return', [OrderController::class, 'partialReturn'])->name('partial-return');
         Route::get('/{order}/invoice',          [OrderController::class, 'invoice'])->name('invoice');
         Route::get('/{order}/invoice/pdf',      [OrderController::class, 'downloadPdf'])->name('invoice.pdf');
         Route::get('/{order}/invoice/receipt',  [OrderController::class, 'receipt'])->name('receipt');
@@ -364,6 +365,7 @@ Route::middleware(['auth', 'business'])->group(function () {
         Route::post('/woocommerce/sync',  [WooCommerceController::class, 'syncAll'])->name('woocommerce.sync');
         Route::get('/courier-providers',  [IntegrationController::class, 'courierProviders'])->name('courier-providers');
         Route::post('/courier-providers', [IntegrationController::class, 'saveCourierProvider'])->name('courier-providers.save');
+        Route::post('/courier-providers/disconnect', [IntegrationController::class, 'disconnectCourierProvider'])->name('courier-providers.disconnect');
         Route::get('/sms',                [IntegrationController::class, 'sms'])->name('sms');
         Route::post('/sms',               [IntegrationController::class, 'saveSms'])->name('sms.save');
         Route::post('/sms/test',          [IntegrationController::class, 'testSms'])->name('sms.test');

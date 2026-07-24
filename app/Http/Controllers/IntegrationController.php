@@ -32,10 +32,45 @@ class IntegrationController extends Controller
     }
     public function saveCourierProvider(Request $request)
     {
-        $request->validate(['provider'=>'required|in:pathao,steadfast,redx,custom','api_key'=>'required|string']);
+        $request->validate([
+            'provider'        => 'required|in:pathao,steadfast,redx,custom',
+            'api_key'         => 'required|string',
+            'cod_fee_percent' => 'nullable|numeric|min:0|max:100',
+        ]);
         $bizId = auth()->user()->business_id;
-        CourierSetting::updateOrCreate(['business_id'=>$bizId,'provider'=>$request->provider],['api_key'=>$request->api_key,'api_secret'=>$request->api_secret,'is_active'=>true]);
+
+        // Keep any other config keys; only update the COD fee when it was submitted.
+        $existing = CourierSetting::where('business_id', $bizId)->where('provider', $request->provider)->first();
+        $config   = $existing->config ?? [];
+        if ($request->has('cod_fee_percent')) {
+            $config['cod_fee_percent'] = (float) ($request->cod_fee_percent ?: 0);
+        }
+
+        CourierSetting::updateOrCreate(
+            ['business_id'=>$bizId,'provider'=>$request->provider],
+            ['api_key'=>$request->api_key,'api_secret'=>$request->api_secret,'is_active'=>true,'config'=>$config]
+        );
         return back()->with('success', ucfirst($request->provider).' API saved!');
+    }
+
+    /**
+     * Disconnect a courier: clear the credentials and deactivate it. Kept separate
+     * from save() because save() requires an api_key, so posting a blank key there
+     * only ever failed validation. The row (and its config) is preserved.
+     */
+    public function disconnectCourierProvider(Request $request)
+    {
+        $request->validate(['provider' => 'required|in:pathao,steadfast,redx,custom']);
+
+        $setting = CourierSetting::where('business_id', auth()->user()->business_id)
+            ->where('provider', $request->provider)
+            ->first();
+
+        if ($setting) {
+            $setting->update(['api_key' => null, 'api_secret' => null, 'is_active' => false]);
+        }
+
+        return back()->with('success', ucfirst($request->provider).' disconnected.');
     }
     public function sms()
     {

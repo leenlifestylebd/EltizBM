@@ -93,6 +93,47 @@ class StockService
     }
 
     /**
+     * Partial return — put back only the quantities the customer actually sent back.
+     * $lines is [product_id => qty]. Warehouse-aware and logged, like a full restore.
+     */
+    public function restorePartial(Order $order, array $lines): int
+    {
+        $warehouseId = $this->defaultWarehouseId($order->business_id);
+        $restored    = 0;
+
+        foreach ($lines as $productId => $qty) {
+            $qty = (int) $qty;
+            if ($qty <= 0) continue;
+
+            $product = Product::where('id', (int) $productId)
+                ->where('business_id', $order->business_id)
+                ->first();
+            if (!$product || !$product->track_stock) continue;
+
+            $before = $product->stock;
+            $after  = $before + $qty;
+
+            Product::where('id', $product->id)->update(['stock' => $after]);
+            $this->adjustWarehouseStock($order->business_id, $product->id, $warehouseId, +$qty);
+
+            $this->logAdjustment(
+                business_id: $order->business_id,
+                product_id:  $product->id,
+                type:        'return',
+                quantity:    $qty,
+                before:      $before,
+                after:       $after,
+                reason:      "Partial return - Order #{$order->order_number}",
+                warehouse_id: $warehouseId,
+            );
+
+            $restored += $qty;
+        }
+
+        return $restored;
+    }
+
+    /**
      * Direct stock adjustment (increase / decrease / damage / transfer).
      */
     public function adjust(
