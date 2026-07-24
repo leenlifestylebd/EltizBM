@@ -14,10 +14,10 @@ class SuperAdminMiddleware
         }
 
         $allowedEmails = array_filter(
-            array_map('trim', explode(',', env('SUPER_ADMIN_EMAILS', '')))
+            array_map('trim', explode(',', (string) config('services.super_admin.emails', '')))
         );
 
-        if (empty($allowedEmails) || !in_array(auth()->user()->email, $allowedEmails)) {
+        if (empty($allowedEmails) || !in_array(auth()->user()->email, $allowedEmails, true)) {
             abort(403, 'Super Admin access denied.');
         }
 

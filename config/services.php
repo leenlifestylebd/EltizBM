@@ -48,4 +48,14 @@ return [
         'business_id' => env('BOT_BUSINESS_ID'),
     ],
 
+    // Read via config() (not env()) so these survive `php artisan config:cache`.
+    'steadfast' => [
+        'webhook_secret' => env('STEADFAST_WEBHOOK_SECRET'),
+    ],
+
+    'super_admin' => [
+        'secret' => env('SUPER_ADMIN_SECRET'),
+        'emails' => env('SUPER_ADMIN_EMAILS', ''),
+    ],
+
 ];

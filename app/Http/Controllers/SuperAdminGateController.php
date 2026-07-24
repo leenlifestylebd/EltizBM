@@ -55,13 +55,13 @@ class SuperAdminGateController extends Controller
     // ── Helpers ────────────────────────────────────────────────
     private function validSecret(string $secret): bool
     {
-        $configured = env('SUPER_ADMIN_SECRET', '');
-        return $configured && $secret === $configured;
+        $configured = (string) config('services.super_admin.secret', '');
+        return $configured !== '' && hash_equals($configured, $secret);
     }
 
     private function isSuperAdmin(string $email): bool
     {
-        $allowed = array_filter(array_map('trim', explode(',', env('SUPER_ADMIN_EMAILS', ''))));
-        return in_array($email, $allowed);
+        $allowed = array_filter(array_map('trim', explode(',', (string) config('services.super_admin.emails', ''))));
+        return in_array($email, $allowed, true);
     }
 }
