@@ -52,10 +52,14 @@ class SteadfastController extends Controller
      * Parcel delivered — COD collected: mark the order paid and book the income.
      * Idempotent, so webhook + manual sync can both call it safely.
      */
-    private function applyDelivered(Shipment $shipment, ?float $codAmount = null): void
+    private function applyDelivered(Shipment $shipment, ?float $codAmount = null, bool $partial = false): void
     {
         $order = $shipment->order;
         if (!$order || $order->status === 'delivered') return;
+
+        // Partial delivery: only the courier knows how much was actually collected.
+        // Without that figure, book nothing rather than assume the full total.
+        if ($partial && $codAmount === null) return;
 
         $amount = $codAmount !== null ? (float) $codAmount : (float) $order->total;
 
@@ -63,7 +67,7 @@ class SteadfastController extends Controller
             'status'         => 'delivered',
             'paid_amount'    => $amount,
             'due_amount'     => 0,
-            'payment_status' => 'paid',
+            'payment_status' => $partial ? 'partial' : 'paid',
         ]);
 
         $this->addIncomeTransaction($shipment, $amount);
@@ -315,11 +319,14 @@ class SteadfastController extends Controller
                 ->first();
 
             if ($shipment) {
-                $newStatus = SteadfastService::mapStatus($result['delivery_status']);
+                $raw       = strtolower($result['delivery_status']);
+                $newStatus = SteadfastService::mapStatus($raw);
                 $shipment->update(['status' => $newStatus]);
 
                 if ($newStatus === 'delivered') {
-                    $this->applyDelivered($shipment);
+                    // partial_delivered maps to "delivered" — pass the flag so the full
+                    // total isn't booked when only part of the order was accepted.
+                    $this->applyDelivered($shipment, $result['cod_amount'] ?? null, $raw === 'partial_delivered');
                 } elseif ($newStatus === 'cancelled') {
                     $this->applyCancelled($shipment);
                 }
@@ -351,13 +358,16 @@ class SteadfastController extends Controller
             $result = $service->statusByTrackingCode($shipment->tracking_id);
 
             if (isset($result['delivery_status'])) {
-                $newStatus = SteadfastService::mapStatus($result['delivery_status']);
+                $raw       = strtolower($result['delivery_status']);
+                $newStatus = SteadfastService::mapStatus($raw);
 
                 if ($newStatus !== $shipment->status) {
                     $shipment->update(['status' => $newStatus]);
 
                     if ($newStatus === 'delivered') {
-                        $this->applyDelivered($shipment);
+                        // partial_delivered also maps to "delivered" — flag it so only the
+                        // actually-collected amount is booked (never the full total).
+                        $this->applyDelivered($shipment, $result['cod_amount'] ?? null, $raw === 'partial_delivered');
                     } elseif ($newStatus === 'cancelled') {
                         $this->applyCancelled($shipment);
                     }
@@ -446,6 +456,7 @@ class SteadfastController extends Controller
                 $newStatus   = SteadfastService::mapStatus(strtolower($payload['status']));
                 $rawStatus   = strtolower($payload['status']);
                 $isDelivered = $rawStatus === 'delivered';
+                $isPartial   = $rawStatus === 'partial_delivered';
                 $isCancelled = in_array($rawStatus, ['cancelled', 'unknown']);
                 $shipment->update(['status' => $newStatus]);
 
@@ -455,14 +466,16 @@ class SteadfastController extends Controller
                     $this->recordCourierCharge(
                         $shipment,
                         $payload['delivery_charge'],
-                        $isDelivered || $isCancelled,
+                        $isDelivered || $isPartial || $isCancelled,
                         $isCancelled ? 'Courier return charge' : 'Courier charge'
                     );
                 }
 
-                if ($isDelivered) {
+                // Partial delivery: cod_amount is the amount actually collected after
+                // the customer kept only part of the order — book exactly that.
+                if ($isDelivered || $isPartial) {
                     $shipment->update(['delivered_at' => now()]);
-                    $this->applyDelivered($shipment, $payload['cod_amount'] ?? null);
+                    $this->applyDelivered($shipment, $payload['cod_amount'] ?? null, $isPartial);
                 }
 
                 if ($isCancelled) {
