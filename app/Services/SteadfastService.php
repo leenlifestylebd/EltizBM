@@ -246,13 +246,19 @@ class SteadfastService
     // =============================================
     public static function mapStatus(string $steadfastStatus): string
     {
+        // Mirror Steadfast's own vocabulary 1:1 so the ERP and the courier panel
+        // always show the same status. The *_approval_pending variants all fold into
+        // "approval_pending", matching the courier panel's single Approval tab.
         return match($steadfastStatus) {
-            'delivered', 'partial_delivered'                                         => 'delivered',
-            'cancelled', 'cancelled_approval_pending'                               => 'cancelled',
-            'delivered_approval_pending', 'partial_delivered_approval_pending'      => 'in_transit',
-            'hold'                                                                   => 'picked',
-            'in_review'                                                              => 'pending',
-            default                                                                  => 'pending',
+            'in_review'                                                                     => 'in_review',
+            'pending'                                                                       => 'pending',
+            'hold'                                                                          => 'hold',
+            'approval_pending', 'cancelled_approval_pending',
+            'delivered_approval_pending', 'partial_delivered_approval_pending'              => 'approval_pending',
+            'delivered'                                                                     => 'delivered',
+            'partial_delivered'                                                             => 'partial_delivered',
+            'cancelled'                                                                     => 'cancelled',
+            default                                                                         => 'pending',
         };
     }
 }
