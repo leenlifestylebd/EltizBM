@@ -389,10 +389,17 @@ class SteadfastController extends Controller
 
         $updated = 0;
 
-        foreach ($shipments as $shipment) {
-            $result = $service->statusByTrackingCode($shipment->tracking_id);
+        $failed = 0;
 
-            if (isset($result['delivery_status'])) {
+        foreach ($shipments as $shipment) {
+            // One bad parcel (API hiccup, deleted order…) must not break the whole sync.
+            try {
+                $result = $service->statusByTrackingCode($shipment->tracking_id);
+
+                if (!isset($result['delivery_status'])) {
+                    continue;
+                }
+
                 $raw       = strtolower($result['delivery_status']);
                 $newStatus = SteadfastService::mapStatus($raw);
 
@@ -407,10 +414,15 @@ class SteadfastController extends Controller
                     }
                     $updated++;
                 }
+            } catch (\Throwable $e) {
+                $failed++;
+                Log::warning('Steadfast sync failed for shipment ' . $shipment->id . ': ' . $e->getMessage());
             }
         }
 
-        return back()->with('success', "✅ Synced! {$updated} shipments updated.");
+        $msg = "✅ Synced! {$updated} shipments updated.";
+        if ($failed) $msg .= " ({$failed} could not be checked.)";
+        return back()->with('success', $msg);
     }
 
     public function printLabel(Shipment $shipment)
