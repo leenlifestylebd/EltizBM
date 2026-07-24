@@ -70,6 +70,41 @@ class SteadfastController extends Controller
     }
 
     /**
+     * Store the courier's ACTUAL delivery charge (it varies by weight/distance) and,
+     * once delivered, book it as an expense so profit reflects the real courier cost.
+     * Customer-paid shipping stays in the COD income; this is the cost side.
+     * Idempotent — safe for repeated webhook calls.
+     */
+    private function recordCourierCharge(Shipment $shipment, $charge, bool $bookExpense = false): void
+    {
+        $amount = (float) $charge;
+        if ($amount <= 0) return;
+
+        if ((float) $shipment->charge !== $amount) {
+            $shipment->update(['charge' => $amount]);
+        }
+
+        if (!$bookExpense) return;
+
+        $reference = 'COURIER-' . $shipment->id;
+        if (Transaction::where('business_id', $shipment->business_id)->where('reference', $reference)->exists()) {
+            return;
+        }
+
+        Transaction::create([
+            'business_id'      => $shipment->business_id,
+            'created_by'       => auth()->id() ?? optional($shipment->order)->created_by,
+            'order_id'         => $shipment->order_id,
+            'type'             => 'expense',
+            'title'            => 'Courier charge - Order #' . (optional($shipment->order)->order_number ?? $shipment->id),
+            'amount'           => $amount,
+            'payment_method'   => 'cod',
+            'reference'        => $reference,
+            'transaction_date' => today(),
+        ]);
+    }
+
+    /**
      * Parcel cancelled/returned — put the stock back (warehouse-aware + logged)
      * and reverse any COD income already booked. Idempotent.
      */
@@ -408,10 +443,17 @@ class SteadfastController extends Controller
             }
 
             if ($shipment) {
-                $newStatus = SteadfastService::mapStatus(strtolower($payload['status']));
+                $newStatus  = SteadfastService::mapStatus(strtolower($payload['status']));
+                $isDelivered = strtolower($payload['status']) === 'delivered';
                 $shipment->update(['status' => $newStatus]);
 
-                if (strtolower($payload['status']) === 'delivered') {
+                // Courier's real charge (weight/distance based) — store it, and book it
+                // as an expense once the parcel is actually delivered.
+                if (isset($payload['delivery_charge'])) {
+                    $this->recordCourierCharge($shipment, $payload['delivery_charge'], $isDelivered);
+                }
+
+                if ($isDelivered) {
                     $shipment->update(['delivered_at' => now()]);
                     $this->applyDelivered($shipment, $payload['cod_amount'] ?? null);
                 }
