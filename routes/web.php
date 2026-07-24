@@ -365,6 +365,7 @@ Route::middleware(['auth', 'business'])->group(function () {
         Route::post('/woocommerce/sync',  [WooCommerceController::class, 'syncAll'])->name('woocommerce.sync');
         Route::get('/courier-providers',  [IntegrationController::class, 'courierProviders'])->name('courier-providers');
         Route::post('/courier-providers', [IntegrationController::class, 'saveCourierProvider'])->name('courier-providers.save');
+        Route::post('/courier-providers/disconnect', [IntegrationController::class, 'disconnectCourierProvider'])->name('courier-providers.disconnect');
         Route::get('/sms',                [IntegrationController::class, 'sms'])->name('sms');
         Route::post('/sms',               [IntegrationController::class, 'saveSms'])->name('sms.save');
         Route::post('/sms/test',          [IntegrationController::class, 'testSms'])->name('sms.test');

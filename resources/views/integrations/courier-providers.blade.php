@@ -126,12 +126,9 @@
 
             {{-- Disconnect --}}
             @if($setting && $setting->api_key)
-            <form method="POST" action="{{ route('integrations.courier-providers.save') }}" class="mt-2">
+            <form method="POST" action="{{ route('integrations.courier-providers.disconnect') }}" class="mt-2">
                 @csrf
                 <input type="hidden" name="provider" value="{{ $key }}">
-                <input type="hidden" name="api_key" value="">
-                <input type="hidden" name="api_secret" value="">
-                <input type="hidden" name="is_active" value="0">
                 <button type="submit"
                         onclick="return confirm('Disconnect {{ $provider['name'] }}?')"
                         class="text-xs text-red-600 dark:text-red-400 hover:underline">

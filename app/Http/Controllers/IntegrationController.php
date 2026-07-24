@@ -52,6 +52,26 @@ class IntegrationController extends Controller
         );
         return back()->with('success', ucfirst($request->provider).' API saved!');
     }
+
+    /**
+     * Disconnect a courier: clear the credentials and deactivate it. Kept separate
+     * from save() because save() requires an api_key, so posting a blank key there
+     * only ever failed validation. The row (and its config) is preserved.
+     */
+    public function disconnectCourierProvider(Request $request)
+    {
+        $request->validate(['provider' => 'required|in:pathao,steadfast,redx,custom']);
+
+        $setting = CourierSetting::where('business_id', auth()->user()->business_id)
+            ->where('provider', $request->provider)
+            ->first();
+
+        if ($setting) {
+            $setting->update(['api_key' => null, 'api_secret' => null, 'is_active' => false]);
+        }
+
+        return back()->with('success', ucfirst($request->provider).' disconnected.');
+    }
     public function sms()
     {
         $bizId = auth()->user()->business_id;
