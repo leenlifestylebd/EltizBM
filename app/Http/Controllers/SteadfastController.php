@@ -109,6 +109,42 @@ class SteadfastController extends Controller
     }
 
     /**
+     * Courier's COD service fee — a % the courier keeps out of the remittance
+     * (charged on the collected COD after the delivery charge). The rate is set
+     * per business in courier settings (config.cod_fee_percent). Idempotent.
+     * Runs from the webhook too, so the business is taken from the shipment.
+     */
+    private function recordCodFee(Shipment $shipment, float $codCollected, float $deliveryCharge): void
+    {
+        $setting = CourierSetting::where('business_id', $shipment->business_id)
+            ->where('provider', 'steadfast')->first();
+
+        $pct = (float) ($setting->config['cod_fee_percent'] ?? 0);
+        if ($pct <= 0 || $codCollected <= 0) return;
+
+        $fee = round(max(0, $codCollected - $deliveryCharge) * $pct / 100, 2);
+        if ($fee <= 0) return;
+
+        $reference = 'CODFEE-' . $shipment->id;
+        if (Transaction::where('business_id', $shipment->business_id)->where('reference', $reference)->exists()) {
+            return;
+        }
+
+        Transaction::create([
+            'business_id'      => $shipment->business_id,
+            'created_by'       => auth()->id() ?? optional($shipment->order)->created_by,
+            'order_id'         => $shipment->order_id,
+            'type'             => 'expense',
+            'title'            => 'COD fee (' . rtrim(rtrim(number_format($pct, 2, '.', ''), '0'), '.') . '%) - Order #'
+                                   . (optional($shipment->order)->order_number ?? $shipment->id),
+            'amount'           => $fee,
+            'payment_method'   => 'cod',
+            'reference'        => $reference,
+            'transaction_date' => today(),
+        ]);
+    }
+
+    /**
      * Parcel cancelled/returned — put the stock back (warehouse-aware + logged)
      * and reverse any COD income already booked. Idempotent.
      */
@@ -476,6 +512,11 @@ class SteadfastController extends Controller
                 if ($isDelivered || $isPartial) {
                     $shipment->update(['delivered_at' => now()]);
                     $this->applyDelivered($shipment, $payload['cod_amount'] ?? null, $isPartial);
+                    $this->recordCodFee(
+                        $shipment,
+                        (float) ($payload['cod_amount'] ?? 0),
+                        (float) ($payload['delivery_charge'] ?? 0)
+                    );
                 }
 
                 if ($isCancelled) {
