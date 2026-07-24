@@ -75,7 +75,7 @@ class SteadfastController extends Controller
      * Customer-paid shipping stays in the COD income; this is the cost side.
      * Idempotent — safe for repeated webhook calls.
      */
-    private function recordCourierCharge(Shipment $shipment, $charge, bool $bookExpense = false): void
+    private function recordCourierCharge(Shipment $shipment, $charge, bool $bookExpense = false, string $label = 'Courier charge'): void
     {
         $amount = (float) $charge;
         if ($amount <= 0) return;
@@ -96,7 +96,7 @@ class SteadfastController extends Controller
             'created_by'       => auth()->id() ?? optional($shipment->order)->created_by,
             'order_id'         => $shipment->order_id,
             'type'             => 'expense',
-            'title'            => 'Courier charge - Order #' . (optional($shipment->order)->order_number ?? $shipment->id),
+            'title'            => $label . ' - Order #' . (optional($shipment->order)->order_number ?? $shipment->id),
             'amount'           => $amount,
             'payment_method'   => 'cod',
             'reference'        => $reference,
@@ -443,14 +443,21 @@ class SteadfastController extends Controller
             }
 
             if ($shipment) {
-                $newStatus  = SteadfastService::mapStatus(strtolower($payload['status']));
-                $isDelivered = strtolower($payload['status']) === 'delivered';
+                $newStatus   = SteadfastService::mapStatus(strtolower($payload['status']));
+                $rawStatus   = strtolower($payload['status']);
+                $isDelivered = $rawStatus === 'delivered';
+                $isCancelled = in_array($rawStatus, ['cancelled', 'unknown']);
                 $shipment->update(['status' => $newStatus]);
 
-                // Courier's real charge (weight/distance based) — store it, and book it
-                // as an expense once the parcel is actually delivered.
+                // Courier's real charge (weight/distance based). The courier bills it
+                // for returns too, so book the expense on delivery AND on cancel.
                 if (isset($payload['delivery_charge'])) {
-                    $this->recordCourierCharge($shipment, $payload['delivery_charge'], $isDelivered);
+                    $this->recordCourierCharge(
+                        $shipment,
+                        $payload['delivery_charge'],
+                        $isDelivered || $isCancelled,
+                        $isCancelled ? 'Courier return charge' : 'Courier charge'
+                    );
                 }
 
                 if ($isDelivered) {
@@ -458,7 +465,7 @@ class SteadfastController extends Controller
                     $this->applyDelivered($shipment, $payload['cod_amount'] ?? null);
                 }
 
-                if (in_array(strtolower($payload['status']), ['cancelled', 'unknown'])) {
+                if ($isCancelled) {
                     $this->applyCancelled($shipment);
                 }
             }
