@@ -131,8 +131,24 @@ class AccountController extends Controller
             'amount' => $transaction->amount,
             'date'   => (string) $transaction->transaction_date,
         ]);
+
+        // If this expense is a linked worker payment, remove that payment too so the
+        // worker ledger / payroll stays in sync (otherwise the payment lingers as
+        // "paid" while its expense is gone).
+        $linkedPayments = \App\Models\EmployeePayment::where('business_id', $transaction->business_id)
+            ->where('transaction_id', $transaction->id)
+            ->get();
+        $removedPayment = false;
+        foreach ($linkedPayments as $pay) {
+            $pay->delete();
+            $removedPayment = true;
+        }
+
         $transaction->delete();
-        return back()->with('success', 'Transaction deleted.');
+
+        return back()->with('success', $removedPayment
+            ? 'Expense deleted — the linked worker payment was also removed.'
+            : 'Transaction deleted.');
     }
     private function getPeriodDates(string $period): array
     {
