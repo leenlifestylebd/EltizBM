@@ -97,6 +97,8 @@ Route::middleware(['auth', 'business'])->group(function () {
         Route::delete('/{order}',  [OrderController::class, 'destroy'])->name('destroy');
         Route::post('/{order}/status', [OrderController::class, 'updateStatus'])->name('status');
         Route::post('/{order}/partial-return', [OrderController::class, 'partialReturn'])->name('partial-return');
+        Route::get('/{order}/exchange',  [OrderController::class, 'exchangeForm'])->name('exchange');
+        Route::post('/{order}/exchange', [OrderController::class, 'exchangeStore'])->name('exchange.store');
         Route::get('/{order}/invoice',          [OrderController::class, 'invoice'])->name('invoice');
         Route::get('/{order}/invoice/pdf',      [OrderController::class, 'downloadPdf'])->name('invoice.pdf');
         Route::get('/{order}/invoice/receipt',  [OrderController::class, 'receipt'])->name('receipt');

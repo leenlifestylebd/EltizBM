@@ -186,6 +186,89 @@ class OrderController extends Controller
         return back()->with('success', "✅ {$restored} item(s) returned to stock.");
     }
 
+    /**
+     * Wholesale exchange: return some items from a past order and buy new ones in one
+     * go. Returned stock is restored (at the price it was originally sold), and a NEW
+     * net order is created where the return value is applied as a credit (discount),
+     * so the customer only pays (new items − returned value). Revenue stays correct
+     * because the new order's total is already the net.
+     */
+    public function exchangeForm(Order $order)
+    {
+        $this->authorize($order);
+        $order->load('items');
+        $bizId    = $order->business_id;
+        $products = \App\Models\Product::where('business_id', $bizId)->where('is_active', true)->get();
+        return view('orders.exchange', compact('order', 'products'));
+    }
+
+    public function exchangeStore(Request $request, Order $order)
+    {
+        $this->authorize($order);
+
+        $request->validate([
+            'returns'              => 'array',
+            'returns.*'            => 'nullable|integer|min:0',
+            'items'                => 'required|array|min:1',
+            'items.*.product_id'   => 'required|integer',
+            'items.*.product_name' => 'required|string',
+            'items.*.price'        => 'required|numeric|min:0',
+            'items.*.quantity'     => 'required|integer|min:1',
+            'items.*.total'        => 'required|numeric|min:0',
+            'paid_amount'          => 'nullable|numeric|min:0',
+            'payment_method'       => 'required|string|max:50',
+        ]);
+
+        $order->load('items');
+        $bizId = $order->business_id;
+
+        // 1) Returned lines + credit at the ORIGINAL sold price.
+        $returnLines  = [];   // product_id => qty
+        $returnCredit = 0.0;
+        $returnedQty  = 0;
+        foreach ($order->items as $it) {
+            if (!$it->product_id) continue;
+            $q = (int) ($request->input("returns.{$it->id}") ?? 0);
+            if ($q <= 0) continue;
+            $q = min($q, (int) $it->quantity);
+            $returnLines[$it->product_id] = ($returnLines[$it->product_id] ?? 0) + $q;
+            $returnCredit += $q * (float) $it->price;
+            $returnedQty  += $q;
+        }
+
+        $newSubtotal = collect($request->items)->sum('total');
+
+        if ($returnCredit > $newSubtotal) {
+            return back()->withInput()->with('error',
+                'Return credit (৳' . number_format($returnCredit) . ') is more than the new purchase (৳'
+                . number_format($newSubtotal) . '). Add more items or reduce returns.');
+        }
+
+        \Illuminate\Support\Facades\DB::transaction(function () use ($order, $request, $bizId, $returnLines, $returnCredit, $returnedQty) {
+            // Restock the returned items (warehouse-aware + logged).
+            if (!empty($returnLines)) {
+                app(\App\Services\StockService::class)->restorePartial($order, $returnLines);
+            }
+
+            // Create the net new order — return credit rides in as the discount.
+            $data                 = $request->all();
+            $data['discount']     = $returnCredit;
+            $data['created_by']   = auth()->id();
+            $data['customer_id']  = $order->customer_id;
+            $data['customer_name']= $order->customer_name;
+            $data['customer_phone']= $order->customer_phone;
+            $data['status']       = $request->status ?: 'confirmed';
+            $data['notes']        = 'Exchange for Order #' . $order->order_number
+                                    . ' — returned ' . $returnedQty . ' item(s), credit ৳' . number_format($returnCredit)
+                                    . ($request->notes ? "\n" . $request->notes : '');
+
+            $this->orderService->create($data, $bizId, $order->source === 'wholesale' ? 'wholesale' : 'manual');
+        });
+
+        return redirect()->route('orders.index')
+            ->with('success', 'Exchange done — returned items restocked, net order created.');
+    }
+
     public function update(Request $request, Order $order)
     {
         $this->authorize($order);

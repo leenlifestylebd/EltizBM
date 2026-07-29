@@ -89,8 +89,8 @@
 
     <tr style="background:{{ $p50 }}; border-top: 2px solid {{ $p100 }};">
       <td class="bold" style="font-size:12px;">Net Profit / Loss</td>
-      <td class="right bold" style="font-size:13px; color:{{ $netProfit >= 0 ? '{{ $p800 }}' : '#dc2626' }}">{{ $netProfit >= 0 ? '' : '&minus;' }}&#2547;{{ number_format(abs($netProfit)) }}</td>
-      <td class="right bold" style="color:{{ $netProfit >= 0 ? '{{ $p800 }}' : '#dc2626' }}">{{ $netMargin }}%</td>
+      <td class="right bold" style="font-size:13px; color:{{ $netProfit >= 0 ? $p800 : '#dc2626' }}">{{ $netProfit >= 0 ? '' : '&minus;' }}&#2547;{{ number_format(abs($netProfit)) }}</td>
+      <td class="right bold" style="color:{{ $netProfit >= 0 ? $p800 : '#dc2626' }}">{{ $netMargin }}%</td>
     </tr>
   </tbody>
 </table>

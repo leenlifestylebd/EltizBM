@@ -46,7 +46,7 @@ class SteadfastService
                     'item_description'  => $data['item_description'] ?? null,
                 ]);
 
-            return $response->json();
+            return $response->json() ?? [];
         } catch (\Exception $e) {
             Log::error('Steadfast placeOrder error', ['error' => $e->getMessage()]);
             return ['status' => 500, 'message' => $e->getMessage()];
@@ -91,7 +91,7 @@ class SteadfastService
         try {
             $response = Http::withHeaders($this->headers())
                 ->get("{$this->baseUrl}/status_by_cid/{$id}");
-            return $response->json();
+            return $response->json() ?? [];
         } catch (\Exception $e) {
             return ['status' => 500, 'message' => $e->getMessage()];
         }
@@ -102,7 +102,7 @@ class SteadfastService
         try {
             $response = Http::withHeaders($this->headers())
                 ->get("{$this->baseUrl}/status_by_invoice/{$invoice}");
-            return $response->json();
+            return $response->json() ?? [];
         } catch (\Exception $e) {
             return ['status' => 500, 'message' => $e->getMessage()];
         }
@@ -113,7 +113,7 @@ class SteadfastService
         try {
             $response = Http::withHeaders($this->headers())
                 ->get("{$this->baseUrl}/status_by_trackingcode/{$trackingCode}");
-            return $response->json();
+            return $response->json() ?? [];
         } catch (\Exception $e) {
             return ['status' => 500, 'message' => $e->getMessage()];
         }
@@ -127,7 +127,7 @@ class SteadfastService
         try {
             $response = Http::withHeaders($this->headers())
                 ->get("{$this->baseUrl}/get_balance");
-            return $response->json();
+            return $response->json() ?? [];
         } catch (\Exception $e) {
             return ['status' => 500, 'current_balance' => 0, 'message' => $e->getMessage()];
         }
@@ -144,7 +144,7 @@ class SteadfastService
                     'consignment_id' => $identifier,
                     'reason'         => $reason,
                 ]);
-            return $response->json();
+            return $response->json() ?? [];
         } catch (\Exception $e) {
             return ['status' => 500, 'message' => $e->getMessage()];
         }

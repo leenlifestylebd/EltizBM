@@ -389,10 +389,17 @@ class SteadfastController extends Controller
 
         $updated = 0;
 
-        foreach ($shipments as $shipment) {
-            $result = $service->statusByTrackingCode($shipment->tracking_id);
+        $failed = 0;
 
-            if (isset($result['delivery_status'])) {
+        foreach ($shipments as $shipment) {
+            // One bad parcel (API hiccup, deleted order…) must not break the whole sync.
+            try {
+                $result = $service->statusByTrackingCode($shipment->tracking_id);
+
+                if (!isset($result['delivery_status'])) {
+                    continue;
+                }
+
                 $raw       = strtolower($result['delivery_status']);
                 $newStatus = SteadfastService::mapStatus($raw);
 
@@ -407,10 +414,15 @@ class SteadfastController extends Controller
                     }
                     $updated++;
                 }
+            } catch (\Throwable $e) {
+                $failed++;
+                Log::warning('Steadfast sync failed for shipment ' . $shipment->id . ': ' . $e->getMessage());
             }
         }
 
-        return back()->with('success', "✅ Synced! {$updated} shipments updated.");
+        $msg = "✅ Synced! {$updated} shipments updated.";
+        if ($failed) $msg .= " ({$failed} could not be checked.)";
+        return back()->with('success', $msg);
     }
 
     public function printLabel(Shipment $shipment)
@@ -443,19 +455,21 @@ class SteadfastController extends Controller
 
     public function webhook(Request $request)
     {
-        // Shared-secret gate. Configure STEADFAST_WEBHOOK_SECRET in .env and append
-        // ?secret=... (or send X-Webhook-Secret header) on the Steadfast dashboard URL.
-        // If no secret is configured yet, we log a warning but still process so the
-        // existing live integration is not broken mid-flight.
-        $expected = env('STEADFAST_WEBHOOK_SECRET');
-        if ($expected) {
-            $provided = $request->header('X-Webhook-Secret') ?: $request->query('secret');
-            if (!$provided || !hash_equals($expected, $provided)) {
-                Log::warning('Steadfast webhook: invalid or missing secret');
+        // Shared-secret gate. Set STEADFAST_WEBHOOK_SECRET in .env and append
+        // ?secret=... (or send an X-Webhook-Secret header) on the Steadfast dashboard
+        // URL. Read via config() so it survives config:cache (env() would return null
+        // there and silently disable the check). When a secret IS configured it is
+        // enforced; if it is not set we still process (opt-in), but log a warning so
+        // the endpoint isn't left spoofable unknowingly.
+        $expected = (string) config('services.steadfast.webhook_secret', '');
+        if ($expected !== '') {
+            $provided = (string) ($request->header('X-Webhook-Secret') ?: $request->query('secret', ''));
+            if ($provided === '' || !hash_equals($expected, $provided)) {
+                Log::warning('Steadfast webhook: invalid or missing secret', ['ip' => $request->ip()]);
                 return response()->json(['status' => 'error', 'message' => 'Unauthorized'], 401);
             }
         } else {
-            Log::warning('Steadfast webhook processed WITHOUT a configured secret. Set STEADFAST_WEBHOOK_SECRET to secure this endpoint.');
+            Log::warning('Steadfast webhook processed WITHOUT a configured secret — set STEADFAST_WEBHOOK_SECRET to secure this endpoint.');
         }
 
         $payload = $request->all();

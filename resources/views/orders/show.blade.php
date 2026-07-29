@@ -210,6 +210,18 @@
             </div>
             @endif
 
+            {{-- Wholesale exchange: return old items + buy new --}}
+            <a href="{{ route('orders.exchange', $order) }}"
+               class="block bg-white dark:bg-slate-800 rounded-xl border border-gray-100 dark:border-slate-700 p-4 hover:border-primary-300 transition-colors">
+                <div class="flex items-center justify-between">
+                    <div>
+                        <h3 class="text-sm font-semibold text-gray-900 dark:text-white">↔️ Exchange</h3>
+                        <p class="text-xs text-gray-500 dark:text-slate-400">Return items from this order &amp; buy new — pay only the difference</p>
+                    </div>
+                    <svg class="w-5 h-5 text-gray-400" fill="none" stroke="currentColor" viewBox="0 0 24 24"><path stroke-linecap="round" stroke-linejoin="round" stroke-width="2" d="M9 5l7 7-7 7"/></svg>
+                </div>
+            </a>
+
             {{-- Partial delivery: return the unaccepted items to stock --}}
             @if($order->payment_status === 'partial')
             <div class="bg-white dark:bg-slate-800 rounded-xl border border-orange-200 dark:border-orange-900/40 p-4">
