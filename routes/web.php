@@ -135,6 +135,7 @@ Route::middleware(['auth', 'business'])->group(function () {
         Route::get('/{product}/quick-edit',[ProductController::class, 'quickEdit'])->name('quick-edit');
         Route::put('/{product}',     [ProductController::class, 'update'])->name('update');
         Route::delete('/{product}',  [ProductController::class, 'destroy'])->name('destroy');
+        Route::post('/{product}/duplicate', [ProductController::class, 'duplicate'])->name('duplicate');
         Route::post('/{product}/generate-barcode', [ProductController::class, 'generateBarcode'])->name('generate-barcode');
         Route::post('/generate-barcodes-bulk',     [ProductController::class, 'generateBarcodesBulk'])->name('generate-barcodes-bulk');
         // Bill of Materials

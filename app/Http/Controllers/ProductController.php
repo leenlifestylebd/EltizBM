@@ -239,6 +239,37 @@ class ProductController extends Controller
     }
 
     // ── Generate barcode for a single product ────────────────
+    /**
+     * Duplicate a product (and its variants) into a new draft, then open it in the
+     * editor so the user can tweak and save. SKU/barcode are cleared to avoid clashes.
+     */
+    public function duplicate(Product $product)
+    {
+        $this->authorizeProduct($product);
+
+        $copy = $product->replicate([
+            'woo_product_id', 'woo_synced_at', 'created_at', 'updated_at',
+        ]);
+        $copy->name       = \Illuminate\Support\Str::limit($product->name, 90, '') . ' (Copy)';
+        $copy->slug       = $product->slug ? $product->slug . '-copy-' . \Illuminate\Support\Str::lower(\Illuminate\Support\Str::random(4)) : null;
+        $copy->sku        = null;   // let the user set a fresh SKU/barcode
+        $copy->barcode    = null;
+        $copy->is_active  = true;
+        $copy->save();
+
+        // Copy variants too (fresh sku/barcode).
+        foreach ($product->variants as $v) {
+            $nv = $v->replicate(['woo_variant_id']);
+            $nv->product_id = $copy->id;
+            $nv->sku        = null;
+            $nv->barcode    = null;
+            $nv->save();
+        }
+
+        return redirect()->route('products.edit', $copy)
+            ->with('success', "Duplicated '{$product->name}'. Edit the copy and save.");
+    }
+
     public function generateBarcode(Product $product)
     {
         $this->authorizeProduct($product);
