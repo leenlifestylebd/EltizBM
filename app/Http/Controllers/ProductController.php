@@ -250,18 +250,20 @@ class ProductController extends Controller
         $copy = $product->replicate([
             'woo_product_id', 'woo_synced_at', 'created_at', 'updated_at',
         ]);
+        $rand             = \Illuminate\Support\Str::upper(\Illuminate\Support\Str::random(4));
         $copy->name       = \Illuminate\Support\Str::limit($product->name, 90, '') . ' (Copy)';
-        $copy->slug       = $product->slug ? $product->slug . '-copy-' . \Illuminate\Support\Str::lower(\Illuminate\Support\Str::random(4)) : null;
-        $copy->sku        = null;   // let the user set a fresh SKU/barcode
-        $copy->barcode    = null;
+        $copy->slug       = $product->slug ? $product->slug . '-copy-' . \Illuminate\Support\Str::lower($rand) : null;
+        // Keep the SKU but make it unique with a -COPY suffix so it isn't identical.
+        $copy->sku        = $product->sku ? $product->sku . '-COPY-' . $rand : null;
+        $copy->barcode    = null;   // a barcode must be physically unique — leave blank
         $copy->is_active  = true;
         $copy->save();
 
-        // Copy variants too (fresh sku/barcode).
+        // Copy variants too, keeping their SKU with a unique suffix.
         foreach ($product->variants as $v) {
             $nv = $v->replicate(['woo_variant_id']);
             $nv->product_id = $copy->id;
-            $nv->sku        = null;
+            $nv->sku        = $v->sku ? $v->sku . '-COPY-' . $rand : null;
             $nv->barcode    = null;
             $nv->save();
         }
