@@ -269,6 +269,79 @@ class OrderController extends Controller
             ->with('success', 'Exchange done — returned items restocked, net order created.');
     }
 
+    /**
+     * Manual exchange — the customer returns items from a past order that was NEVER
+     * entered in the app (manual invoice). Both the returned items and the new items
+     * are picked from the catalog; returned stock is restored and the return value is
+     * applied as a credit on the net new order.
+     */
+    public function manualExchangeForm()
+    {
+        $bizId     = auth()->user()->business_id;
+        $products  = \App\Models\Product::where('business_id', $bizId)->where('is_active', true)->get();
+        $customers = \App\Models\Customer::where('business_id', $bizId)->orderBy('name')->get();
+        return view('orders.manual-exchange', compact('products', 'customers'));
+    }
+
+    public function manualExchangeStore(Request $request)
+    {
+        $bizId = auth()->user()->business_id;
+
+        $request->validate([
+            'returns'              => 'array',
+            'returns.*.product_id' => 'required|integer',
+            'returns.*.quantity'   => 'required|integer|min:1',
+            'returns.*.price'      => 'required|numeric|min:0',
+            'items'                => 'required|array|min:1',
+            'items.*.product_id'   => 'required|integer',
+            'items.*.product_name' => 'required|string',
+            'items.*.price'        => 'required|numeric|min:0',
+            'items.*.quantity'     => 'required|integer|min:1',
+            'items.*.total'        => 'required|numeric|min:0',
+            'customer_name'        => 'required|string|max:100',
+            'paid_amount'          => 'nullable|numeric|min:0',
+            'payment_method'       => 'required|string|max:50',
+        ]);
+
+        // Return lines + credit (price entered manually since the old invoice isn't here).
+        $returnLines  = [];
+        $returnCredit = 0.0;
+        $returnedQty  = 0;
+        foreach ($request->returns ?? [] as $r) {
+            $q  = (int) ($r['quantity'] ?? 0);
+            $pid = (int) ($r['product_id'] ?? 0);
+            if ($q <= 0 || !$pid) continue;
+            $returnLines[$pid] = ($returnLines[$pid] ?? 0) + $q;
+            $returnCredit     += $q * (float) ($r['price'] ?? 0);
+            $returnedQty      += $q;
+        }
+
+        $newSubtotal = collect($request->items)->sum('total');
+        if ($returnCredit > $newSubtotal) {
+            return back()->withInput()->with('error',
+                'Return credit (৳' . number_format($returnCredit) . ') is more than the new purchase (৳'
+                . number_format($newSubtotal) . '). Add more items or reduce returns.');
+        }
+
+        \Illuminate\Support\Facades\DB::transaction(function () use ($request, $bizId, $returnLines, $returnCredit, $returnedQty) {
+            if (!empty($returnLines)) {
+                app(\App\Services\StockService::class)->restoreLines($bizId, $returnLines, 'Manual exchange return');
+            }
+
+            $data                  = $request->all();
+            $data['discount']      = $returnCredit;
+            $data['created_by']    = auth()->id();
+            $data['status']        = $request->status ?: 'confirmed';
+            $data['notes']         = 'Manual exchange — returned ' . $returnedQty . ' item(s), credit ৳'
+                                     . number_format($returnCredit) . ($request->notes ? "\n" . $request->notes : '');
+
+            $this->orderService->create($data, $bizId, 'wholesale');
+        });
+
+        return redirect()->route('orders.index')
+            ->with('success', 'Manual exchange done — returned items restocked, net order created.');
+    }
+
     public function update(Request $request, Order $order)
     {
         $this->authorize($order);

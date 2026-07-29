@@ -16,6 +16,10 @@
             <svg class="w-3.5 h-3.5" fill="none" stroke="currentColor" viewBox="0 0 24 24"><path stroke-linecap="round" stroke-linejoin="round" stroke-width="2" d="M12 4v16m8-8H4"/></svg>
             New {{ $wholesale ? 'Wholesale' : 'Order' }}
         </a>
+        <a href="{{ route('orders.manual-exchange') }}"
+           class="flex items-center gap-1.5 px-3 py-2 text-xs font-medium text-orange-600 dark:text-orange-400 bg-orange-50 dark:bg-orange-900/20 rounded-lg hover:bg-orange-100 transition-colors" title="Return from a past invoice not in the app">
+            ↔️ Manual Exchange
+        </a>
         @unless($wholesale)
         <a href="{{ route('orders.export', request()->query()) }}"
            class="hidden sm:flex items-center gap-1.5 px-3 py-2 text-xs font-medium text-gray-600 dark:text-slate-300 bg-white dark:bg-slate-700 border border-gray-200 dark:border-slate-600 rounded-lg hover:bg-gray-50 transition-colors">
