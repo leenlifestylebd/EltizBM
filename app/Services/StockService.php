@@ -96,6 +96,46 @@ class StockService
      * Partial return — put back only the quantities the customer actually sent back.
      * $lines is [product_id => qty]. Warehouse-aware and logged, like a full restore.
      */
+    /**
+     * Restore stock for arbitrary [product_id => qty] lines that are NOT tied to an
+     * order (e.g. a manual exchange where the original invoice was never in the app).
+     * Warehouse-aware and logged, like restorePartial.
+     */
+    public function restoreLines(int $businessId, array $lines, string $reason): int
+    {
+        $warehouseId = $this->defaultWarehouseId($businessId);
+        $restored    = 0;
+
+        foreach ($lines as $productId => $qty) {
+            $qty = (int) $qty;
+            if ($qty <= 0) continue;
+
+            $product = Product::where('id', (int) $productId)->where('business_id', $businessId)->first();
+            if (!$product || !$product->track_stock) continue;
+
+            $before = $product->stock;
+            $after  = $before + $qty;
+
+            Product::where('id', $product->id)->update(['stock' => $after]);
+            $this->adjustWarehouseStock($businessId, $product->id, $warehouseId, +$qty);
+
+            $this->logAdjustment(
+                business_id: $businessId,
+                product_id:  $product->id,
+                type:        'return',
+                quantity:    $qty,
+                before:      $before,
+                after:       $after,
+                reason:      $reason,
+                warehouse_id: $warehouseId,
+            );
+
+            $restored += $qty;
+        }
+
+        return $restored;
+    }
+
     public function restorePartial(Order $order, array $lines): int
     {
         $warehouseId = $this->defaultWarehouseId($order->business_id);

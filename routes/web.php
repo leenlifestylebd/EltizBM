@@ -89,6 +89,8 @@ Route::middleware(['auth', 'business'])->group(function () {
     Route::prefix('orders')->name('orders.')->group(function () {
         Route::get('/',            [OrderController::class, 'index'])->name('index');
         Route::get('/create',      [OrderController::class, 'create'])->name('create');
+        Route::get('/manual-exchange',  [OrderController::class, 'manualExchangeForm'])->name('manual-exchange');
+        Route::post('/manual-exchange', [OrderController::class, 'manualExchangeStore'])->name('manual-exchange.store');
         Route::post('/',           [OrderController::class, 'store'])->name('store');
         Route::get('/export',      [OrderController::class, 'export'])->name('export');
         Route::get('/{order}',     [OrderController::class, 'show'])->name('show');
