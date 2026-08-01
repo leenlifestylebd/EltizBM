@@ -26,6 +26,22 @@ class SteadfastController extends Controller
         return new SteadfastService($setting->api_key, $setting->api_secret);
     }
 
+    /**
+     * Build the courier note from the order's item SKUs (e.g. "ABC123×2, DEF456×1").
+     * The SKU goes into the Steadfast note field for picking/verification.
+     */
+    private function skuNote(Order $order): string
+    {
+        $order->loadMissing('items.product', 'items.variant');
+        $parts = [];
+        foreach ($order->items as $item) {
+            $sku = $item->sku ?: (optional($item->variant)->sku ?: optional($item->product)->sku);
+            if (!$sku) continue;
+            $parts[] = $sku . '×' . $item->quantity;
+        }
+        return implode(', ', $parts);
+    }
+
     private function addIncomeTransaction(Shipment $shipment, float $amount): void
     {
         // Check if transaction already exists for this order
@@ -237,7 +253,7 @@ class SteadfastController extends Controller
                 $order->shipping_district,
             ]))),
             'cod_amount'        => $order->due_amount > 0 ? $order->due_amount : 0,
-            'note'              => $order->notes,
+            'note'              => $this->skuNote($order),
         ]);
 
         if (($response['status'] ?? 0) === 200) {
@@ -294,7 +310,7 @@ class SteadfastController extends Controller
                 $order->shipping_district,
             ]))) ?: 'N/A',
             'cod_amount'        => $order->due_amount > 0 ? $order->due_amount : 0,
-            'note'              => $order->notes,
+            'note'              => $this->skuNote($order),
         ])->toArray();
 
         $results = $service->bulkCreate($bulkData);
