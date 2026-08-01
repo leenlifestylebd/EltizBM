@@ -244,18 +244,21 @@ body { font-family: Arial, Helvetica, sans-serif; background: #e5e7eb; }
     font-size: 8.5px;
     font-weight: 700;
     color: #111;
-    flex: 1;
-    min-width: 0;
-    white-space: normal;
-    line-height: 1.15;
-    word-break: break-word;
+    flex: 0 0 auto;
+    max-width: 45%;
+    overflow: hidden;
+    text-overflow: ellipsis;
+    white-space: nowrap;
 }
 .item-detail {
     font-size: 8px;
     font-weight: 700;
     color: #444;
     white-space: nowrap;
-    flex-shrink: 0;
+    flex: 1;
+    text-align: right;
+    overflow: hidden;
+    text-overflow: ellipsis;
 }
 .item-more {
     font-size: 7.5px;
