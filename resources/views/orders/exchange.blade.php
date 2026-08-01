@@ -28,16 +28,21 @@
                     <h3 class="text-sm font-semibold text-gray-900 dark:text-white mb-3">① Returning from this order</h3>
                     @forelse($order->items as $item)
                     @if($item->product_id)
-                    <div class="flex items-center justify-between gap-2 py-1.5 border-b border-gray-50 dark:border-slate-700 last:border-0">
-                        <div class="min-w-0">
+                    <div class="flex items-center gap-2 py-1.5 border-b border-gray-50 dark:border-slate-700 last:border-0">
+                        <div class="flex-1 min-w-0">
                             <p class="text-sm text-gray-800 dark:text-slate-200 truncate">{{ $item->product_name }}</p>
-                            <p class="text-xs text-gray-400">৳{{ number_format($item->price) }} · {{ $item->quantity }} bought</p>
+                            <p class="text-xs text-gray-400">{{ $item->quantity }} bought</p>
                         </div>
-                        <input type="number" min="0" max="{{ $item->quantity }}" name="returns[{{ $item->id }}]"
-                               x-model.number="returns[{{ $item->id }}]"
-                               data-price="{{ $item->price }}" @input="calc()"
-                               placeholder="0"
-                               class="w-16 px-2 py-1 text-sm text-center border border-gray-200 dark:border-slate-600 rounded-lg bg-white dark:bg-slate-700 text-gray-900 dark:text-white">
+                        <span class="text-xs text-gray-400">৳</span>
+                        <input type="number" min="0" step="0.01" name="returns[{{ $item->id }}][price]"
+                               value="{{ $item->price }}" @input="calc()"
+                               class="ret-price w-20 px-1.5 py-1 text-sm border border-gray-200 dark:border-slate-600 rounded-lg bg-white dark:bg-slate-700 text-gray-900 dark:text-white"
+                               data-id="{{ $item->id }}" title="Return price (editable)">
+                        <span class="text-xs text-gray-400">×</span>
+                        <input type="number" min="0" max="{{ $item->quantity }}" name="returns[{{ $item->id }}][qty]"
+                               placeholder="0" @input="calc()"
+                               class="ret-qty w-14 px-1.5 py-1 text-sm text-center border border-gray-200 dark:border-slate-600 rounded-lg bg-white dark:bg-slate-700 text-gray-900 dark:text-white"
+                               data-id="{{ $item->id }}" title="Return qty">
                     </div>
                     @endif
                     @empty
@@ -142,9 +147,12 @@ function exchangeForm() {
         searchT: null,
         calc() {
             let credit = 0;
-            document.querySelectorAll('input[name^="returns["]').forEach(el => {
-                const q = parseInt(el.value) || 0;
-                credit += q * parseFloat(el.dataset.price || 0);
+            document.querySelectorAll('.ret-qty').forEach(qtyEl => {
+                const q = parseInt(qtyEl.value) || 0;
+                if (q <= 0) return;
+                const priceEl = document.querySelector('.ret-price[data-id="' + qtyEl.dataset.id + '"]');
+                const price = priceEl ? (parseFloat(priceEl.value) || 0) : 0;
+                credit += q * price;
             });
             this.returnCredit = credit;
             this.newSubtotal  = this.cart.reduce((s, i) => s + (i.price * i.qty), 0);

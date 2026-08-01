@@ -208,7 +208,8 @@ class OrderController extends Controller
 
         $request->validate([
             'returns'              => 'array',
-            'returns.*'            => 'nullable|integer|min:0',
+            'returns.*.qty'        => 'nullable|integer|min:0',
+            'returns.*.price'      => 'nullable|numeric|min:0',
             'items'                => 'required|array|min:1',
             'items.*.product_id'   => 'required|integer',
             'items.*.product_name' => 'required|string',
@@ -222,17 +223,21 @@ class OrderController extends Controller
         $order->load('items');
         $bizId = $order->business_id;
 
-        // 1) Returned lines + credit at the ORIGINAL sold price.
+        // 1) Returned lines + credit at the return price the admin entered (defaults
+        //    to the original sold price, but is editable on the form).
         $returnLines  = [];   // product_id => qty
         $returnCredit = 0.0;
         $returnedQty  = 0;
         foreach ($order->items as $it) {
             if (!$it->product_id) continue;
-            $q = (int) ($request->input("returns.{$it->id}") ?? 0);
+            $q = (int) ($request->input("returns.{$it->id}.qty") ?? 0);
             if ($q <= 0) continue;
             $q = min($q, (int) $it->quantity);
+            $price = $request->has("returns.{$it->id}.price")
+                ? (float) $request->input("returns.{$it->id}.price")
+                : (float) $it->price;
             $returnLines[$it->product_id] = ($returnLines[$it->product_id] ?? 0) + $q;
-            $returnCredit += $q * (float) $it->price;
+            $returnCredit += $q * $price;
             $returnedQty  += $q;
         }
 
