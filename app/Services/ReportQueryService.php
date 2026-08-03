@@ -37,10 +37,15 @@ class ReportQueryService
               ->whereBetween('created_at', [$from, $to])
         )->selectRaw('SUM(cost_price * quantity) as total')->value('total') ?? 0;
 
+        // Operating expenses = real cash-out EXCEPT internal transfers and worker
+        // payments. Worker payments (EMPPAY-*) are reported separately as
+        // "Production Wages" below, so counting them here too would deduct labour
+        // twice from net profit.
         $expenses = Transaction::where('business_id', $bizId)
             ->where('type', 'expense')
             ->whereBetween('transaction_date', [$from, $to])
             ->whereNot(fn($q) => $q->where('reference', 'like', 'TRANSFER-%'))
+            ->where(fn($q) => $q->whereNull('reference')->orWhere('reference', 'not like', 'EMPPAY-%'))
             ->sum('amount');
 
         // "Other income" = income NOT already counted as order revenue, and not an
@@ -54,8 +59,14 @@ class ReportQueryService
             ->whereNot(fn($q) => $q->where('reference', 'like', 'TRANSFER-%'))
             ->sum('amount');
 
-        $productionWages = ProductionEntry::where('business_id', $bizId)
-            ->whereBetween('entry_date', [$from, $to])
+        // Production Wages = actual cash paid to workers (EMPPAY-* expenses), NOT
+        // the piece-work amount they earned. Using real payments keeps the P&L on a
+        // cash basis and consistent with the rest of the report. These are excluded
+        // from $expenses above so each cost is deducted exactly once.
+        $productionWages = Transaction::where('business_id', $bizId)
+            ->where('type', 'expense')
+            ->whereBetween('transaction_date', [$from, $to])
+            ->where('reference', 'like', 'EMPPAY-%')
             ->sum('amount');
 
         $grossProfit = $revenue - $cogs;
@@ -67,6 +78,7 @@ class ReportQueryService
             ->where('type', 'expense')
             ->whereBetween('transaction_date', [$from, $to])
             ->whereNot(fn($q) => $q->where('reference', 'like', 'TRANSFER-%'))
+            ->where(fn($q) => $q->whereNull('reference')->orWhere('reference', 'not like', 'EMPPAY-%'))
             ->with('category')
             ->selectRaw('category_id, SUM(amount) as total, COUNT(*) as count')
             ->groupBy('category_id')
@@ -76,7 +88,6 @@ class ReportQueryService
         // Chart trend data
         $trendExpr  = $groupBy === 'month' ? DbHelper::yearMonth('created_at')      : DbHelper::dateFormat('created_at');
         $trendExprT = $groupBy === 'month' ? DbHelper::yearMonth('transaction_date') : DbHelper::dateFormat('transaction_date');
-        $trendExprE = $groupBy === 'month' ? DbHelper::yearMonth('entry_date')       : DbHelper::dateFormat('entry_date');
 
         $revenueTrend = Order::where('business_id', $bizId)
             ->whereIn('status', ['completed', 'delivered'])
@@ -89,13 +100,18 @@ class ReportQueryService
             ->where('type', 'expense')
             ->whereBetween('transaction_date', [$from, $to])
             ->whereNot(fn($q) => $q->where('reference', 'like', 'TRANSFER-%'))
+            ->where(fn($q) => $q->whereNull('reference')->orWhere('reference', 'not like', 'EMPPAY-%'))
             ->selectRaw("{$trendExprT} as period, SUM(amount) as total")
             ->groupBy('period')->orderBy('period')
             ->pluck('total', 'period');
 
-        $wageTrend = ProductionEntry::where('business_id', $bizId)
-            ->whereBetween('entry_date', [$from, $to])
-            ->selectRaw("{$trendExprE} as period, SUM(amount) as total")
+        // Wage trend now follows the cash paid to workers (EMPPAY-*), matching the
+        // Production Wages figure above.
+        $wageTrend = Transaction::where('business_id', $bizId)
+            ->where('type', 'expense')
+            ->whereBetween('transaction_date', [$from, $to])
+            ->where('reference', 'like', 'EMPPAY-%')
+            ->selectRaw("{$trendExprT} as period, SUM(amount) as total")
             ->groupBy('period')->orderBy('period')
             ->pluck('total', 'period');
 
