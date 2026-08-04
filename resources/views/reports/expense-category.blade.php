@@ -266,7 +266,8 @@ document.addEventListener('DOMContentLoaded', function () {
             }]
         },
         options: {
-            responsive: false,
+            responsive: true,
+            maintainAspectRatio: false,
             cutout: '68%',
             plugins: {
                 legend: { display: false },

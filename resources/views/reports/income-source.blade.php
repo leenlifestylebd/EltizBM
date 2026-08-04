@@ -73,7 +73,7 @@ $presets = [
 {{-- KPI Cards --}}
 <div class="grid grid-cols-2 sm:grid-cols-4 gap-3 mb-5">
     <div class="bg-gradient-to-br from-teal-50 to-teal-100 dark:from-teal-900/30 dark:to-teal-900/10 rounded-xl p-4 border border-teal-100 dark:border-teal-900/40">
-        <p class="text-xs text-teal-600 dark:text-teal-400 font-medium mb-1">Total Other Income</p>
+        <p class="text-xs text-teal-600 dark:text-teal-400 font-medium mb-1">Total Income</p>
         <p class="text-2xl font-bold text-teal-700 dark:text-teal-300">৳{{ number_format($totalIncome) }}</p>
         <p class="text-xs text-teal-500 mt-1">{{ \Carbon\Carbon::parse($from)->format('d M') }} – {{ \Carbon\Carbon::parse($to)->format('d M Y') }}</p>
     </div>
@@ -236,7 +236,8 @@ document.addEventListener('DOMContentLoaded', function () {
             }]
         },
         options: {
-            responsive: false,
+            responsive: true,
+            maintainAspectRatio: false,
             cutout: '68%',
             plugins: {
                 legend: { display: false },
