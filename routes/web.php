@@ -203,6 +203,7 @@ Route::middleware(['auth', 'business'])->group(function () {
         Route::get('/salary', fn() => redirect()->route('production.payroll'))->name('salary');
         Route::get('/payment-transfer',  [AccountController::class, 'paymentTransfer'])->name('payment-transfer');
         Route::post('/payment-transfer', [AccountController::class, 'storeTransfer'])->name('payment-transfer.store');
+        Route::put('/transactions/{transaction}',    [AccountController::class, 'updateTransaction'])->name('transactions.update');
         Route::delete('/transactions/{transaction}', [AccountController::class, 'destroyTransaction'])->name('transactions.destroy');
     });
 
@@ -300,6 +301,7 @@ Route::middleware(['auth', 'business'])->group(function () {
     Route::prefix('materials')->name('materials.')->group(function () {
         Route::get('/',               [MaterialController::class, 'index'])->name('index');
         Route::post('/',              [MaterialController::class, 'store'])->name('store');
+        Route::put('/{material}',     [MaterialController::class, 'update'])->name('update');
         Route::delete('/{material}',  [MaterialController::class, 'destroy'])->name('destroy');
         Route::get('/export',         [MaterialController::class, 'export'])->name('export');
     });

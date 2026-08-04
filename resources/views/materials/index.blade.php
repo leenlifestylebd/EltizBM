@@ -151,7 +151,7 @@ $catColors = [
     </div>
 
     {{-- RIGHT: List + Summary --}}
-    <div class="lg:col-span-2 space-y-4">
+    <div class="lg:col-span-2 space-y-4" x-data="materialList()">
 
         {{-- Filter bar --}}
         <form method="GET" class="flex flex-wrap gap-2">
@@ -236,16 +236,21 @@ $catColors = [
                                 ৳{{ number_format($p->amount) }}
                             </td>
                             <td class="px-2 py-2.5">
-                                <form method="POST" action="{{ route('materials.destroy', $p) }}"
-                                      onsubmit="return confirm('Delete this entry?')"
-                                      class="opacity-0 group-hover:opacity-100 transition-opacity">
-                                    @csrf @method('DELETE')
-                                    <button type="submit" class="p-1 text-gray-300 hover:text-red-500 transition-colors">
-                                        <svg class="w-3.5 h-3.5" fill="none" stroke="currentColor" viewBox="0 0 24 24">
-                                            <path stroke-linecap="round" stroke-linejoin="round" stroke-width="2" d="M19 7l-.867 12.142A2 2 0 0116.138 21H7.862a2 2 0 01-1.995-1.858L5 7m5 4v6m4-6v6m1-10V4a1 1 0 00-1-1h-4a1 1 0 00-1 1v3M4 7h16"/>
-                                        </svg>
+                                <div class="flex items-center gap-1 opacity-0 group-hover:opacity-100 transition-opacity">
+                                    <button type="button" title="Edit" class="p-1 text-gray-300 hover:text-primary-600 transition-colors"
+                                            @click="edit({ id: {{ $p->id }}, item_name: @js($p->item_name), category: '{{ $p->category }}', date: '{{ $p->purchase_date->format('Y-m-d') }}', quantity: {{ $p->quantity ?? 'null' }}, rate: {{ $p->rate ?? 'null' }}, amount: {{ (float) $p->amount }}, shop: @js($p->shop_name), color: @js($p->color), method: '{{ $p->payment_method }}', notes: @js($p->notes) })">
+                                        <svg class="w-3.5 h-3.5" fill="none" stroke="currentColor" viewBox="0 0 24 24"><path stroke-linecap="round" stroke-linejoin="round" stroke-width="2" d="M11 5H6a2 2 0 00-2 2v11a2 2 0 002 2h11a2 2 0 002-2v-5m-1.414-9.414a2 2 0 112.828 2.828L11.828 15H9v-2.828l8.586-8.586z"/></svg>
                                     </button>
-                                </form>
+                                    <form method="POST" action="{{ route('materials.destroy', $p) }}"
+                                          onsubmit="return confirm('Delete this entry?')">
+                                        @csrf @method('DELETE')
+                                        <button type="submit" class="p-1 text-gray-300 hover:text-red-500 transition-colors">
+                                            <svg class="w-3.5 h-3.5" fill="none" stroke="currentColor" viewBox="0 0 24 24">
+                                                <path stroke-linecap="round" stroke-linejoin="round" stroke-width="2" d="M19 7l-.867 12.142A2 2 0 0116.138 21H7.862a2 2 0 01-1.995-1.858L5 7m5 4v6m4-6v6m1-10V4a1 1 0 00-1-1h-4a1 1 0 00-1 1v3M4 7h16"/>
+                                            </svg>
+                                        </button>
+                                    </form>
+                                </div>
                             </td>
                         </tr>
                         @empty
@@ -269,7 +274,100 @@ $catColors = [
                 </table>
             </div>
         </div>
+
+        {{-- Edit Purchase Modal --}}
+        <div x-show="show" x-cloak class="fixed inset-0 z-50 flex items-center justify-center bg-black/40 p-4"
+             @click.self="show=false" @keydown.escape.window="show=false">
+            <div class="bg-white dark:bg-slate-800 rounded-xl w-full max-w-lg p-5 shadow-xl max-h-[90vh] overflow-y-auto">
+                <div class="flex items-center justify-between mb-4">
+                    <h3 class="text-sm font-semibold text-gray-900 dark:text-white">Edit Purchase</h3>
+                    <button type="button" @click="show=false" class="text-gray-400 hover:text-gray-600 text-lg leading-none">&times;</button>
+                </div>
+                <form :action="actionUrl" method="POST" class="grid grid-cols-2 gap-3">
+                    @csrf @method('PUT')
+                    <div class="col-span-2">
+                        <label class="block text-xs font-medium text-gray-700 dark:text-slate-300 mb-1.5">Item Name</label>
+                        <input type="text" name="item_name" x-model="form.item_name" required
+                               class="w-full px-3 py-2.5 text-sm border border-gray-200 dark:border-slate-600 rounded-lg bg-white dark:bg-slate-700 text-gray-900 dark:text-white focus:outline-none focus:ring-2 focus:ring-primary-500">
+                    </div>
+                    <div>
+                        <label class="block text-xs font-medium text-gray-700 dark:text-slate-300 mb-1.5">Category</label>
+                        <select name="category" x-model="form.category" required
+                                class="w-full px-3 py-2.5 text-sm border border-gray-200 dark:border-slate-600 rounded-lg bg-white dark:bg-slate-700 text-gray-700 dark:text-slate-200 focus:outline-none focus:ring-2 focus:ring-primary-500">
+                            @foreach($categories as $key => $label)<option value="{{ $key }}">{{ $label }}</option>@endforeach
+                        </select>
+                    </div>
+                    <div>
+                        <label class="block text-xs font-medium text-gray-700 dark:text-slate-300 mb-1.5">Date</label>
+                        <input type="date" name="purchase_date" x-model="form.date" required
+                               class="w-full px-3 py-2.5 text-sm border border-gray-200 dark:border-slate-600 rounded-lg bg-white dark:bg-slate-700 text-gray-900 dark:text-white focus:outline-none focus:ring-2 focus:ring-primary-500">
+                    </div>
+                    <div>
+                        <label class="block text-xs font-medium text-gray-700 dark:text-slate-300 mb-1.5">Quantity</label>
+                        <input type="number" name="quantity" x-model="form.quantity" min="0" step="0.01"
+                               class="w-full px-3 py-2.5 text-sm border border-gray-200 dark:border-slate-600 rounded-lg bg-white dark:bg-slate-700 text-gray-900 dark:text-white focus:outline-none focus:ring-2 focus:ring-primary-500">
+                    </div>
+                    <div>
+                        <label class="block text-xs font-medium text-gray-700 dark:text-slate-300 mb-1.5">Rate</label>
+                        <input type="number" name="rate" x-model="form.rate" min="0" step="0.01"
+                               class="w-full px-3 py-2.5 text-sm border border-gray-200 dark:border-slate-600 rounded-lg bg-white dark:bg-slate-700 text-gray-900 dark:text-white focus:outline-none focus:ring-2 focus:ring-primary-500">
+                    </div>
+                    <div class="col-span-2">
+                        <label class="block text-xs font-medium text-gray-700 dark:text-slate-300 mb-1.5">Amount <span class="text-gray-400 font-normal">(ignored if Qty × Rate given)</span></label>
+                        <div class="relative"><span class="absolute left-3 top-1/2 -translate-y-1/2 text-gray-400 text-sm">৳</span>
+                        <input type="number" name="amount" x-model="form.amount" min="0" step="0.01"
+                               class="w-full pl-7 pr-3 py-2.5 text-sm border border-gray-200 dark:border-slate-600 rounded-lg bg-white dark:bg-slate-700 text-gray-900 dark:text-white focus:outline-none focus:ring-2 focus:ring-primary-500"></div>
+                    </div>
+                    <div>
+                        <label class="block text-xs font-medium text-gray-700 dark:text-slate-300 mb-1.5">Shop / Supplier</label>
+                        <input type="text" name="shop_name" x-model="form.shop"
+                               class="w-full px-3 py-2.5 text-sm border border-gray-200 dark:border-slate-600 rounded-lg bg-white dark:bg-slate-700 text-gray-900 dark:text-white focus:outline-none focus:ring-2 focus:ring-primary-500">
+                    </div>
+                    <div>
+                        <label class="block text-xs font-medium text-gray-700 dark:text-slate-300 mb-1.5">Color</label>
+                        <input type="text" name="color" x-model="form.color"
+                               class="w-full px-3 py-2.5 text-sm border border-gray-200 dark:border-slate-600 rounded-lg bg-white dark:bg-slate-700 text-gray-900 dark:text-white focus:outline-none focus:ring-2 focus:ring-primary-500">
+                    </div>
+                    <div>
+                        <label class="block text-xs font-medium text-gray-700 dark:text-slate-300 mb-1.5">Payment Method</label>
+                        <select name="payment_method" x-model="form.method"
+                                class="w-full px-3 py-2.5 text-sm border border-gray-200 dark:border-slate-600 rounded-lg bg-white dark:bg-slate-700 text-gray-700 dark:text-slate-200 focus:outline-none focus:ring-2 focus:ring-primary-500">
+                            @foreach(['cash','bkash','nagad','rocket','bank','card','other'] as $m)<option value="{{ $m }}">{{ ucfirst($m) }}</option>@endforeach
+                        </select>
+                    </div>
+                    <div>
+                        <label class="block text-xs font-medium text-gray-700 dark:text-slate-300 mb-1.5">Notes</label>
+                        <input type="text" name="notes" x-model="form.notes"
+                               class="w-full px-3 py-2.5 text-sm border border-gray-200 dark:border-slate-600 rounded-lg bg-white dark:bg-slate-700 text-gray-900 dark:text-white focus:outline-none focus:ring-2 focus:ring-primary-500">
+                    </div>
+                    <div class="col-span-2 flex gap-2 pt-1">
+                        <button type="submit" class="flex-1 bg-primary-600 hover:bg-primary-700 text-white font-medium py-2.5 text-sm rounded-lg transition-colors">Save Changes</button>
+                        <button type="button" @click="show=false" class="px-4 py-2.5 text-sm border border-gray-200 dark:border-slate-600 text-gray-600 dark:text-slate-300 rounded-lg hover:bg-gray-50 dark:hover:bg-slate-700">Cancel</button>
+                    </div>
+                </form>
+            </div>
+        </div>
     </div>
 </div>
+
+@push('scripts')
+<script>
+function materialList() {
+    return {
+        show: false,
+        form: { id: null, item_name: '', category: '', date: '', quantity: '', rate: '', amount: 0, shop: '', color: '', method: 'cash', notes: '' },
+        get actionUrl() { return '{{ url('materials') }}/' + this.form.id; },
+        edit(p) {
+            this.form = {
+                id: p.id, item_name: p.item_name, category: p.category, date: p.date,
+                quantity: p.quantity ?? '', rate: p.rate ?? '', amount: p.amount,
+                shop: p.shop ?? '', color: p.color ?? '', method: p.method || 'cash', notes: p.notes ?? '',
+            };
+            this.show = true;
+        },
+    };
+}
+</script>
+@endpush
 
 @endsection

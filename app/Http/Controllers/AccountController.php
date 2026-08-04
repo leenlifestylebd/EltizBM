@@ -121,6 +121,53 @@ class AccountController extends Controller
 
         return back()->with('success', 'Transfer recorded!');
     }
+    public function updateTransaction(Request $request, Transaction $transaction)
+    {
+        abort_if($transaction->business_id !== auth()->user()->business_id, 403);
+        $bizId = auth()->user()->business_id;
+
+        $request->validate([
+            'title'            => 'required|string|max:255',
+            'amount'           => 'required|numeric|min:0',
+            'transaction_date' => 'required|date',
+            'category_id'      => ['nullable', \Illuminate\Validation\Rule::exists('account_categories', 'id')->where('business_id', $bizId)],
+            'payment_method'   => 'nullable|string|max:50',
+            'notes'            => 'nullable|string|max:500',
+        ]);
+
+        \Illuminate\Support\Facades\DB::transaction(function () use ($request, $transaction, $bizId) {
+            $transaction->update([
+                'title'            => $request->title,
+                'amount'           => $request->amount,
+                'category_id'      => $request->category_id ?: null,
+                'payment_method'   => $request->payment_method ?: $transaction->payment_method,
+                'transaction_date' => $request->transaction_date,
+                'notes'            => $request->notes,
+            ]);
+
+            // Keep linked records in sync so ledgers / materials / transfers don't drift.
+            \App\Models\EmployeePayment::where('business_id', $bizId)
+                ->where('transaction_id', $transaction->id)
+                ->update(['amount' => $request->amount, 'payment_date' => $request->transaction_date]);
+
+            if ($transaction->reference && str_starts_with($transaction->reference, 'MAT-')) {
+                \App\Models\MaterialPurchase::where('business_id', $bizId)
+                    ->where('id', (int) substr($transaction->reference, 4))
+                    ->update(['amount' => $request->amount, 'purchase_date' => $request->transaction_date]);
+            }
+
+            // A transfer has two legs sharing one reference — keep the other leg equal.
+            if ($transaction->reference && str_starts_with($transaction->reference, 'TRANSFER-')) {
+                Transaction::where('business_id', $bizId)
+                    ->where('reference', $transaction->reference)
+                    ->where('id', '!=', $transaction->id)
+                    ->update(['amount' => $request->amount, 'transaction_date' => $request->transaction_date]);
+            }
+        });
+
+        return back()->with('success', 'Transaction updated.');
+    }
+
     public function destroyTransaction(Transaction $transaction)
     {
         abort_unless(auth()->user()->isAdmin(), 403);
