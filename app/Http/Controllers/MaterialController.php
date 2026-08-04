@@ -39,7 +39,14 @@ class MaterialController extends Controller
             'amount' => $g->sum('amount'),
         ])->sortByDesc('amount');
 
+        // Built-in categories + any custom ones this business has already used, so
+        // user-created categories keep showing up in the dropdowns and filter.
         $categories = MaterialPurchase::$categories;
+        MaterialPurchase::where('business_id', $bizId)->distinct()->pluck('category')
+            ->filter()
+            ->each(function ($c) use (&$categories) {
+                if (!isset($categories[$c])) $categories[$c] = ucfirst($c);
+            });
 
         return view('materials.index', compact(
             'purchases', 'totalAmount', 'byCategory',
@@ -70,14 +77,17 @@ class MaterialController extends Controller
 
         $bizId = auth()->user()->business_id;
 
-        DB::transaction(function () use ($request, $amount, $bizId) {
+        // A typed-in "new category" wins over the dropdown selection.
+        $category = trim((string) $request->category_new) ?: $request->category;
+
+        DB::transaction(function () use ($request, $amount, $bizId, $category) {
             // 1. Save the material purchase record
             $purchase = MaterialPurchase::create([
                 'business_id'    => $bizId,
                 'created_by'     => auth()->id(),
                 'purchase_date'  => $request->purchase_date,
                 'item_name'      => $request->item_name,
-                'category'       => $request->category,
+                'category'       => $category,
                 'shop_name'      => $request->shop_name,
                 'color'          => $request->color,
                 'quantity'       => $request->quantity,
@@ -88,7 +98,7 @@ class MaterialController extends Controller
             ]);
 
             // 2. Auto-post to expense transactions so P&L stays accurate
-            $categoryLabel = MaterialPurchase::$categories[$request->category] ?? ucfirst($request->category);
+            $categoryLabel = MaterialPurchase::$categories[$category] ?? ucfirst($category);
 
             // Find or auto-create the matching account category
             $accountCat = AccountCategory::firstOrCreate(
@@ -136,11 +146,14 @@ class MaterialController extends Controller
 
         $bizId = $material->business_id;
 
-        DB::transaction(function () use ($request, $material, $amount, $bizId) {
+        // A typed-in "new category" wins over the dropdown selection.
+        $category = trim((string) $request->category_new) ?: $request->category;
+
+        DB::transaction(function () use ($request, $material, $amount, $bizId, $category) {
             $material->update([
                 'purchase_date'  => $request->purchase_date,
                 'item_name'      => $request->item_name,
-                'category'       => $request->category,
+                'category'       => $category,
                 'shop_name'      => $request->shop_name,
                 'color'          => $request->color,
                 'quantity'       => $request->quantity,
@@ -151,7 +164,7 @@ class MaterialController extends Controller
             ]);
 
             // Keep the linked expense transaction in sync (amount, date, category, title).
-            $categoryLabel = MaterialPurchase::$categories[$request->category] ?? ucfirst($request->category);
+            $categoryLabel = MaterialPurchase::$categories[$category] ?? ucfirst($category);
             $accountCat = AccountCategory::firstOrCreate(
                 ['business_id' => $bizId, 'name' => $categoryLabel, 'type' => 'expense'],
                 ['business_id' => $bizId, 'name' => $categoryLabel, 'type' => 'expense']
