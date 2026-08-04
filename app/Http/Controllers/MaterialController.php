@@ -113,6 +113,66 @@ class MaterialController extends Controller
         return back()->with('success', "Purchase added & expense recorded: {$request->item_name} — ৳" . number_format($amount));
     }
 
+    public function update(Request $request, MaterialPurchase $material)
+    {
+        abort_if($material->business_id !== auth()->user()->business_id, 403);
+
+        $request->validate([
+            'item_name'     => 'required|string|max:255',
+            'purchase_date' => 'required|date',
+            'category'      => 'required|string',
+            'amount'        => 'required_without_all:quantity,rate|nullable|numeric|min:0',
+            'quantity'      => 'nullable|numeric|min:0',
+            'rate'          => 'nullable|numeric|min:0',
+        ]);
+
+        $amount = $request->amount;
+        if ($request->filled('quantity') && $request->filled('rate')) {
+            $amount = (float) $request->quantity * (float) $request->rate;
+        }
+        if (!$amount || $amount <= 0) {
+            return back()->withErrors(['amount' => 'Please enter an amount or quantity + rate.'])->withInput();
+        }
+
+        $bizId = $material->business_id;
+
+        DB::transaction(function () use ($request, $material, $amount, $bizId) {
+            $material->update([
+                'purchase_date'  => $request->purchase_date,
+                'item_name'      => $request->item_name,
+                'category'       => $request->category,
+                'shop_name'      => $request->shop_name,
+                'color'          => $request->color,
+                'quantity'       => $request->quantity,
+                'rate'           => $request->rate,
+                'amount'         => $amount,
+                'payment_method' => $request->payment_method ?? $material->payment_method,
+                'notes'          => $request->notes,
+            ]);
+
+            // Keep the linked expense transaction in sync (amount, date, category, title).
+            $categoryLabel = MaterialPurchase::$categories[$request->category] ?? ucfirst($request->category);
+            $accountCat = AccountCategory::firstOrCreate(
+                ['business_id' => $bizId, 'name' => $categoryLabel, 'type' => 'expense'],
+                ['business_id' => $bizId, 'name' => $categoryLabel, 'type' => 'expense']
+            );
+
+            Transaction::where('business_id', $bizId)
+                ->where('reference', 'MAT-' . $material->id)
+                ->where('type', 'expense')
+                ->update([
+                    'category_id'      => $accountCat->id,
+                    'title'            => $request->item_name . ($request->shop_name ? ' — ' . $request->shop_name : ''),
+                    'amount'           => $amount,
+                    'payment_method'   => $request->payment_method ?? 'cash',
+                    'transaction_date' => $request->purchase_date,
+                    'notes'            => $request->notes,
+                ]);
+        });
+
+        return back()->with('success', "Purchase updated: {$request->item_name} — ৳" . number_format($amount));
+    }
+
     public function destroy(MaterialPurchase $material)
     {
         abort_if($material->business_id !== auth()->user()->business_id, 403);
