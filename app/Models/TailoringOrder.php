@@ -47,7 +47,18 @@ class TailoringOrder extends Model
     {
         static::creating(function (TailoringOrder $o) {
             if (empty($o->order_number)) {
-                $o->order_number = 'TLR-' . strtoupper(Str::random(7));
+                $base = 'TLR-' . now()->format('ym') . '-';   // e.g. TLR-2608-
+                $last = self::withTrashed()
+                    ->where('business_id', $o->business_id)
+                    ->where('order_number', 'like', $base . '%')
+                    ->orderByRaw('LENGTH(order_number) DESC, order_number DESC')
+                    ->value('order_number');
+                $seq = $last ? ((int) substr($last, strlen($base))) + 1 : 1;
+                do {
+                    $number = $base . str_pad((string) $seq, 3, '0', STR_PAD_LEFT);
+                    $seq++;
+                } while (self::withTrashed()->where('business_id', $o->business_id)->where('order_number', $number)->exists());
+                $o->order_number = $number;
             }
         });
     }
