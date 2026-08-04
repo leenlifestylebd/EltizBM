@@ -582,7 +582,8 @@ class OrderController extends Controller
 
         $pdf = Pdf::loadView('orders.picking-list-pdf', compact('orders', 'summary', 'totalItems', 'business'))
             ->setPaper('a4', 'portrait')
-            ->setOption('defaultFont', 'sans-serif');
+            ->setOption('defaultFont', 'sans-serif')
+            ->setOption('isRemoteEnabled', true); // allow @font-face to load the local Bengali TTF
 
         return $pdf->stream('picking-list-' . now()->format('Ymd-His') . '.pdf');
     }

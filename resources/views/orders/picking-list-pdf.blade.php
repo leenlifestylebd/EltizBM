@@ -4,8 +4,16 @@
 <meta charset="utf-8">
 <title>Picking List</title>
 <style>
+    /* Bengali-capable font so customer names / addresses render (DejaVu lacks
+       Bengali glyphs and shows tofu boxes otherwise). */
+    @font-face {
+        font-family: 'Hind Siliguri';
+        font-weight: normal;
+        font-style: normal;
+        src: url("{{ public_path('fonts/HindSiliguri-Regular.ttf') }}") format('truetype');
+    }
     * { margin: 0; padding: 0; box-sizing: border-box; }
-    body { font-family: 'DejaVu Sans', sans-serif; color: #111; font-size: 11px; }
+    body { font-family: 'Hind Siliguri', 'DejaVu Sans', sans-serif; color: #111; font-size: 11px; }
     .wrap { padding: 18px 22px; }
 
     .head { border-bottom: 2px solid #111; padding-bottom: 8px; margin-bottom: 12px; }
