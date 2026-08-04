@@ -99,15 +99,9 @@
     @foreach($orders as $order)
     <div class="order-card">
         <div class="order-head">
-            <span class="cust">
-                <b>{{ $order->customer_name ?: 'Walk-in' }}</b><br>
-                <span class="muted">{{ $order->customer_phone ?: '' }}</span>
-            </span>
+            <span class="cust"><b>{{ $order->customer_name ?: 'Walk-in' }}</b></span>
             <span class="onum">#{{ $order->order_number }}</span>
-            <span class="muted">&nbsp; {{ ucfirst($order->source) }} · {{ $order->created_at->format('d M') }}</span>
-            @if($order->shipping_address)
-                <div class="muted" style="margin-top:3px; clear:both;">📍 {{ $order->shipping_address }}{{ $order->shipping_area ? ', '.$order->shipping_area : '' }}{{ $order->shipping_district ? ', '.$order->shipping_district : '' }}</div>
-            @endif
+            <span class="muted">&nbsp;· {{ $order->created_at->format('d M Y') }}</span>
         </div>
         <table>
             <thead>
@@ -131,9 +125,6 @@
                 @endforelse
             </tbody>
         </table>
-        @if($order->notes)
-            <div class="muted" style="margin-top:3px;">📝 {{ $order->notes }}</div>
-        @endif
     </div>
     @endforeach
 
