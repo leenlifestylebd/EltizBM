@@ -60,7 +60,6 @@
             <tr>
                 <th style="width:26px;">✓</th>
                 <th>Product</th>
-                <th>Variant</th>
                 <th class="sku">SKU</th>
                 <th class="qty">Qty</th>
             </tr>
@@ -70,7 +69,6 @@
             <tr>
                 <td style="text-align:center;"><span class="box-checkbox"></span></td>
                 <td>{{ $row['name'] }}</td>
-                <td>{{ $row['variant'] ?: '—' }}</td>
                 <td class="sku">{{ $row['sku'] ?: '—' }}</td>
                 <td class="qty">{{ $row['qty'] }}</td>
             </tr>
@@ -100,7 +98,6 @@
                 <tr>
                     <th style="width:26px;">✓</th>
                     <th>Product</th>
-                    <th>Variant</th>
                     <th class="sku">SKU</th>
                     <th class="qty">Qty</th>
                 </tr>
@@ -109,13 +106,12 @@
                 @forelse($order->items as $it)
                 <tr>
                     <td style="text-align:center;"><span class="box-checkbox"></span></td>
-                    <td>{{ $it->product_name ?: 'Item' }}</td>
-                    <td>{{ $it->variant?->name ?: '—' }}</td>
-                    <td class="sku">{{ $it->sku ?: ($it->variant?->sku ?: '—') }}</td>
+                    <td>{{ $it->product_name ?: ($it->product?->name ?: 'Item') }}{{ $it->variant?->name ? ' — '.$it->variant->name : '' }}</td>
+                    <td class="sku">{{ $it->sku ?: ($it->variant?->sku ?: ($it->product?->sku ?: '—')) }}</td>
                     <td class="qty">{{ (int) $it->quantity }}</td>
                 </tr>
                 @empty
-                <tr><td colspan="5" class="muted">No line items.</td></tr>
+                <tr><td colspan="4" class="muted">No line items.</td></tr>
                 @endforelse
             </tbody>
         </table>

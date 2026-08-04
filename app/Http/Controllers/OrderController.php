@@ -545,7 +545,7 @@ class OrderController extends Controller
 
         $orders = Order::where('business_id', $bizId)
             ->whereIn('id', $ids)
-            ->with(['items.variant'])
+            ->with(['items.product', 'items.variant'])
             ->orderBy('created_at')
             ->get();
 
@@ -555,19 +555,21 @@ class OrderController extends Controller
 
         // Consolidated pick summary: product (+variant) → total qty across all
         // selected orders, so stock can be pulled in one pass.
+        // Order items don't store their own sku/variant, so fall back to the
+        // linked product/variant for the SKU.
         $summary = [];
         foreach ($orders as $o) {
             foreach ($o->items as $it) {
                 if (!$it->product_id && !$it->variant_id) continue; // skip free-text lines
-                $variant = $it->variant?->name;
-                $sku     = $it->sku ?: $it->variant?->sku;
-                $key     = mb_strtolower(trim(($it->product_name ?? 'Item') . '|' . $variant . '|' . $sku));
+                $sku  = $it->sku ?: ($it->variant?->sku ?: $it->product?->sku);
+                $name = $it->product_name ?: ($it->product?->name ?: 'Item');
+                if ($it->variant?->name) $name .= ' — ' . $it->variant->name;
+                $key  = mb_strtolower(trim($name . '|' . $sku));
                 if (!isset($summary[$key])) {
                     $summary[$key] = [
-                        'name'    => $it->product_name ?: 'Item',
-                        'variant' => $variant,
-                        'sku'     => $sku,
-                        'qty'     => 0,
+                        'name' => $name,
+                        'sku'  => $sku,
+                        'qty'  => 0,
                     ];
                 }
                 $summary[$key]['qty'] += (int) $it->quantity;
