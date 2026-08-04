@@ -101,6 +101,7 @@
         <div class="order-head">
             <span class="cust"><b>{{ $order->customer_name ?: 'Walk-in' }}</b></span>
             <span class="onum">#{{ $order->order_number }}</span>
+            <span class="muted">&nbsp;· {{ $order->created_at->format('d M Y') }}</span>
         </div>
         <table>
             <thead>
