@@ -258,19 +258,19 @@ class EmployeeController extends Controller
             'status'       => $request->status,
         ]);
 
-        // Record a salary revision (effective month) instead of rewriting history.
-        // Past months keep the rate that was in effect then.
+        // Record a salary revision at the chosen effective month. The month is
+        // authoritative — upsert it so a back-dated effective-from is honoured even
+        // when the amount is unchanged. updateOrCreate keeps one row per month, so
+        // re-saving the same month is a harmless no-op. Earlier months (different
+        // effective_from rows) keep their own rate.
         if ($newSalary > 0) {
             $eff = $request->salary_effective_from
                 ? Carbon::parse($request->salary_effective_from)->startOfMonth()
                 : now()->startOfMonth();
-            $effectiveNow = $employee->salaryForMonth($eff);
-            if ($employee->salaries()->count() === 0 || abs($newSalary - $effectiveNow) > 0.001) {
-                EmployeeSalary::updateOrCreate(
-                    ['employee_id' => $employee->id, 'effective_from' => $eff->toDateString()],
-                    ['business_id' => $employee->business_id, 'amount' => $newSalary, 'created_by' => auth()->id()]
-                );
-            }
+            EmployeeSalary::updateOrCreate(
+                ['employee_id' => $employee->id, 'effective_from' => $eff->toDateString()],
+                ['business_id' => $employee->business_id, 'amount' => $newSalary, 'created_by' => auth()->id()]
+            );
         }
 
         return redirect()->route('employees.show', $employee)->with('success', 'Employee updated!');
