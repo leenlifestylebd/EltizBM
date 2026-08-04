@@ -192,8 +192,9 @@ class ReportQueryService
             $end   = Carbon::create($year, $m, 1)->endOfMonth();
 
             $rev    = Order::where('business_id', $bizId)->whereIn('status', ['completed', 'delivered'])->whereBetween('created_at', [$start, $end])->sum('total');
+            // Expense already includes employee payments (EMPPAY-*); do NOT also add
+            // ProductionEntry earnings or labour is double-counted (matches P&L).
             $exp    = Transaction::where('business_id', $bizId)->where('type', 'expense')->whereBetween('transaction_date', [$start, $end])->whereNot(fn($q) => $q->where('reference', 'like', 'TRANSFER-%'))->sum('amount');
-            $wages  = ProductionEntry::where('business_id', $bizId)->whereBetween('entry_date', [$start, $end])->sum('amount');
             // Exclude order-linked income (already in $rev) and transfers to avoid double counting.
             $inc    = Transaction::where('business_id', $bizId)->where('type', 'income')->whereBetween('transaction_date', [$start, $end])->whereNull('order_id')->whereNot(fn($q) => $q->where('reference', 'like', 'TRANSFER-%'))->sum('amount');
             $orders = Order::where('business_id', $bizId)->whereBetween('created_at', [$start, $end])->count();
@@ -201,9 +202,9 @@ class ReportQueryService
             $months[] = [
                 'month'   => $start->format('F'),
                 'revenue' => $rev,
-                'expense' => $exp + $wages,
+                'expense' => $exp,
                 'income'  => $inc,
-                'profit'  => $rev + $inc - $exp - $wages,
+                'profit'  => $rev + $inc - $exp,
                 'orders'  => $orders,
             ];
         }
