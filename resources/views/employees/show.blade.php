@@ -53,6 +53,14 @@
         </div>
     </div>
 
+    {{-- Month selector — drives every "this month" figure below --}}
+    <form method="GET" class="flex items-center gap-2 mb-4 flex-wrap">
+        <label class="text-xs text-gray-500 dark:text-slate-400 shrink-0">Month:</label>
+        <input type="month" name="month" value="{{ $month }}" onchange="this.form.submit()"
+               class="px-3 py-2 text-xs border border-gray-200 dark:border-slate-600 rounded-lg bg-white dark:bg-slate-700 text-gray-900 dark:text-white focus:outline-none focus:ring-2 focus:ring-primary-500">
+        <span class="text-xs text-gray-400 dark:text-slate-500">Showing <b class="text-gray-600 dark:text-slate-300">{{ $monthLabel }}</b> — figures below reflect this month</span>
+    </form>
+
     {{-- Stats Cards --}}
     <div class="grid grid-cols-2 sm:grid-cols-4 gap-3 mb-4">
         @if((float)$employee->salary > 0)
