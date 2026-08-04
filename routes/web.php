@@ -93,6 +93,7 @@ Route::middleware(['auth', 'business'])->group(function () {
         Route::post('/manual-exchange', [OrderController::class, 'manualExchangeStore'])->name('manual-exchange.store');
         Route::post('/',           [OrderController::class, 'store'])->name('store');
         Route::get('/export',      [OrderController::class, 'export'])->name('export');
+        Route::get('/picking-list',[OrderController::class, 'pickingList'])->name('picking-list');
         Route::get('/{order}',     [OrderController::class, 'show'])->name('show');
         Route::get('/{order}/edit',[OrderController::class, 'edit'])->name('edit');
         Route::put('/{order}',     [OrderController::class, 'update'])->name('update');

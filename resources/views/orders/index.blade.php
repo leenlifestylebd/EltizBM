@@ -92,7 +92,21 @@
     </form>
 </div>
 
-{{-- Orders Table --}}
+{{-- Orders Table + bulk picking-list selection --}}
+<div x-data="pickingSelect({{ \Illuminate\Support\Js::from($orders->pluck('id')->map(fn($i) => (string) $i)->values()) }})">
+
+    {{-- Bulk action bar (appears when orders are ticked) --}}
+    <div x-show="selected.length" x-cloak
+         class="sticky top-2 z-30 mb-3 flex items-center gap-3 px-4 py-2.5 bg-primary-600 text-white rounded-xl shadow-lg">
+        <span class="text-sm font-semibold"><span x-text="selected.length"></span> order(s) selected</span>
+        <a :href="pdfUrl()" target="_blank"
+           class="ml-auto inline-flex items-center gap-1.5 px-3 py-1.5 bg-white text-primary-700 text-sm font-semibold rounded-lg hover:bg-primary-50 active:scale-95 transition-all">
+            📄 Picking List PDF
+        </a>
+        <button type="button" @click="selected = []"
+           class="px-3 py-1.5 text-sm font-medium bg-primary-500/40 rounded-lg hover:bg-primary-500/60">Clear</button>
+    </div>
+
 <div class="bg-white dark:bg-slate-800 rounded-xl border border-gray-100 dark:border-slate-700 overflow-hidden">
 
     {{-- Desktop Table --}}
@@ -100,6 +114,7 @@
         <table class="w-full text-sm">
             <thead>
                 <tr class="bg-gray-50 dark:bg-slate-700/50 border-b border-gray-100 dark:border-slate-700">
+                    <th class="px-4 py-3 w-8 text-center"><input type="checkbox" @change="toggleAll($event)" :checked="allChecked" class="w-4 h-4 rounded border-gray-300 cursor-pointer align-middle" title="Select all on this page"></th>
                     <th class="text-left px-4 py-3 font-medium text-gray-500 dark:text-slate-400 text-xs">Order</th>
                     <th class="text-left px-4 py-3 font-medium text-gray-500 dark:text-slate-400 text-xs">Customer</th>
                     <th class="text-left px-4 py-3 font-medium text-gray-500 dark:text-slate-400 text-xs">Source</th>
@@ -112,7 +127,10 @@
             </thead>
             <tbody class="divide-y divide-gray-50 dark:divide-slate-700">
                 @forelse($orders as $order)
-                <tr class="hover:bg-gray-50 dark:hover:bg-slate-700/30 transition-colors group">
+                <tr class="hover:bg-gray-50 dark:hover:bg-slate-700/30 transition-colors group" :class="selected.includes('{{ $order->id }}') ? 'bg-primary-50/60 dark:bg-primary-900/10' : ''">
+                    <td class="px-4 py-3 text-center">
+                        <input type="checkbox" value="{{ $order->id }}" x-model="selected" class="w-4 h-4 rounded border-gray-300 cursor-pointer align-middle">
+                    </td>
                     <td class="px-4 py-3">
                         <a href="{{ route('orders.show', $order) }}"
                            class="font-semibold text-primary-600 dark:text-primary-400 hover:underline text-xs">
@@ -229,7 +247,7 @@
                 </tr>
                 @empty
                 <tr>
-                    <td colspan="8" class="px-4 py-16 text-center">
+                    <td colspan="9" class="px-4 py-16 text-center">
                         <svg class="w-12 h-12 text-gray-200 dark:text-slate-600 mx-auto mb-3" fill="none" stroke="currentColor" viewBox="0 0 24 24">
                             <path stroke-linecap="round" stroke-linejoin="round" stroke-width="1.5" d="M9 5H7a2 2 0 00-2 2v12a2 2 0 002 2h10a2 2 0 002-2V7a2 2 0 00-2-2h-2M9 5a2 2 0 002 2h2a2 2 0 002-2M9 5a2 2 0 012-2h2a2 2 0 012 2"/>
                         </svg>
@@ -247,7 +265,9 @@
         @forelse($orders as $order)
         <div class="p-4">
             <div class="flex items-start justify-between mb-2">
-                <div>
+                <div class="flex items-start gap-2">
+                    <input type="checkbox" value="{{ $order->id }}" x-model="selected" class="mt-1 w-4 h-4 rounded border-gray-300 cursor-pointer">
+                    <div>
                     <a href="{{ route('orders.show', $order) }}"
                        class="font-semibold text-primary-600 dark:text-primary-400 text-sm">
                         #{{ $order->order_number }}
@@ -256,6 +276,7 @@
                     @if($order->customer_phone)
                         <p class="text-xs text-gray-400 dark:text-slate-500">{{ $order->customer_phone }}</p>
                     @endif
+                    </div>
                 </div>
                 <div class="text-right">
                     <p class="font-bold text-gray-900 dark:text-white">৳{{ number_format($order->total) }}</p>
@@ -322,5 +343,26 @@
     </div>
     @endif
 </div>
+</div>{{-- /x-data pickingSelect --}}
+
+@push('scripts')
+<script>
+function pickingSelect(pageIds) {
+    return {
+        selected: [],
+        pageIds: pageIds || [],
+        get allChecked() {
+            return this.pageIds.length && this.pageIds.every(id => this.selected.includes(id));
+        },
+        toggleAll(e) {
+            this.selected = e.target.checked ? [...this.pageIds] : [];
+        },
+        pdfUrl() {
+            return "{{ route('orders.picking-list') }}?ids=" + this.selected.join(',');
+        },
+    };
+}
+</script>
+@endpush
 
 @endsection

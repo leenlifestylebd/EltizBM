@@ -526,6 +526,65 @@ class OrderController extends Controller
         return $pdf->download("Invoice-{$order->order_number}.pdf");
     }
 
+    // =============================================
+    // PICKING LIST  (bulk PDF for selected orders)
+    // =============================================
+    public function pickingList(Request $request)
+    {
+        $bizId = auth()->user()->business_id;
+
+        $ids = collect(explode(',', (string) $request->query('ids')))
+            ->map(fn ($i) => (int) trim($i))
+            ->filter()
+            ->unique()
+            ->values();
+
+        if ($ids->isEmpty()) {
+            return back()->with('error', 'No orders selected for the picking list.');
+        }
+
+        $orders = Order::where('business_id', $bizId)
+            ->whereIn('id', $ids)
+            ->with(['items.variant'])
+            ->orderBy('created_at')
+            ->get();
+
+        if ($orders->isEmpty()) {
+            return back()->with('error', 'No matching orders found.');
+        }
+
+        // Consolidated pick summary: product (+variant) → total qty across all
+        // selected orders, so stock can be pulled in one pass.
+        $summary = [];
+        foreach ($orders as $o) {
+            foreach ($o->items as $it) {
+                if (!$it->product_id && !$it->variant_id) continue; // skip free-text lines
+                $variant = $it->variant?->name;
+                $sku     = $it->sku ?: $it->variant?->sku;
+                $key     = mb_strtolower(trim(($it->product_name ?? 'Item') . '|' . $variant . '|' . $sku));
+                if (!isset($summary[$key])) {
+                    $summary[$key] = [
+                        'name'    => $it->product_name ?: 'Item',
+                        'variant' => $variant,
+                        'sku'     => $sku,
+                        'qty'     => 0,
+                    ];
+                }
+                $summary[$key]['qty'] += (int) $it->quantity;
+            }
+        }
+        uasort($summary, fn ($a, $b) => strcmp($a['name'], $b['name']));
+
+        $totalItems = collect($summary)->sum('qty');
+        $business   = auth()->user()->business;
+
+        $pdf = Pdf::loadView('orders.picking-list-pdf', compact('orders', 'summary', 'totalItems', 'business'))
+            ->setPaper('a4', 'portrait')
+            ->setOption('defaultFont', 'sans-serif');
+
+        return $pdf->stream('picking-list-' . now()->format('Ymd-His') . '.pdf');
+    }
+
     public function receipt(Order $order)
     {
         $this->authorize($order);
