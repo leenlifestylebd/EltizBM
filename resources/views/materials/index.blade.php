@@ -58,7 +58,7 @@ $catColors = [
     {{-- LEFT: Add Form --}}
     <div class="bg-white dark:bg-slate-800 rounded-xl border border-gray-100 dark:border-slate-700 p-4 h-fit">
         <h3 class="text-sm font-semibold text-gray-900 dark:text-white mb-4">Add Purchase</h3>
-        <form method="POST" action="{{ route('materials.store') }}" class="space-y-3" x-data="{ hasQtyRate: false }">
+        <form method="POST" action="{{ route('materials.store') }}" class="space-y-3" x-data="{ hasQtyRate: false, newCat: false }">
             @csrf
             <div>
                 <label class="block text-xs font-medium text-gray-700 dark:text-slate-300 mb-1.5">Item Name <span class="text-red-500">*</span></label>
@@ -67,13 +67,22 @@ $catColors = [
                        placeholder="e.g. Fabric, Zipper, Meta Ads...">
             </div>
             <div>
-                <label class="block text-xs font-medium text-gray-700 dark:text-slate-300 mb-1.5">Category <span class="text-red-500">*</span></label>
-                <select name="category" required
+                <div class="flex items-center justify-between mb-1.5">
+                    <label class="block text-xs font-medium text-gray-700 dark:text-slate-300">Category <span class="text-red-500">*</span></label>
+                    <button type="button" @click="newCat = !newCat"
+                            class="text-xs text-primary-600 dark:text-primary-400 hover:underline font-medium">
+                        <span x-text="newCat ? '− Pick existing' : '+ New category'"></span>
+                    </button>
+                </div>
+                <select name="category" x-show="!newCat" :required="!newCat"
                         class="w-full px-3 py-2.5 text-sm border border-gray-200 dark:border-slate-600 rounded-lg bg-white dark:bg-slate-700 text-gray-700 dark:text-slate-200 focus:outline-none focus:ring-2 focus:ring-primary-500">
                     @foreach($categories as $key => $label)
                     <option value="{{ $key }}" {{ old('category') === $key ? 'selected' : '' }}>{{ $label }}</option>
                     @endforeach
                 </select>
+                <input type="text" name="category_new" x-show="newCat" x-cloak :required="newCat" value="{{ old('category_new') }}"
+                       placeholder="Type new category name..."
+                       class="w-full px-3 py-2.5 text-sm border border-primary-300 dark:border-primary-600 rounded-lg bg-white dark:bg-slate-700 text-gray-900 dark:text-white focus:outline-none focus:ring-2 focus:ring-primary-500">
             </div>
             <div>
                 <label class="block text-xs font-medium text-gray-700 dark:text-slate-300 mb-1.5">Date <span class="text-red-500">*</span></label>
@@ -291,11 +300,20 @@ $catColors = [
                                class="w-full px-3 py-2.5 text-sm border border-gray-200 dark:border-slate-600 rounded-lg bg-white dark:bg-slate-700 text-gray-900 dark:text-white focus:outline-none focus:ring-2 focus:ring-primary-500">
                     </div>
                     <div>
-                        <label class="block text-xs font-medium text-gray-700 dark:text-slate-300 mb-1.5">Category</label>
-                        <select name="category" x-model="form.category" required
+                        <div class="flex items-center justify-between mb-1.5">
+                            <label class="block text-xs font-medium text-gray-700 dark:text-slate-300">Category</label>
+                            <button type="button" @click="form.newCat = !form.newCat"
+                                    class="text-xs text-primary-600 dark:text-primary-400 hover:underline font-medium">
+                                <span x-text="form.newCat ? '− Pick existing' : '+ New'"></span>
+                            </button>
+                        </div>
+                        <select name="category" x-model="form.category" x-show="!form.newCat" :required="!form.newCat"
                                 class="w-full px-3 py-2.5 text-sm border border-gray-200 dark:border-slate-600 rounded-lg bg-white dark:bg-slate-700 text-gray-700 dark:text-slate-200 focus:outline-none focus:ring-2 focus:ring-primary-500">
                             @foreach($categories as $key => $label)<option value="{{ $key }}">{{ $label }}</option>@endforeach
                         </select>
+                        <input type="text" name="category_new" x-model="form.category_new" x-show="form.newCat" x-cloak :required="form.newCat"
+                               placeholder="Type new category name..."
+                               class="w-full px-3 py-2.5 text-sm border border-primary-300 dark:border-primary-600 rounded-lg bg-white dark:bg-slate-700 text-gray-900 dark:text-white focus:outline-none focus:ring-2 focus:ring-primary-500">
                     </div>
                     <div>
                         <label class="block text-xs font-medium text-gray-700 dark:text-slate-300 mb-1.5">Date</label>
@@ -355,11 +373,11 @@ $catColors = [
 function materialList() {
     return {
         show: false,
-        form: { id: null, item_name: '', category: '', date: '', quantity: '', rate: '', amount: 0, shop: '', color: '', method: 'cash', notes: '' },
+        form: { id: null, item_name: '', category: '', category_new: '', newCat: false, date: '', quantity: '', rate: '', amount: 0, shop: '', color: '', method: 'cash', notes: '' },
         get actionUrl() { return '{{ url('materials') }}/' + this.form.id; },
         edit(p) {
             this.form = {
-                id: p.id, item_name: p.item_name, category: p.category, date: p.date,
+                id: p.id, item_name: p.item_name, category: p.category, category_new: '', newCat: false, date: p.date,
                 quantity: p.quantity ?? '', rate: p.rate ?? '', amount: p.amount,
                 shop: p.shop ?? '', color: p.color ?? '', method: p.method || 'cash', notes: p.notes ?? '',
             };
