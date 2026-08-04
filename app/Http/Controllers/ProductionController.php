@@ -13,6 +13,7 @@ use App\Models\EmployeePayment;
 use App\Models\Attendance;
 use App\Models\ProductionTask;
 use App\Models\Transaction;
+use App\Models\AccountCategory;
 use Barryvdh\DomPDF\Facade\Pdf;
 use Illuminate\Http\Request;
 use Carbon\Carbon;
@@ -280,8 +281,15 @@ class ProductionController extends Controller
         // retired — those were converted to advances.)
         $transactionId = null;
         if (in_array($request->type, ['advance', 'salary', 'bonus'])) {
+            // Categorise employee payments under "Salary & Wages" so they don't fall
+            // under "Uncategorized" in the expense reports.
+            $payCat = AccountCategory::firstOrCreate(
+                ['business_id' => $bizId, 'name' => 'Salary & Wages', 'type' => 'expense'],
+                ['business_id' => $bizId, 'name' => 'Salary & Wages', 'type' => 'expense']
+            );
             $transactionId = Transaction::create([
                 'business_id'      => $bizId,
+                'category_id'      => $payCat->id,
                 'created_by'       => auth()->id(),
                 'type'             => 'expense',
                 'title'            => ucfirst($request->type) . ' payment to ' . $employee->name,
