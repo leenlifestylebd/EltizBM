@@ -145,12 +145,15 @@ class EmployeeController extends Controller
         return redirect()->route('employees.index')->with('success', 'Employee added!');
     }
 
-    public function show(Employee $employee)
+    public function show(Request $request, Employee $employee)
     {
         $this->authorize($employee);
 
-        $monthStart = now()->startOfMonth();
-        $monthEnd   = now()->endOfMonth();
+        // Month-aware: honour the selected month (defaults to the current one) so
+        // past months can be reviewed instead of always showing the running month.
+        $month      = $request->month ?? now()->format('Y-m');
+        $monthStart = Carbon::parse($month . '-01')->startOfMonth();
+        $monthEnd   = Carbon::parse($month . '-01')->endOfMonth();
 
         $monthProduction = ProductionEntry::where('employee_id', $employee->id)
             ->whereBetween('entry_date', [$monthStart, $monthEnd])->sum('quantity');
@@ -204,17 +207,19 @@ class EmployeeController extends Controller
             $last7Days->push(['label' => $date->format('D'), 'qty' => $qty, 'date' => $date->format('Y-m-d')]);
         }
 
-        $calendarStart = now()->startOfMonth()->dayOfWeek;
-        $daysInMonth   = now()->daysInMonth;
+        $calendarStart = $monthStart->copy()->dayOfWeek;
+        $daysInMonth   = $monthStart->copy()->daysInMonth;
         $attendanceMap = Attendance::where('employee_id', $employee->id)
-            ->whereYear('attendance_date', now()->year)
-            ->whereMonth('attendance_date', now()->month)
+            ->whereYear('attendance_date', $monthStart->year)
+            ->whereMonth('attendance_date', $monthStart->month)
             ->get()->keyBy(fn($a) => $a->attendance_date->format('Y-m-d'));
+
+        $monthLabel = $monthStart->format('F Y');
 
         return view('employees.show', compact(
             'employee', 'monthProduction', 'monthEarning', 'monthAdvance',
             'monthAttendance', 'monthTotalPaid', 'monthDeductions', 'monthNetPayable',
-            'monthBase', 'isHybrid',
+            'monthBase', 'isHybrid', 'month', 'monthLabel',
             'recentPayments', 'recentEntries', 'productionEntries', 'products',
             'attendanceRecords', 'last7Days', 'calendarStart', 'daysInMonth', 'attendanceMap'
         ));
