@@ -1,3 +1,9 @@
+@php
+    // Embed the Bengali font as a data URI so DomPDF doesn't depend on file-path
+    // resolution / chroot. Falls back to DejaVu (no crash) if the file is missing.
+    $fontFile = public_path('fonts/HindSiliguri-Regular.ttf');
+    $fontB64  = is_file($fontFile) ? base64_encode(file_get_contents($fontFile)) : '';
+@endphp
 <!DOCTYPE html>
 <html>
 <head>
@@ -6,12 +12,14 @@
 <style>
     /* Bengali-capable font so customer names / addresses render (DejaVu lacks
        Bengali glyphs and shows tofu boxes otherwise). */
+@if($fontB64)
     @font-face {
         font-family: 'Hind Siliguri';
         font-weight: normal;
         font-style: normal;
-        src: url("{{ public_path('fonts/HindSiliguri-Regular.ttf') }}") format('truetype');
+        src: url(data:font/truetype;charset=utf-8;base64,{{ $fontB64 }}) format('truetype');
     }
+@endif
     * { margin: 0; padding: 0; box-sizing: border-box; }
     body { font-family: 'Hind Siliguri', 'DejaVu Sans', sans-serif; color: #111; font-size: 11px; }
     .wrap { padding: 18px 22px; }
