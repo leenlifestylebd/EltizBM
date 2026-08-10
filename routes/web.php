@@ -33,16 +33,16 @@ use App\Http\Controllers\TailoringController;
 // =============================================
 Route::middleware('guest')->group(function () {
     Route::get('/login',    [AuthController::class, 'showLogin'])->name('login');
-    Route::post('/login',   [AuthController::class, 'login']);
+    Route::post('/login',   [AuthController::class, 'login'])->middleware('throttle:5,1');
     // Worker login (phone + PIN) — low-hassle entry for factory workers
     Route::get('/worker-login',  [AuthController::class, 'showWorkerLogin'])->name('worker.login');
-    Route::post('/worker-login', [AuthController::class, 'workerLogin']);
+    Route::post('/worker-login', [AuthController::class, 'workerLogin'])->middleware('throttle:10,1');
     Route::get('/register', [AuthController::class, 'showRegister'])->name('register');
-    Route::post('/register',[AuthController::class, 'register']);
+    Route::post('/register',[AuthController::class, 'register'])->middleware('throttle:5,10');
     Route::get('/forgot-password', [AuthController::class, 'showForgotPassword'])->name('password.request');
-    Route::post('/forgot-password',[AuthController::class, 'sendResetLink'])->name('password.email');
+    Route::post('/forgot-password',[AuthController::class, 'sendResetLink'])->name('password.email')->middleware('throttle:5,10');
     Route::get('/reset-password/{token}', [AuthController::class, 'showResetPassword'])->name('password.reset');
-    Route::post('/reset-password',        [AuthController::class, 'resetPassword'])->name('password.update');
+    Route::post('/reset-password',        [AuthController::class, 'resetPassword'])->name('password.update')->middleware('throttle:5,10');
 });
 
 // ── Google OAuth (no guest middleware — callback must be open) ──
@@ -58,7 +58,7 @@ Route::post('/logout', [AuthController::class, 'logout'])->name('logout')->middl
 // SUPER ADMIN GATE (secret URL login)
 // =============================================
 Route::get('/sa/{secret}',  [\App\Http\Controllers\SuperAdminGateController::class, 'show'])->name('super-admin.gate');
-Route::post('/sa/{secret}', [\App\Http\Controllers\SuperAdminGateController::class, 'login'])->name('super-admin.gate.login');
+Route::post('/sa/{secret}', [\App\Http\Controllers\SuperAdminGateController::class, 'login'])->name('super-admin.gate.login')->middleware('throttle:5,1');
 
 // =============================================
 // SUPER ADMIN ROUTES (selected Gmail only)
