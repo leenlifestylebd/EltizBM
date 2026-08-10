@@ -76,9 +76,9 @@
             <p class="text-xs text-gray-400 mt-0.5">{{ number_format($totalQty) }} পিস</p>
         </div>
         <div class="bg-gradient-to-br from-primary-50 to-primary-50 dark:from-primary-900/20 dark:to-primary-900/20 rounded-xl p-3.5 border border-primary-100 dark:border-primary-900/40">
-            <p class="text-xs text-gray-500 dark:text-slate-400 mb-1">অগ্রিম নেওয়া</p>
+            <p class="text-xs text-gray-500 dark:text-slate-400 mb-1">মোট পেমেন্ট</p>
             <p class="text-xl font-bold text-red-500 dark:text-red-400">৳{{ number_format($totalAdvance) }}</p>
-            <p class="text-xs text-gray-400 mt-0.5">কাটা যাবে</p>
+            <p class="text-xs text-gray-400 mt-0.5">বেতন + অগ্রিম</p>
         </div>
         <div class="col-span-2 bg-gradient-to-br from-purple-50 to-violet-50 dark:from-purple-900/20 dark:to-violet-900/20 rounded-xl p-3.5 border border-purple-100 dark:border-purple-900/40">
             <div class="flex items-center justify-between">
