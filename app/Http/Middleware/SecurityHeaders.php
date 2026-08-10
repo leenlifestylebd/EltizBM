@@ -34,6 +34,9 @@ class SecurityHeaders
             "base-uri 'self'",
             "object-src 'none'",
             "form-action 'self'",
+            // Keep the directive the edge (Cloudflare/LiteSpeed) already sends, so
+            // overriding its header below loses nothing.
+            'upgrade-insecure-requests',
         ]);
 
         $headers = [
@@ -49,6 +52,14 @@ class SecurityHeaders
         if ($request->secure()) {
             $headers['Strict-Transport-Security'] = 'max-age=31536000; includeSubDomains';
         }
+
+        // The edge already emits a bare "Content-Security-Policy:
+        // upgrade-insecure-requests". Verified live on app.leen.com.bd: skipping
+        // headers that already exist meant our real policy was silently dropped, so
+        // the CSP is set unconditionally (our value re-includes that directive).
+        // The rest are only filled in when absent.
+        $response->headers->set('Content-Security-Policy', $headers['Content-Security-Policy']);
+        unset($headers['Content-Security-Policy']);
 
         foreach ($headers as $key => $value) {
             if (!$response->headers->has($key)) {
