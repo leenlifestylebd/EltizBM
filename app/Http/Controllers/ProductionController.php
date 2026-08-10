@@ -727,7 +727,12 @@ class ProductionController extends Controller
 
         $totalEarning = $entries->sum('amount');
         $totalQty     = $entries->sum('quantity');
-        $totalAdvance = $payments->whereIn('type', ['advance', 'deduction'])->sum('amount');
+        // Everything the worker was actually handed this period — salary and advance
+        // alike. This is a display figure only (the net owed comes from
+        // payrollLedger below), so it deliberately shows total cash received rather
+        // than advances alone, which read as 0 whenever they were paid as salary.
+        // Bonus stays out on purpose: it is a reward, not money against what is owed.
+        $totalAdvance = $payments->whereIn('type', ['salary', 'advance', 'deduction'])->sum('amount');
 
         // Professional balance: carry the prior balance in and don't hide overpay.
         $ledger         = $employee->payrollLedger($from, $to);
