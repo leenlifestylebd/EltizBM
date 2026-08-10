@@ -207,14 +207,21 @@ class PaymentController extends Controller
                 'payment_method'     => $gateway,
             ]);
 
-            // Record transaction
+            // Record transaction. Every column here must exist in Transaction::$fillable
+            // AND satisfy the NOT NULL columns on `transactions` (title, created_by,
+            // transaction_date) — otherwise this insert throws and the surrounding
+            // DB::transaction rolls the payment back, leaving a paid order unpaid.
             Transaction::create([
-                'business_id'  => $order->business_id,
-                'type'         => 'income',
-                'amount'       => $paid,
-                'description'  => ucfirst($gateway) . " payment for order #{$order->order_number}. TrxID: {$trxId}",
-                'reference'    => $order->order_number,
-                'date'         => now()->toDateString(),
+                'business_id'      => $order->business_id,
+                'created_by'       => auth()->id() ?? $order->created_by,
+                'order_id'         => $order->id,
+                'type'             => 'income',
+                'title'            => ucfirst($gateway) . ' payment for Order #' . $order->order_number,
+                'amount'           => $paid,
+                'payment_method'   => $gateway,
+                'reference'        => 'GWPAY-' . $gateway . '-' . $paymentId,
+                'notes'            => 'TrxID: ' . $trxId,
+                'transaction_date' => now()->toDateString(),
             ]);
         });
     }
