@@ -122,7 +122,7 @@
             </div>
             <div class="bg-red-50 dark:bg-red-900/20 rounded-lg p-2 text-center">
                 <p class="text-sm font-bold text-red-600 dark:text-red-400">৳{{ number_format($emp->month_advance) }}</p>
-                <p class="text-xs text-gray-400 dark:text-slate-500">Advance</p>
+                <p class="text-xs text-gray-400 dark:text-slate-500">Paid This Month</p>
             </div>
         </div>
         <div class="flex items-center justify-between px-2 py-1.5 rounded-lg mb-2
