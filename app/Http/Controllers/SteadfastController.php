@@ -477,15 +477,19 @@ class SteadfastController extends Controller
         // there and silently disable the check). When a secret IS configured it is
         // enforced; if it is not set we still process (opt-in), but log a warning so
         // the endpoint isn't left spoofable unknowingly.
+        // Fail CLOSED: with no secret configured this endpoint is fully spoofable —
+        // anyone could post a fake delivery_status and move stock, COD income and
+        // courier expenses. Refuse to process until STEADFAST_WEBHOOK_SECRET is set.
         $expected = (string) config('services.steadfast.webhook_secret', '');
-        if ($expected !== '') {
-            $provided = (string) ($request->header('X-Webhook-Secret') ?: $request->query('secret', ''));
-            if ($provided === '' || !hash_equals($expected, $provided)) {
-                Log::warning('Steadfast webhook: invalid or missing secret', ['ip' => $request->ip()]);
-                return response()->json(['status' => 'error', 'message' => 'Unauthorized'], 401);
-            }
-        } else {
-            Log::warning('Steadfast webhook processed WITHOUT a configured secret — set STEADFAST_WEBHOOK_SECRET to secure this endpoint.');
+        if ($expected === '') {
+            Log::error('Steadfast webhook REJECTED — STEADFAST_WEBHOOK_SECRET is not configured.');
+            return response()->json(['status' => 'error', 'message' => 'Webhook not configured'], 503);
+        }
+
+        $provided = (string) ($request->header('X-Webhook-Secret') ?: $request->query('secret', ''));
+        if ($provided === '' || !hash_equals($expected, $provided)) {
+            Log::warning('Steadfast webhook: invalid or missing secret', ['ip' => $request->ip()]);
+            return response()->json(['status' => 'error', 'message' => 'Unauthorized'], 401);
         }
 
         $payload = $request->all();
