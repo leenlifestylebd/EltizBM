@@ -78,10 +78,12 @@ class PosController extends Controller
                     ? \Illuminate\Support\Carbon::parse($request->order_date)->setTimeFrom(now())
                     : now();
 
-                $subtotal   = collect($request->items)->sum('total');
+                // Re-price server side — the browser's price/total are never trusted.
+                $items      = app(\App\Services\OrderService::class)->repriceItems($request->items, $bizId);
+                $subtotal   = collect($items)->sum('total');
                 $discount   = floatval($request->discount ?? 0);
                 $shipping   = floatval($request->shipping_charge ?? 0);
-                $total      = floatval($request->total);
+                $total      = max(0, $subtotal - $discount + $shipping);
                 $paid       = floatval($request->paid_amount ?? $total);
                 $due        = max(0, $total - $paid);
 
@@ -113,8 +115,8 @@ class PosController extends Controller
                     $order->save();
                 }
 
-                // Create items
-                foreach ($request->items as $item) {
+                // Create items (re-priced above)
+                foreach ($items as $item) {
                     OrderItem::create([
                         'order_id'     => $order->id,
                         'product_id'   => $item['product_id'],
