@@ -265,6 +265,9 @@ class TailoringController extends Controller
     // ── DELETE ────────────────────────────────────────────────────────────────
     public function destroy(TailoringOrder $tailoring)
     {
+        // Deleting financial/operational records is admin-only; the UI hides these
+        // buttons for other roles but the endpoint must enforce it too.
+        abort_unless(auth()->user()->isAdmin(), 403, 'Only an admin can delete this.');
         abort_unless($tailoring->business_id === $this->bizId(), 403);
         $tailoring->delete();
         return redirect()->route('tailoring.index')->with('success', 'Order deleted.');

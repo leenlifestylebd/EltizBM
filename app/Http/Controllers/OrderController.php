@@ -606,6 +606,9 @@ class OrderController extends Controller
     // =============================================
     public function destroy(Order $order)
     {
+        // Deleting financial/operational records is admin-only; the UI hides these
+        // buttons for other roles but the endpoint must enforce it too.
+        abort_unless(auth()->user()->isAdmin(), 403, 'Only an admin can delete this.');
         $this->authorize($order);
 
         $this->logActivity('deleted', $order, [

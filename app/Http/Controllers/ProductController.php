@@ -225,6 +225,9 @@ class ProductController extends Controller
 
     public function destroy(Product $product)
     {
+        // Deleting financial/operational records is admin-only; the UI hides these
+        // buttons for other roles but the endpoint must enforce it too.
+        abort_unless(auth()->user()->isAdmin(), 403, 'Only an admin can delete this.');
         $this->authorizeProduct($product);
         $name = $product->name;
         $this->logActivity('deleted', $product, [

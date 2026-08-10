@@ -188,6 +188,9 @@ class MaterialController extends Controller
 
     public function destroy(MaterialPurchase $material)
     {
+        // Deleting financial/operational records is admin-only; the UI hides these
+        // buttons for other roles but the endpoint must enforce it too.
+        abort_unless(auth()->user()->isAdmin(), 403, 'Only an admin can delete this.');
         abort_if($material->business_id !== auth()->user()->business_id, 403);
 
         DB::transaction(function () use ($material) {

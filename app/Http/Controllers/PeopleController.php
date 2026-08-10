@@ -57,6 +57,9 @@ class PeopleController extends Controller
 
     public function destroyCustomer(Customer $customer)
     {
+        // Deleting financial/operational records is admin-only; the UI hides these
+        // buttons for other roles but the endpoint must enforce it too.
+        abort_unless(auth()->user()->isAdmin(), 403, 'Only an admin can delete this.');
         abort_if($customer->business_id !== auth()->user()->business_id, 403);
         $this->logActivity('deleted', $customer, [
             'name'  => $customer->name,
@@ -174,6 +177,9 @@ class PeopleController extends Controller
 
     public function destroyVendor(\App\Models\Vendor $vendor)
     {
+        // Deleting financial/operational records is admin-only; the UI hides these
+        // buttons for other roles but the endpoint must enforce it too.
+        abort_unless(auth()->user()->isAdmin(), 403, 'Only an admin can delete this.');
         abort_if($vendor->business_id !== auth()->user()->business_id, 403);
         $this->logActivity('deleted', $vendor, [
             'name'  => $vendor->name,
