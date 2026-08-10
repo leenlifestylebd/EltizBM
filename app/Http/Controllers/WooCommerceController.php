@@ -148,15 +148,19 @@ class WooCommerceController extends Controller
             return response()->json(['message' => 'Store not found'], 404);
         }
 
-        // Verify signature. If a secret is configured, a valid signature is REQUIRED —
-        // an attacker must not be able to skip verification by omitting the header.
-        if ($wooSettings->webhook_secret) {
-            $payload = $request->getContent();
-            $hash    = base64_encode(hash_hmac('sha256', $payload, $wooSettings->webhook_secret, true));
-            if (!$signature || !hash_equals($hash, $signature)) {
-                Log::warning('WooCommerce webhook: invalid or missing signature');
-                return response()->json(['message' => 'Invalid signature'], 401);
-            }
+        // Verify signature — fail CLOSED. Without a stored secret the payload cannot
+        // be authenticated at all, so anyone could inject orders; refuse rather than
+        // silently trusting the request.
+        if (!$wooSettings->webhook_secret) {
+            Log::error('WooCommerce webhook REJECTED — no webhook_secret stored for store ' . $wooSettings->store_url);
+            return response()->json(['message' => 'Webhook not configured'], 503);
+        }
+
+        $payload = $request->getContent();
+        $hash    = base64_encode(hash_hmac('sha256', $payload, $wooSettings->webhook_secret, true));
+        if (!$signature || !hash_equals($hash, $signature)) {
+            Log::warning('WooCommerce webhook: invalid or missing signature');
+            return response()->json(['message' => 'Invalid signature'], 401);
         }
 
         try {

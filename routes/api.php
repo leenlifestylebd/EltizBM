@@ -13,7 +13,7 @@ use Illuminate\Support\Facades\Route;
 | All routes are prefixed with /api by the framework => /api/v1/bot/*
 */
 
-Route::prefix('v1/bot')->middleware('bot.token')->group(function () {
+Route::prefix('v1/bot')->middleware(['bot.token', 'throttle:60,1'])->group(function () {
     Route::get('/health', [BotApiController::class, 'health']);
 
     // Catalog (read)

@@ -60,6 +60,9 @@ class ProductionController extends Controller
 
     public function destroyRate(ProductionRate $rate)
     {
+        // Deleting financial/operational records is admin-only; the UI hides these
+        // buttons for other roles but the endpoint must enforce it too.
+        abort_unless(auth()->user()->isAdmin(), 403, 'Only an admin can delete this.');
         abort_if($rate->business_id !== auth()->user()->business_id, 403);
         $rate->delete();
         return back()->with('success', 'Rate deleted!');
@@ -128,6 +131,9 @@ class ProductionController extends Controller
 
     public function destroy(ProductionEntry $entry)
     {
+        // Deleting financial/operational records is admin-only; the UI hides these
+        // buttons for other roles but the endpoint must enforce it too.
+        abort_unless(auth()->user()->isAdmin(), 403, 'Only an admin can delete this.');
         abort_if($entry->business_id !== auth()->user()->business_id, 403);
         $entry->delete();
         return back()->with('success', 'Entry deleted!');

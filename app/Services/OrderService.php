@@ -42,6 +42,9 @@ class OrderService
                 ? Carbon::parse($data['order_date'])->setTimeFrom(now())
                 : now();
 
+            // Never price an order from browser-supplied totals — re-price server side.
+            $data['items'] = $this->repriceItems($data['items'], $bizId);
+
             $subtotal = collect($data['items'])->sum('total');
             $discount = (float) ($data['discount'] ?? 0);
             $shipping = (float) ($data['shipping_charge'] ?? $data['shipping_cost'] ?? 0);
@@ -258,6 +261,71 @@ class OrderService
     // =============================================
     // HELPERS
     // =============================================
+    /**
+     * Re-price every line server side.
+     *
+     * The browser sends price/total, and both are trivially editable, so they are
+     * never trusted as-is:
+     *   - the line total is ALWAYS recomputed as price x qty - discount (no exceptions),
+     *     which alone kills "total does not match price" tampering;
+     *   - the unit price is forced to the catalog price for non-privileged users.
+     *     owner/admin/manager may still set a custom price, because negotiated
+     *     wholesale/exchange pricing is a deliberate feature — those overrides are
+     *     logged instead of blocked.
+     * Lines without a catalog product (custom/manual lines) keep their price for
+     * privileged users and are rejected to 0 for everyone else.
+     */
+    public function repriceItems(array $items, int $bizId): array
+    {
+        $mayOverridePrice = (bool) optional(auth()->user())->isManager();
+
+        $catalog = Product::where('business_id', $bizId)
+            ->whereIn('id', collect($items)->pluck('product_id')->filter()->unique())
+            ->get(['id', 'name', 'price', 'sale_price'])
+            ->keyBy('id');
+
+        foreach ($items as $i => $item) {
+            $qty      = max(1, (int) ($item['quantity'] ?? 1));
+            $lineDisc = max(0, (float) ($item['discount'] ?? 0));
+            $sent     = (float) ($item['price'] ?? 0);
+            $product  = $catalog->get($item['product_id'] ?? null);
+
+            if ($product) {
+                $catalogPrice = (float) ($product->sale_price ?: $product->price);
+                $price        = $catalogPrice;
+
+                if (abs($sent - $catalogPrice) > 0.001) {
+                    if ($mayOverridePrice) {
+                        $price = max(0, $sent);
+                        Log::info('Order line price overridden', [
+                            'user_id'    => auth()->id(),
+                            'product_id' => $product->id,
+                            'catalog'    => $catalogPrice,
+                            'charged'    => $price,
+                        ]);
+                    } else {
+                        Log::warning('Order line price rejected — catalog price enforced', [
+                            'user_id'    => auth()->id(),
+                            'product_id' => $product->id,
+                            'catalog'    => $catalogPrice,
+                            'attempted'  => $sent,
+                        ]);
+                    }
+                }
+            } else {
+                // Custom (non-catalog) line: only privileged users may name a price.
+                $price = $mayOverridePrice ? max(0, $sent) : 0.0;
+            }
+
+            $items[$i]['price']    = $price;
+            $items[$i]['quantity'] = $qty;
+            $items[$i]['discount'] = $lineDisc;
+            $items[$i]['total']    = max(0, ($price * $qty) - $lineDisc);
+        }
+
+        return $items;
+    }
+
     private function syncItems(Order $order, array $items, bool $deductStock = true): void
     {
         foreach ($items as $item) {

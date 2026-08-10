@@ -33,16 +33,16 @@ use App\Http\Controllers\TailoringController;
 // =============================================
 Route::middleware('guest')->group(function () {
     Route::get('/login',    [AuthController::class, 'showLogin'])->name('login');
-    Route::post('/login',   [AuthController::class, 'login']);
+    Route::post('/login',   [AuthController::class, 'login'])->middleware('throttle:5,1');
     // Worker login (phone + PIN) — low-hassle entry for factory workers
     Route::get('/worker-login',  [AuthController::class, 'showWorkerLogin'])->name('worker.login');
-    Route::post('/worker-login', [AuthController::class, 'workerLogin']);
+    Route::post('/worker-login', [AuthController::class, 'workerLogin'])->middleware('throttle:10,1');
     Route::get('/register', [AuthController::class, 'showRegister'])->name('register');
-    Route::post('/register',[AuthController::class, 'register']);
+    Route::post('/register',[AuthController::class, 'register'])->middleware('throttle:5,10');
     Route::get('/forgot-password', [AuthController::class, 'showForgotPassword'])->name('password.request');
-    Route::post('/forgot-password',[AuthController::class, 'sendResetLink'])->name('password.email');
+    Route::post('/forgot-password',[AuthController::class, 'sendResetLink'])->name('password.email')->middleware('throttle:5,10');
     Route::get('/reset-password/{token}', [AuthController::class, 'showResetPassword'])->name('password.reset');
-    Route::post('/reset-password',        [AuthController::class, 'resetPassword'])->name('password.update');
+    Route::post('/reset-password',        [AuthController::class, 'resetPassword'])->name('password.update')->middleware('throttle:5,10');
 });
 
 // ── Google OAuth (no guest middleware — callback must be open) ──
@@ -58,7 +58,7 @@ Route::post('/logout', [AuthController::class, 'logout'])->name('logout')->middl
 // SUPER ADMIN GATE (secret URL login)
 // =============================================
 Route::get('/sa/{secret}',  [\App\Http\Controllers\SuperAdminGateController::class, 'show'])->name('super-admin.gate');
-Route::post('/sa/{secret}', [\App\Http\Controllers\SuperAdminGateController::class, 'login'])->name('super-admin.gate.login');
+Route::post('/sa/{secret}', [\App\Http\Controllers\SuperAdminGateController::class, 'login'])->name('super-admin.gate.login')->middleware('throttle:5,1');
 
 // =============================================
 // SUPER ADMIN ROUTES (selected Gmail only)
@@ -86,7 +86,7 @@ Route::middleware(['auth', 'business'])->group(function () {
     Route::get('/', [DashboardController::class, 'index'])->name('dashboard');
 
     // ---- ORDERS ----
-    Route::prefix('orders')->name('orders.')->group(function () {
+    Route::prefix('orders')->name('orders.')->middleware('permission:orders')->group(function () {
         Route::get('/',            [OrderController::class, 'index'])->name('index');
         Route::get('/create',      [OrderController::class, 'create'])->name('create');
         Route::get('/manual-exchange',  [OrderController::class, 'manualExchangeForm'])->name('manual-exchange');
@@ -109,13 +109,13 @@ Route::middleware(['auth', 'business'])->group(function () {
     });
 
     // ---- WHOLESALE (reuses OrderController, filtered to source=wholesale) ----
-    Route::prefix('wholesale')->name('wholesale.')->group(function () {
+    Route::prefix('wholesale')->name('wholesale.')->middleware('permission:orders')->group(function () {
         Route::get('/',        [OrderController::class, 'index'])->name('index');
         Route::get('/create',  [OrderController::class, 'create'])->name('create');
     });
 
     // ---- WEB ORDERS (WooCommerce) ----
-    Route::prefix('web-orders')->name('web-orders.')->group(function () {
+    Route::prefix('web-orders')->name('web-orders.')->middleware('permission:orders')->group(function () {
         Route::get('/',                [WebOrderController::class, 'index'])->name('index');
         Route::get('/{order}',         [WebOrderController::class, 'show'])->name('show');
         Route::post('/sync',           [WebOrderController::class, 'sync'])->name('sync');
@@ -123,7 +123,7 @@ Route::middleware(['auth', 'business'])->group(function () {
     });
 
     // ---- PRODUCTS ----
-    Route::prefix('products')->name('products.')->group(function () {
+    Route::prefix('products')->name('products.')->middleware('permission:products')->group(function () {
         Route::get('/',            [ProductController::class, 'index'])->name('index');
         Route::get('/create',      [ProductController::class, 'create'])->name('create');
         Route::post('/',           [ProductController::class, 'store'])->name('store');
@@ -147,12 +147,14 @@ Route::middleware(['auth', 'business'])->group(function () {
         Route::patch('/{product}/bom/{bom}/toggle',[BomController::class, 'toggle'])->name('bom.toggle');
     });
 
-    Route::resource('categories', CategoryController::class);
-    Route::resource('brands',     BrandController::class);
-    Route::resource('attributes', AttributeController::class);
+    Route::middleware('permission:products')->group(function () {
+        Route::resource('categories', CategoryController::class);
+        Route::resource('brands',     BrandController::class);
+        Route::resource('attributes', AttributeController::class);
+    });
 
     // ---- COURIER & RETURNS ----
-    Route::prefix('courier')->name('courier.')->group(function () {
+    Route::prefix('courier')->name('courier.')->middleware('permission:courier')->group(function () {
         Route::get('/',        [CourierController::class, 'index'])->name('index');
         Route::get('/create',  [CourierController::class, 'create'])->name('create');
         Route::post('/',       [CourierController::class, 'store'])->name('store');
@@ -161,7 +163,7 @@ Route::middleware(['auth', 'business'])->group(function () {
         Route::post('/{shipment}/track',[CourierController::class, 'track'])->name('track');
     });
 
-    Route::prefix('returns')->name('returns.')->group(function () {
+    Route::prefix('returns')->name('returns.')->middleware('permission:orders')->group(function () {
         Route::get('/',                                   [\App\Http\Controllers\ReturnController::class, 'index'])->name('index');
         Route::post('/orders/{order}/request',            [\App\Http\Controllers\ReturnController::class, 'requestReturn'])->name('request');
         Route::post('/orders/{order}/approve',            [\App\Http\Controllers\ReturnController::class, 'approve'])->name('approve');
@@ -171,7 +173,7 @@ Route::middleware(['auth', 'business'])->group(function () {
     });
 
     // ---- INVENTORY ----
-    Route::prefix('inventory')->name('inventory.')->group(function () {
+    Route::prefix('inventory')->name('inventory.')->middleware('permission:inventory')->group(function () {
         Route::get('/overview',         [InventoryController::class, 'overview'])->name('overview');
         Route::get('/purchase-orders',  [InventoryController::class, 'purchaseOrders'])->name('purchase-orders');
         Route::post('/purchase-orders', [InventoryController::class, 'storePurchaseOrder'])->name('purchase-orders.store');
@@ -191,7 +193,7 @@ Route::middleware(['auth', 'business'])->group(function () {
     });
 
     // ---- ACCOUNTS ----
-    Route::prefix('accounts')->name('accounts.')->group(function () {
+    Route::prefix('accounts')->name('accounts.')->middleware('permission:accounts')->group(function () {
         Route::get('/overview',          [AccountController::class, 'overview'])->name('overview');
         Route::get('/income',            [AccountController::class, 'income'])->name('income');
         Route::post('/income',           [AccountController::class, 'storeIncome'])->name('income.store');
@@ -208,7 +210,7 @@ Route::middleware(['auth', 'business'])->group(function () {
     });
 
     // ---- REPORTS ----
-    Route::prefix('reports')->name('reports.')->group(function () {
+    Route::prefix('reports')->name('reports.')->middleware('permission:reports')->group(function () {
         Route::get('/all',               [ReportController::class, 'all'])->name('all');
         Route::get('/profit-loss',       [ReportController::class, 'profitLoss'])->name('profit-loss');
         Route::get('/expense-category',  [ReportController::class, 'expenseCategory'])->name('expense-category');
@@ -230,7 +232,7 @@ Route::middleware(['auth', 'business'])->group(function () {
     });
 
     // ---- PEOPLE ----
-    Route::prefix('people')->name('people.')->group(function () {
+    Route::prefix('people')->name('people.')->middleware('permission:people')->group(function () {
         Route::get('/customers',               [PeopleController::class, 'customers'])->name('customers');
         Route::post('/customers',              [PeopleController::class, 'storeCustomer'])->name('customers.store');
         Route::get('/customers/{customer}',    [PeopleController::class, 'showCustomer'])->name('customers.show');
@@ -245,7 +247,7 @@ Route::middleware(['auth', 'business'])->group(function () {
     });
 
     // ---- EMPLOYEES ----
-    Route::prefix('employees')->name('employees.')->group(function () {
+    Route::prefix('employees')->name('employees.')->middleware('permission:employees')->group(function () {
         Route::get('/',                       [EmployeeController::class, 'index'])->name('index');
         Route::get('/create',                 [EmployeeController::class, 'create'])->name('create');
         Route::post('/',                      [EmployeeController::class, 'store'])->name('store');
@@ -260,7 +262,7 @@ Route::middleware(['auth', 'business'])->group(function () {
     Route::get('/attendance', [EmployeeController::class, 'attendanceOverview'])->name('attendance.index');
 
     // ---- PRODUCTION SYSTEM ----
-    Route::prefix('production')->name('production.')->group(function () {
+    Route::prefix('production')->name('production.')->middleware('permission:employees')->group(function () {
         Route::get('/admin-overview',  [App\Http\Controllers\ProductionController::class, 'adminOverview'])->name('admin-overview');
         Route::get('/rates',           [App\Http\Controllers\ProductionController::class, 'rates'])->name('rates');
         Route::post('/rates',          [App\Http\Controllers\ProductionController::class, 'storeRate'])->name('rates.store');
@@ -298,7 +300,7 @@ Route::middleware(['auth', 'business'])->group(function () {
     });
 
     // ---- MATERIALS ----
-    Route::prefix('materials')->name('materials.')->group(function () {
+    Route::prefix('materials')->name('materials.')->middleware('permission:inventory')->group(function () {
         Route::get('/',               [MaterialController::class, 'index'])->name('index');
         Route::post('/',              [MaterialController::class, 'store'])->name('store');
         Route::put('/{material}',     [MaterialController::class, 'update'])->name('update');
@@ -310,7 +312,7 @@ Route::middleware(['auth', 'business'])->group(function () {
     Route::resource('tasks', TaskController::class);
 
     // ---- POS ----
-    Route::prefix('pos')->name('pos.')->group(function () {
+    Route::prefix('pos')->name('pos.')->middleware('permission:pos')->group(function () {
         Route::get('/',                [PosController::class, 'index'])->name('index');
         Route::post('/checkout',       [PosController::class, 'checkout'])->name('checkout');
         Route::get('/receipt/{order}', [PosController::class, 'receipt'])->name('receipt');
@@ -319,7 +321,7 @@ Route::middleware(['auth', 'business'])->group(function () {
     });
 
     // ---- SETTINGS ----
-    Route::prefix('settings')->name('settings.')->group(function () {
+    Route::prefix('settings')->name('settings.')->middleware('permission:settings')->group(function () {
         Route::get('/general',        [SettingsController::class, 'general'])->name('general');
         Route::post('/general',       [SettingsController::class, 'updateGeneral'])->name('general.update');
         Route::get('/business',       [SettingsController::class, 'business'])->name('business');
@@ -364,7 +366,7 @@ Route::middleware(['auth', 'business'])->group(function () {
     Route::post('/payment/nagad/{order}',      [\App\Http\Controllers\PaymentController::class, 'nagadCreate'])->name('payment.nagad.create');
     Route::get('/payment/nagad/{order}/callback', [\App\Http\Controllers\PaymentController::class, 'nagadCallback'])->name('payment.nagad.callback');
 
-    Route::prefix('integrations')->name('integrations.')->group(function () {
+    Route::prefix('integrations')->name('integrations.')->middleware('permission:integrations')->group(function () {
         Route::get('/',                   [IntegrationController::class, 'index'])->name('index');
         Route::get('/woocommerce',        [WooCommerceController::class, 'settings'])->name('woocommerce');
         Route::get('/payment-gateways',   [IntegrationController::class, 'paymentGateways'])->name('payment-gateways');
@@ -380,7 +382,7 @@ Route::middleware(['auth', 'business'])->group(function () {
     });
 
     // ---- TAILORING ----
-    Route::prefix('tailoring')->name('tailoring.')->group(function () {
+    Route::prefix('tailoring')->name('tailoring.')->middleware('permission:orders')->group(function () {
         Route::get('/',                                    [TailoringController::class, 'index'])->name('index');
         Route::get('/create',                              [TailoringController::class, 'create'])->name('create');
         Route::post('/',                                   [TailoringController::class, 'store'])->name('store');
@@ -396,7 +398,7 @@ Route::middleware(['auth', 'business'])->group(function () {
     });
 
     // ---- STEADFAST ----
-    Route::prefix('steadfast')->name('steadfast.')->group(function () {
+    Route::prefix('steadfast')->name('steadfast.')->middleware('permission:courier')->group(function () {
         Route::get('/',                        [SteadfastController::class, 'index'])->name('index');
         Route::post('/send/{order}',           [SteadfastController::class, 'sendOrder'])->name('send-order');
         Route::post('/bulk-send',              [SteadfastController::class, 'bulkSend'])->name('bulk-send');

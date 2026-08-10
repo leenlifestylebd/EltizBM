@@ -311,6 +311,9 @@ class SettingsController extends Controller
 
     public function destroyWarehouse(\App\Models\Warehouse $warehouse)
     {
+        // Deleting financial/operational records is admin-only; the UI hides these
+        // buttons for other roles but the endpoint must enforce it too.
+        abort_unless(auth()->user()->isAdmin(), 403, 'Only an admin can delete this.');
         abort_if($warehouse->business_id !== auth()->user()->business_id, 403);
         $warehouse->delete();
         return back()->with('success', 'Warehouse deleted.');
@@ -484,6 +487,9 @@ class SettingsController extends Controller
 
     public function destroyAccountCategory(AccountCategory $cat)
     {
+        // Deleting financial/operational records is admin-only; the UI hides these
+        // buttons for other roles but the endpoint must enforce it too.
+        abort_unless(auth()->user()->isAdmin(), 403, 'Only an admin can delete this.');
         // Ensure it belongs to this business
         abort_if($cat->business_id !== auth()->user()->business_id, 403);
 

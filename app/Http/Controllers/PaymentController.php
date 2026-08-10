@@ -46,6 +46,9 @@ class PaymentController extends Controller
 
     public function bkashCallback(Request $request, Order $order)
     {
+        // A callback still targets one specific order — confirm it belongs to the
+        // caller's business before touching its payment state.
+        abort_if($order->business_id !== auth()->user()->business_id, 403);
         $status    = $request->status;
         $paymentId = $request->paymentID;
 
@@ -105,6 +108,9 @@ class PaymentController extends Controller
 
     public function nagadCallback(Request $request, Order $order)
     {
+        // A callback still targets one specific order — confirm it belongs to the
+        // caller's business before touching its payment state.
+        abort_if($order->business_id !== auth()->user()->business_id, 403);
         $paymentRefId = $request->payment_ref_id;
         $status       = $request->status;
 
@@ -195,6 +201,18 @@ class PaymentController extends Controller
     private function markOrderPaid(Order $order, string $gateway, string $paymentId, string $trxId, float $amount): void
     {
         DB::transaction(function () use ($order, $gateway, $paymentId, $trxId, $amount) {
+            // Idempotency: a callback URL can be replayed (refresh, back button, or a
+            // crafted request). If this gateway payment id was already credited,
+            // stop — otherwise the same payment would be banked twice.
+            $reference = 'GWPAY-' . $gateway . '-' . $paymentId;
+            $already = Transaction::where('business_id', $order->business_id)
+                ->where('reference', $reference)
+                ->exists();
+            if ($already) {
+                Log::info('Gateway payment replay ignored', ['order' => $order->id, 'ref' => $reference]);
+                return;
+            }
+
             $paid = min((float) $amount, $order->due_amount);
 
             $order->update([
@@ -207,14 +225,21 @@ class PaymentController extends Controller
                 'payment_method'     => $gateway,
             ]);
 
-            // Record transaction
+            // Record transaction. Every column here must exist in Transaction::$fillable
+            // AND satisfy the NOT NULL columns on `transactions` (title, created_by,
+            // transaction_date) — otherwise this insert throws and the surrounding
+            // DB::transaction rolls the payment back, leaving a paid order unpaid.
             Transaction::create([
-                'business_id'  => $order->business_id,
-                'type'         => 'income',
-                'amount'       => $paid,
-                'description'  => ucfirst($gateway) . " payment for order #{$order->order_number}. TrxID: {$trxId}",
-                'reference'    => $order->order_number,
-                'date'         => now()->toDateString(),
+                'business_id'      => $order->business_id,
+                'created_by'       => auth()->id() ?? $order->created_by,
+                'order_id'         => $order->id,
+                'type'             => 'income',
+                'title'            => ucfirst($gateway) . ' payment for Order #' . $order->order_number,
+                'amount'           => $paid,
+                'payment_method'   => $gateway,
+                'reference'        => $reference,
+                'notes'            => 'TrxID: ' . $trxId,
+                'transaction_date' => now()->toDateString(),
             ]);
         });
     }
