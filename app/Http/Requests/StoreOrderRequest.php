@@ -3,6 +3,7 @@
 namespace App\Http\Requests;
 
 use Illuminate\Foundation\Http\FormRequest;
+use Illuminate\Validation\Rule;
 
 class StoreOrderRequest extends FormRequest
 {
@@ -15,7 +16,7 @@ class StoreOrderRequest extends FormRequest
     {
         return [
             'customer_name'        => 'required|string|max:100',
-            'customer_id'          => 'nullable|exists:customers,id',
+            'customer_id'          => ['nullable', Rule::exists('customers', 'id')->where('business_id', auth()->user()->business_id)],
             'customer_phone'       => 'nullable|string|max:20',
             'source'               => 'nullable|string|max:50',
             'order_date'           => 'nullable|date|before_or_equal:today',

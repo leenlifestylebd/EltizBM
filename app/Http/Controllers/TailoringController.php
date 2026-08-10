@@ -179,7 +179,7 @@ class TailoringController extends Controller
     {
         abort_unless($tailoring->business_id === $this->bizId(), 403);
         $request->validate([
-            'employee_id'       => 'required|exists:employees,id',
+            'employee_id'       => ['required', \Illuminate\Validation\Rule::exists('employees', 'id')->where('business_id', $this->bizId())],
             'task_stage'        => 'required|string',
             'assigned_quantity' => 'required|integer|min:1',
         ]);
