@@ -91,7 +91,18 @@ class AuthController extends Controller
             ->orderByDesc('id')
             ->get();
 
-        $user = $candidates->first(fn ($u) => $u->password && Hash::check($request->pin, $u->password));
+        // A 4-6 digit PIN is weak, and candidates span every business, so two workers
+        // at different businesses could share a phone number. Only accept the match
+        // when exactly one account's PIN verifies — an ambiguous match is refused
+        // rather than silently logging into someone else's business.
+        $matches = $candidates->filter(fn ($u) => $u->password && Hash::check($request->pin, $u->password));
+        $user    = $matches->count() === 1 ? $matches->first() : null;
+
+        if ($matches->count() > 1) {
+            \Illuminate\Support\Facades\Log::warning('Worker login ambiguous — same phone+PIN in multiple businesses', [
+                'phone' => $request->phone,
+            ]);
+        }
 
         if (!$user) {
             \Illuminate\Support\Facades\RateLimiter::hit($key, 60);
@@ -199,7 +210,12 @@ class AuthController extends Controller
         $status = Password::reset(
             $request->only('email', 'password', 'password_confirmation', 'token'),
             function (User $user, string $password) {
-                $user->forceFill(['password' => Hash::make($password)])->save();
+                // Rotating remember_token invalidates "remember me" cookies issued
+                // before the reset, so a stolen session can't outlive the password.
+                $user->forceFill([
+                    'password'       => Hash::make($password),
+                    'remember_token' => Str::random(60),
+                ])->save();
             }
         );
 

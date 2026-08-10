@@ -39,7 +39,12 @@ class CategoryController extends Controller
     public function destroy(Category $category)
     {
         abort_if($category->business_id !== auth()->user()->business_id, 403);
-        if ($category->products_count > 0) return back()->with('error', 'Cannot delete category with products.');
+        // products_count is only set by withCount() on the index query — reading it
+        // here was always null, so the guard never fired and categories could be
+        // deleted out from under their products. Count for real.
+        if ($category->products()->exists()) {
+            return back()->with('error', 'Cannot delete category with products.');
+        }
         if ($category->image) Storage::disk('public')->delete($category->image);
         $category->delete();
         return back()->with('success', 'Category deleted!');
