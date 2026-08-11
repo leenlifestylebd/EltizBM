@@ -56,22 +56,25 @@
     @if($sidebarBg || $headerBg || ($themeSettings['primary_color'] ?? null) !== '#2563eb')
     <style>
         @if($sidebarBg)
-        #sidebar { background: {{ $sidebarBg }} !important; border-color: {{ $sidebarBg }} !important; }
+        /* Scoped to :not(.dark) so the custom brand colour applies in light mode
+           only — these rules use !important, so without this the sidebar kept its
+           light colour after switching to dark mode. */
+        html:not(.dark) #sidebar { background: {{ $sidebarBg }} !important; border-color: {{ $sidebarBg }} !important; }
         @if($darkSidebar)
-        #sidebar .nav-item, #sidebar a, #sidebar button, #sidebar p, #sidebar span { color: #374151 !important; }
-        #sidebar .nav-active { background: rgba(0,0,0,0.08) !important; color: #111 !important; }
+        html:not(.dark) #sidebar .nav-item, html:not(.dark) #sidebar a, html:not(.dark) #sidebar button, html:not(.dark) #sidebar p, html:not(.dark) #sidebar span { color: #374151 !important; }
+        html:not(.dark) #sidebar .nav-active { background: rgba(0,0,0,0.08) !important; color: #111 !important; }
         @else
-        #sidebar .nav-item, #sidebar a, #sidebar p { color: rgba(255,255,255,0.85) !important; }
-        #sidebar .nav-active { background: rgba(255,255,255,0.15) !important; color: #fff !important; }
-        #sidebar .nav-active svg { color: #fff !important; }
-        #sidebar .text-gray-400, #sidebar .text-slate-500 { color: rgba(255,255,255,0.45) !important; }
+        html:not(.dark) #sidebar .nav-item, html:not(.dark) #sidebar a, html:not(.dark) #sidebar p { color: rgba(255,255,255,0.85) !important; }
+        html:not(.dark) #sidebar .nav-active { background: rgba(255,255,255,0.15) !important; color: #fff !important; }
+        html:not(.dark) #sidebar .nav-active svg { color: #fff !important; }
+        html:not(.dark) #sidebar .text-gray-400, html:not(.dark) #sidebar .text-slate-500 { color: rgba(255,255,255,0.45) !important; }
         @endif
         @endif
 
         @if($headerBg)
-        header.sticky { background: {{ $headerBg }} !important; border-color: {{ $headerBg }} !important; }
+        html:not(.dark) header.sticky { background: {{ $headerBg }} !important; border-color: {{ $headerBg }} !important; }
         @if($headerBg !== '#ffffff')
-        header.sticky h1, header.sticky button, header.sticky span { color: rgba(255,255,255,0.9) !important; }
+        html:not(.dark) header.sticky h1, html:not(.dark) header.sticky button, html:not(.dark) header.sticky span { color: rgba(255,255,255,0.9) !important; }
         @endif
         @endif
     </style>
@@ -87,17 +90,44 @@
         ::-webkit-scrollbar { width: 4px; height: 4px; }
         ::-webkit-scrollbar-track { background: #f1f5f9; }
         ::-webkit-scrollbar-thumb { background: #cbd5e1; border-radius: 4px; }
-        .dark ::-webkit-scrollbar-track { background: #1e293b; }
-        .dark ::-webkit-scrollbar-thumb { background: #334155; }
         .sidebar-transition { transition: transform 0.3s ease, width 0.3s ease; }
         .nav-active { background: {{ $p50 }}; color: {{ $p600 }}; font-weight: 500; }
         .nav-active svg { color: {{ $p600 }}; }
         .bottom-nav-active { color: {{ $p600 }}; }
         .stat-card:hover { transform: translateY(-2px); box-shadow: 0 4px 20px rgba(0,0,0,0.08); }
         .stat-card { transition: all 0.2s ease; }
-        .dark .sidebar { background: #1e293b; border-color: #334155; }
-        .dark .nav-active { background: {{ $p600 }}1a; color: {{ $p400 }}; }
-        .dark body { background: #0f172a; color: #e2e8f0; }
+        /* ── Dark theme ────────────────────────────────────────────────
+           Deeper, cooler surfaces with a clear step between page, sidebar
+           and cards, so panels read as raised instead of blending into one
+           flat grey. The active nav item gets a brand-tinted fill and a left
+           accent bar so the current page is obvious at a glance.          */
+        .dark body { background: #0b1220; color: #e2e8f0; }
+        .dark .sidebar { background: #111b2e; border-color: rgba(148,163,184,.14); }
+        .dark .sidebar .border-gray-100,
+        .dark .sidebar .dark\:border-slate-700 { border-color: rgba(148,163,184,.12) !important; }
+
+        .dark .nav-active {
+            background: linear-gradient(90deg, {{ $p600 }}2e 0%, {{ $p600 }}10 100%);
+            color: {{ $p400 }};
+            box-shadow: inset 3px 0 0 0 {{ $p400 }};
+        }
+        .dark .nav-active svg { color: {{ $p400 }}; }
+        .dark #sidebar a:not(.nav-active):hover { background: rgba(148,163,184,.08); }
+
+        /* Cards / panels: lift them off the page and soften the borders. */
+        .dark .bg-white           { background-color: #16223a !important; }
+        .dark .dark\:bg-slate-800 { background-color: #16223a !important; }
+        .dark .dark\:bg-slate-900 { background-color: #0b1220 !important; }
+        .dark .dark\:border-slate-700 { border-color: rgba(148,163,184,.14) !important; }
+        .dark .dark\:border-slate-600 { border-color: rgba(148,163,184,.20) !important; }
+
+        /* Inputs sit slightly darker than their card so fields are findable. */
+        .dark input, .dark select, .dark textarea { background-color: #0f1a2e !important; }
+        .dark input::placeholder, .dark textarea::placeholder { color: #64748b; }
+
+        .dark header.sticky { background: #111b2e !important; border-color: rgba(148,163,184,.14) !important; }
+        .dark ::-webkit-scrollbar-track { background: #0b1220; }
+        .dark ::-webkit-scrollbar-thumb { background: #334155; }
     </style>
 
     @stack('styles')
