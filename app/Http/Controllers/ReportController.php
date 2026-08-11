@@ -115,10 +115,15 @@ class ReportController extends Controller
     // =============================================
     // CUSTOMER DUE
     // =============================================
-    public function customerDue()
+    public function customerDue(Request $request)
     {
         $bizId = auth()->user()->business_id;
-        $data  = $this->rqs->getCustomerDue($bizId);
+        $data  = $this->rqs->getCustomerDue(
+            $bizId,
+            paginate: true,
+            search: $request->search,
+            sort: $request->sort ?? 'due'
+        );
 
         return view('reports.customer-due', $data);
     }
