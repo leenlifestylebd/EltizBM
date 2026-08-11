@@ -237,6 +237,7 @@ Route::middleware(['auth', 'business'])->group(function () {
         Route::post('/customers',              [PeopleController::class, 'storeCustomer'])->name('customers.store');
         Route::get('/customers/{customer}',    [PeopleController::class, 'showCustomer'])->name('customers.show');
         Route::put('/customers/{customer}',    [PeopleController::class, 'updateCustomer'])->name('customers.update');
+        Route::post('/customers/{customer}/collect-due', [PeopleController::class, 'collectDue'])->name('customers.collect-due');
         Route::delete('/customers/{customer}', [PeopleController::class, 'destroyCustomer'])->name('customers.destroy');
 
         Route::get('/vendors',             [PeopleController::class, 'vendors'])->name('vendors');

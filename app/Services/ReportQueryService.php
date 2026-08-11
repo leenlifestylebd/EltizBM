@@ -262,12 +262,44 @@ class ReportQueryService
     // =============================================
     // CUSTOMER DUE
     // =============================================
-    public function getCustomerDue(int $bizId, bool $paginate = true): array
+    public function getCustomerDue(int $bizId, bool $paginate = true, ?string $search = null, string $sort = 'due'): array
     {
-        $query = Customer::where('business_id', $bizId)->where('due_amount', '>', 0)->orderByDesc('due_amount');
-        $customers = $paginate ? $query->paginate(30) : $query->get();
+        $query = Customer::where('business_id', $bizId)->where('due_amount', '>', 0)
+            // Chasing a due needs more than a number: how many unpaid orders there
+            // are and how old the oldest one is decide who to call first.
+            ->withCount(['orders as unpaid_orders_count' => fn ($q) => $q->where('due_amount', '>', 0)])
+            ->withMin(['orders as oldest_unpaid_at' => fn ($q) => $q->where('due_amount', '>', 0)], 'created_at')
+            ->withMax('orders as last_order_at', 'created_at');
+
+        if ($search) {
+            $query->where(fn ($q) => $q->where('name', 'like', "%{$search}%")
+                                       ->orWhere('phone', 'like', "%{$search}%"));
+        }
+
+        match ($sort) {
+            'oldest' => $query->orderBy('oldest_unpaid_at'),
+            'name'   => $query->orderBy('name'),
+            default  => $query->orderByDesc('due_amount'),
+        };
+
+        $customers = $paginate ? $query->paginate(30)->withQueryString() : $query->get();
         $totalDue  = Customer::where('business_id', $bizId)->sum('due_amount');
-        return compact('customers', 'totalDue');
+
+        // Ageing buckets across every customer with a due (not just this page).
+        $all = Customer::where('business_id', $bizId)->where('due_amount', '>', 0)
+            ->withMin(['orders as oldest_unpaid_at' => fn ($q) => $q->where('due_amount', '>', 0)], 'created_at')
+            ->get(['id', 'due_amount']);
+
+        $aging = ['current' => 0.0, 'warn' => 0.0, 'overdue' => 0.0];
+        foreach ($all as $c) {
+            $days = $c->oldest_unpaid_at ? Carbon::parse($c->oldest_unpaid_at)->diffInDays(now()) : 0;
+            $key  = $days <= 30 ? 'current' : ($days <= 60 ? 'warn' : 'overdue');
+            $aging[$key] += (float) $c->due_amount;
+        }
+
+        $dueCustomerCount = $all->count();
+
+        return compact('customers', 'totalDue', 'aging', 'dueCustomerCount', 'search', 'sort');
     }
 
     // =============================================
