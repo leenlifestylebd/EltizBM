@@ -13,7 +13,9 @@ class SuperAdminGateController extends Controller
         if (!$this->validSecret($secret)) abort(404);
 
         // Already logged in as super admin → go straight in
-        if (auth()->check() && $this->isSuperAdmin(auth()->user()->email)) {
+        // Cast: PIN-only workers have no email, and passing null to the string
+        // parameter below would be a TypeError (500) rather than a clean refusal.
+        if (auth()->check() && $this->isSuperAdmin((string) auth()->user()->email)) {
             return redirect()->route('super-admin.index');
         }
 
