@@ -2,6 +2,19 @@
 <html lang="en" x-data="{ sidebarOpen: false, darkMode: localStorage.getItem('darkMode') === 'true' }" :class="{ 'dark': darkMode }" x-init="$watch('darkMode', val => localStorage.setItem('darkMode', val))">
 <head>
     <meta charset="UTF-8">
+    {{-- Apply the saved theme before anything paints.
+
+         Alpine sets the `dark` class, but it is loaded with `defer` and Tailwind
+         comes from a CDN, so on every navigation the browser painted a white page
+         first and only went dark once JS ran — the flash you see when clicking a
+         sidebar link. This runs synchronously, ahead of any stylesheet, and the
+         inline rule below colours <html> itself so there is nothing white to
+         flash even before Tailwind arrives. --}}
+    <script>try{if(localStorage.getItem('darkMode')==='true'){document.documentElement.classList.add('dark');}}catch(e){}</script>
+    <style>
+        html { background: #f9fafb; }
+        html.dark { background: #0b1220; color-scheme: dark; }
+    </style>
     <meta name="viewport" content="width=device-width, initial-scale=1.0">
     <meta name="csrf-token" content="{{ csrf_token() }}">
     <title>{{ config('app.name', 'Eltiz ERP') }} — @yield('title', 'Dashboard')</title>
