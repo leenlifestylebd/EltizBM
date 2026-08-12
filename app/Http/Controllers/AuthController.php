@@ -80,27 +80,36 @@ class AuthController extends Controller
             return back()->withErrors(['phone' => "Too many attempts. Try again in {$secs}s."])->onlyInput('phone');
         }
 
-        // A phone can (via re-linking or accidental duplicates) map to more than one
-        // worker account. Log in whichever active account's PIN actually matches —
-        // not just the newest by id, which rejected valid PINs once a second account
-        // existed for the same number (login worked at first, then "wrong password").
-        $candidates = User::where('role', 'employee')
-            ->where('phone', $request->phone)
+        // Match on the last 10 digits rather than the raw string: the same number
+        // saved as 01712-345678 or +8801712345678 must accept 01712345678 at login.
+        $key = User::phoneKey($request->phone);
+
+        $candidates = $key === '' ? collect() : User::where('role', 'employee')
             ->where('is_active', true)
             ->where('is_approved', 1)
+            ->where('phone', 'like', '%' . $key)
             ->orderByDesc('id')
-            ->get();
+            ->get()
+            // LIKE '%key' can over-match (e.g. a longer number ending the same way),
+            // so confirm the normalised keys really are equal.
+            ->filter(fn ($u) => User::phoneKey($u->phone) === $key);
 
-        // A 4-6 digit PIN is weak, and candidates span every business, so two workers
-        // at different businesses could share a phone number. Only accept the match
-        // when exactly one account's PIN verifies — an ambiguous match is refused
-        // rather than silently logging into someone else's business.
         $matches = $candidates->filter(fn ($u) => $u->password && Hash::check($request->pin, $u->password));
-        $user    = $matches->count() === 1 ? $matches->first() : null;
 
-        if ($matches->count() > 1) {
-            \Illuminate\Support\Facades\Log::warning('Worker login ambiguous — same phone+PIN in multiple businesses', [
-                'phone' => $request->phone,
+        // A 4-6 digit PIN is weak, so refuse when the same phone+PIN resolves to
+        // more than one BUSINESS — logging into the wrong tenant would be worse
+        // than a failed login. Duplicate accounts inside one business are a data
+        // artefact, not a security question: take the newest and let them in.
+        $businesses = $matches->pluck('business_id')->unique();
+        $user = match (true) {
+            $matches->isEmpty()      => null,
+            $businesses->count() > 1 => null,
+            default                  => $matches->first(),
+        };
+
+        if ($businesses->count() > 1) {
+            \Illuminate\Support\Facades\Log::warning('Worker login refused — same phone+PIN across businesses', [
+                'phone_key' => $key,
             ]);
         }
 
