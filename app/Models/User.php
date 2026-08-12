@@ -46,6 +46,19 @@ class User extends Authenticatable
         return in_array($p, $this->permissions ?? [], true);
     }
 
+    /**
+     * Comparable form of a phone number: digits only, last 10.
+     *
+     * Numbers get typed every which way — 01712-345678, +8801712345678,
+     * "01712 345678" — and worker login matched the raw string, so a worker whose
+     * number was saved in one format could never log in typing another. Reducing
+     * both sides to the last 10 digits makes those all equal.
+     */
+    public static function phoneKey(?string $phone): string
+    {
+        return substr(preg_replace('/\D/', '', (string) $phone), -10);
+    }
+
     /** Module keys that can be granted to a manager/staff user. */
     public const MODULES = [
         'orders'       => 'Orders',

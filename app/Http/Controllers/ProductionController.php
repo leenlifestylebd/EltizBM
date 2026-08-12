@@ -609,6 +609,30 @@ class ProductionController extends Controller
                 ->where('user_id', $userId)
                 ->first();
 
+            // Self-heal a missing link: a worker can end up logged in while their
+            // employee record still has user_id = null (created separately, or the
+            // link lost), and then their own dashboard is empty. If exactly one
+            // unlinked employee in this business carries the same phone number,
+            // it is unambiguously them — reconnect it instead of showing a dead end.
+            if (!$employee) {
+                $key = \App\Models\User::phoneKey(auth()->user()->phone);
+                if ($key !== '') {
+                    $candidates = Employee::where('business_id', $bizId)
+                        ->whereNull('user_id')
+                        ->where('phone', 'like', '%' . $key)
+                        ->get()
+                        ->filter(fn ($e) => \App\Models\User::phoneKey($e->phone) === $key);
+
+                    if ($candidates->count() === 1) {
+                        $employee = $candidates->first();
+                        $employee->update(['user_id' => $userId]);
+                        \Illuminate\Support\Facades\Log::info('Worker auto-linked to employee record by phone', [
+                            'user_id' => $userId, 'employee_id' => $employee->id,
+                        ]);
+                    }
+                }
+            }
+
             if (!$employee) {
                 // Don't bounce them back to login in a loop — show a calm, clear page.
                 return response()->view('production.not-linked', [

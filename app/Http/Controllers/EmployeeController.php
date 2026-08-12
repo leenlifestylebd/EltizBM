@@ -329,12 +329,16 @@ class EmployeeController extends Controller
             return back()->with('error', 'এই কর্মী একটি admin/staff account-এর সাথে যুক্ত — আলাদা worker PIN দিতে আগে unlink করুন।');
         }
 
-        // The login phone must be unique among worker accounts in this business.
+        // Compare on the normalised key so "01712-345678" and "01712345678" are
+        // recognised as the same number — both for the clash check and at login.
+        $phoneKey = User::phoneKey($data['phone']);
+
         $clash = User::where('business_id', $bizId)
             ->where('role', 'employee')
-            ->where('phone', $data['phone'])
+            ->where('phone', 'like', '%' . $phoneKey)
             ->when($user, fn ($q) => $q->where('id', '!=', $user->id))
-            ->exists();
+            ->get()
+            ->contains(fn ($u) => User::phoneKey($u->phone) === $phoneKey);
         if ($clash) {
             return back()->with('error', 'এই ফোন নম্বর আরেকজন কর্মীর লগইনে ব্যবহৃত হচ্ছে।');
         }
