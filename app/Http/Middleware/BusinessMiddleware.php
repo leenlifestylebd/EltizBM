@@ -36,9 +36,19 @@ class BusinessMiddleware
             if (!in_array($routeName, $workerRoutes)) {
                 $perms  = $user->permissions ?? [];
                 $module = $this->moduleForRoute($routeName);
+
+                // The api.* lookups (product search, customer search, dashboard
+                // stats) are read-only and business-scoped, and the order/POS forms
+                // can't work without them. They map to no single module — an
+                // orders-only worker still needs product search — so allow them for
+                // anyone who holds at least one module. Without this the AJAX call
+                // was redirected to the worker dashboard and the search box simply
+                // returned nothing.
+                $isLookup = str_starts_with((string) $routeName, 'api.');
+
                 // Empty perms = pure worker (locked). Granted perms unlock those modules.
                 $allowed = !empty($perms)
-                    && ($routeName === 'dashboard' || ($module && in_array($module, $perms)));
+                    && ($routeName === 'dashboard' || $isLookup || ($module && in_array($module, $perms)));
 
                 if (!$allowed) {
                     return redirect()->route('production.worker.dashboard');
