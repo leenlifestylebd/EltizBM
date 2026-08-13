@@ -87,6 +87,7 @@
                             <p class="text-xs text-gray-400 dark:text-slate-500 mt-1">
                                 @if($curRev)Currently ৳{{ number_format($curRev->amount) }} from {{ $curRev->effective_from->format('M Y') }}. @endif
                                 Set the month this salary applies from — earlier months keep their old rate.
+                                <span class="block mt-1">কেউ বেতনের বদলে শুধু production রেটে কাজ করলে <b>0</b> দিন — ওই মাস থেকে বেতন ধরা হবে না।</span>
                             </p>
                         </div>
                         @endif
