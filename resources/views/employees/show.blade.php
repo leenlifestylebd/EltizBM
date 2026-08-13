@@ -220,11 +220,27 @@
                             @endif
                         </p>
                     </div>
-                    @if($i === 0)
-                        <span class="px-2 py-0.5 rounded-full text-xs font-medium bg-green-100 text-green-700 dark:bg-green-900/30 dark:text-green-400">Current</span>
-                    @endif
+                    <div class="flex items-center gap-2">
+                        @if($i === 0)
+                            <span class="px-2 py-0.5 rounded-full text-xs font-medium bg-green-100 text-green-700 dark:bg-green-900/30 dark:text-green-400">Current</span>
+                        @endif
+                        @if(auth()->user()->isAdmin())
+                        <form method="POST" action="{{ route('employees.salary.destroy', [$employee, $rev]) }}"
+                              onsubmit="return confirm('{{ $rev->effective_from->format('M Y') }} থেকে কার্যকর ৳{{ number_format($rev->amount, 0) }} রেকর্ডটি মুছবেন? ওই মাসগুলো আগের রেট অনুযায়ী হিসাব হবে।')">
+                            @csrf @method('DELETE')
+                            <button type="submit" class="p-1 text-gray-300 hover:text-red-500 transition-colors" title="এই রেকর্ড মুছুন">
+                                <svg class="w-3.5 h-3.5" fill="none" stroke="currentColor" viewBox="0 0 24 24"><path stroke-linecap="round" stroke-linejoin="round" stroke-width="2" d="M19 7l-.867 12.142A2 2 0 0116.138 21H7.862a2 2 0 01-1.995-1.858L5 7m5 4v6m4-6v6m1-10V4a1 1 0 00-1-1h-4a1 1 0 00-1 1v3M4 7h16"/></svg>
+                            </button>
+                        </form>
+                        @endif
+                    </div>
                 </div>
                 @endforeach
+                <div class="px-4 py-2 bg-gray-50 dark:bg-slate-700/30">
+                    <p class="text-xs text-gray-400 dark:text-slate-500">
+                        ভুল হলে <a href="{{ route('employees.edit', $employee) }}" class="text-primary-600 hover:underline">Edit</a>-এ গিয়ে একই "effective from" মাস দিয়ে সঠিক অঙ্ক সেভ করুন — ওই মাসের রেকর্ডটি বদলে যাবে।
+                    </p>
+                </div>
             </div>
         </div>
         @endif
