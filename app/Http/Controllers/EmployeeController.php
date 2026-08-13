@@ -263,7 +263,13 @@ class EmployeeController extends Controller
         // when the amount is unchanged. updateOrCreate keeps one row per month, so
         // re-saving the same month is a harmless no-op. Earlier months (different
         // effective_from rows) keep their own rate.
-        if ($newSalary > 0) {
+        //
+        // Zero is a real value, not "no change": a worker moving from a fixed
+        // salary to piece-rate needs "0 from June" recorded, otherwise the old
+        // rate keeps applying and payroll goes on showing salary they no longer
+        // earn. Skipping the write only when the field wasn't submitted at all
+        // (the form disables it for production-only staff) keeps that case clean.
+        if ($request->has('salary')) {
             $eff = $request->salary_effective_from
                 ? Carbon::parse($request->salary_effective_from)->startOfMonth()
                 : now()->startOfMonth();
