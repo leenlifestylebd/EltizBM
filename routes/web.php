@@ -258,6 +258,7 @@ Route::middleware(['auth', 'business'])->group(function () {
         Route::get('/{employee}/attendance',  [EmployeeController::class, 'attendance'])->name('attendance');
         Route::post('/{employee}/attendance', [EmployeeController::class, 'storeAttendance'])->name('attendance.store');
         Route::post('/{employee}/set-pin',    [EmployeeController::class, 'setPin'])->name('set-pin');
+        Route::delete('/{employee}/salary/{salary}', [EmployeeController::class, 'destroySalary'])->name('salary.destroy');
     });
 
     Route::get('/attendance', [EmployeeController::class, 'attendanceOverview'])->name('attendance.index');

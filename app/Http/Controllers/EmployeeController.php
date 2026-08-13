@@ -309,6 +309,31 @@ class EmployeeController extends Controller
      * Set / reset a worker's app-login PIN (phone + PIN). Creates or updates the
      * linked employee-role User so the worker can log in via /worker-login.
      */
+    /**
+     * Remove one salary revision.
+     *
+     * Revisions can be corrected by re-saving the same effective month, but a row
+     * added for the wrong month could not be taken back — the month kept a rate it
+     * was never meant to have. Deleting one lets that month fall back to whatever
+     * earlier revision applies (or the employee's base salary).
+     */
+    public function destroySalary(Employee $employee, EmployeeSalary $salary)
+    {
+        $this->authorize($employee);
+        abort_unless(auth()->user()->isAdmin(), 403, 'Only an admin can change salary history.');
+        abort_if($salary->employee_id !== $employee->id, 403);
+
+        $month = $salary->effective_from->format('M Y');
+        $this->logActivity('deleted', $salary, [
+            'employee'       => $employee->name,
+            'amount'         => $salary->amount,
+            'effective_from' => (string) $salary->effective_from,
+        ]);
+        $salary->delete();
+
+        return back()->with('success', "{$month} থেকে কার্যকর বেতনের রেকর্ডটি মুছে ফেলা হয়েছে।");
+    }
+
     public function setPin(Request $request, Employee $employee)
     {
         $this->authorize($employee);
