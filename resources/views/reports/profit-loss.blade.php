@@ -95,14 +95,20 @@ $presets = [
 {{-- KPI Cards --}}
 <div class="grid grid-cols-2 sm:grid-cols-3 lg:grid-cols-6 gap-3 mb-5">
     @php
-    $cards = [
+    // COGS only means something for a reseller who records a cost price per
+    // product. Manufacturing here books materials as an expense when they are
+    // bought, so showing COGS = 0 alongside a "100% margin" Gross Profit was
+    // worse than showing nothing. Those two cards appear only when cost prices
+    // are actually being kept.
+    $showCogs = $cogs > 0;
+    $cards = array_values(array_filter([
         ['label'=>'Revenue',          'value'=>$revenue,          'color'=>'primary',                                      'prefix'=>'৳', 'sub'=>'from sales'],
-        ['label'=>'Cost (COGS)',       'value'=>$cogs,             'color'=>'orange',                                    'prefix'=>'৳', 'sub'=>'cost of goods'],
-        ['label'=>'Gross Profit',      'value'=>$grossProfit,      'color'=>$grossProfit>=0?'green':'rose',               'prefix'=>'৳', 'sub'=>$grossMargin.'% margin'],
-        ['label'=>'Operating Exp.',    'value'=>$expenses,         'color'=>'red',                                       'prefix'=>'৳', 'sub'=>'transactions'],
+        $showCogs ? ['label'=>'Cost (COGS)',  'value'=>$cogs,        'color'=>'orange',                                    'prefix'=>'৳', 'sub'=>'cost of goods'] : null,
+        $showCogs ? ['label'=>'Gross Profit', 'value'=>$grossProfit, 'color'=>$grossProfit>=0?'green':'rose',              'prefix'=>'৳', 'sub'=>$grossMargin.'% margin'] : null,
+        ['label'=>'Operating Exp.',    'value'=>$expenses,         'color'=>'red',                                       'prefix'=>'৳', 'sub'=>'materials, courier, rent…'],
         ['label'=>'Production Wages',  'value'=>$productionWages,  'color'=>'purple',                                    'prefix'=>'৳', 'sub'=>'worker payments'],
         ['label'=>'Net Profit',        'value'=>$netProfit,        'color'=>$netProfit>=0?'emerald':'rose',              'prefix'=>'৳', 'sub'=>$netMargin.'% margin'],
-    ];
+    ]));
     @endphp
     @foreach($cards as $c)
     <div class="bg-white dark:bg-slate-800 rounded-xl p-3.5 border border-{{ $c['color'] }}-100 dark:border-{{ $c['color'] }}-900/40 stat-card">
@@ -201,16 +207,23 @@ $presets = [
     <table class="w-full text-sm">
         <tbody>
             @php
-            $stmt = [
+            $stmt = array_values(array_filter([
                 ['label'=>'Revenue from Sales',         'amount'=>$revenue,          'indent'=>0, 'color'=>'text-gray-900 dark:text-white',         'bold'=>true,  'section'=>'INCOME'],
-                ['label'=>'Cost of Goods Sold (COGS)',  'amount'=>-$cogs,            'indent'=>1, 'color'=>'text-red-600 dark:text-red-400',         'bold'=>false, 'section'=>null],
-                ['label'=>'Gross Profit',               'amount'=>$grossProfit,      'indent'=>0, 'color'=>$grossProfit>=0?'text-green-600 dark:text-green-400':'text-red-600 dark:text-red-400', 'bold'=>true, 'border'=>true, 'section'=>null],
+                $showCogs ? ['label'=>'Cost of Goods Sold (COGS)',  'amount'=>-$cogs,            'indent'=>1, 'color'=>'text-red-600 dark:text-red-400',         'bold'=>false, 'section'=>null] : null,
+                $showCogs ? ['label'=>'Gross Profit',               'amount'=>$grossProfit,      'indent'=>0, 'color'=>$grossProfit>=0?'text-green-600 dark:text-green-400':'text-red-600 dark:text-red-400', 'bold'=>true, 'border'=>true, 'section'=>null] : null,
                 ['label'=>'Other Income',               'amount'=>$otherIncome,      'indent'=>1, 'color'=>'text-teal-600 dark:text-teal-400',       'bold'=>false, 'section'=>'DEDUCTIONS'],
                 ['label'=>'Operating Expenses',         'amount'=>-$expenses,        'indent'=>1, 'color'=>'text-red-600 dark:text-red-400',         'bold'=>false, 'section'=>null],
                 ['label'=>'Production Wages',           'amount'=>-$productionWages, 'indent'=>1, 'color'=>'text-purple-600 dark:text-purple-400',   'bold'=>false, 'section'=>null],
                 ['label'=>'Net Profit / Loss',          'amount'=>$netProfit,        'indent'=>0, 'color'=>$netProfit>=0?'text-primary-600 dark:text-primary-400':'text-red-600 dark:text-red-400', 'bold'=>true, 'border'=>true, 'section'=>null],
-            ];
+            ]));
             @endphp
+            @unless($showCogs)
+            <tr><td colspan="2" class="px-4 pt-3 pb-1">
+                <p class="text-xs text-gray-400 dark:text-slate-500">
+                    উৎপাদনের কাঁচামাল কেনার সময়েই খরচ হিসেবে ধরা হয় (Operating Expenses-এ), তাই আলাদা COGS দেখানো হয় না — নাহলে একই খরচ দুবার গোনা হতো।
+                </p>
+            </td></tr>
+            @endunless
             @foreach($stmt as $row)
             @if(isset($row['section']))
             <tr class="bg-gray-50 dark:bg-slate-700/50">
