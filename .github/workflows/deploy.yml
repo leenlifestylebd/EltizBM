@@ -4,7 +4,13 @@ name: Deploy to production
 on:
   push:
     branches: [master]
-  workflow_dispatch: {}   # also lets you trigger it manually from the Actions tab
+  workflow_dispatch:
+    inputs:
+      operation:
+        description: Manual preflight (does not deploy)
+        type: choice
+        options: [inspect]
+        default: inspect
 
 concurrency:
   group: production-deploy
@@ -12,6 +18,7 @@ concurrency:
 
 jobs:
   deploy:
+    if: github.event_name == 'push'
     runs-on: ubuntu-latest
     steps:
       - name: SSH → pull latest & run Laravel deploy steps
@@ -32,3 +39,30 @@ jobs:
             php artisan route:clear
             php artisan view:clear
             echo "Deployed: $(git log --oneline -1)"
+
+  inspect:
+    if: github.event_name == 'workflow_dispatch'
+    runs-on: ubuntu-latest
+    steps:
+      - name: Check production access without changing the application
+        uses: appleboy/ssh-action@v1.2.0
+        with:
+          host: ${{ secrets.SSH_HOST }}
+          port: ${{ secrets.SSH_PORT }}
+          username: ${{ secrets.SSH_USER }}
+          key: ${{ secrets.SSH_KEY }}
+          timeout: 45s
+          command_timeout: 2m
+          script: |
+            set -e
+            cd ~/domains/leen.com.bd/fulfillo
+            printf 'Current commit: '
+            git rev-parse HEAD
+            printf 'Tracked modifications: '
+            git status --porcelain --untracked-files=no | wc -l
+            php -v | head -n 1
+            command -v mysqldump || command -v mariadb-dump
+            test -f .env
+            test -d storage
+            test -d ../public_html/app
+            echo 'Production backup prerequisites available'

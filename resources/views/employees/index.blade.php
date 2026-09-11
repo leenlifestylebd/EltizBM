@@ -1,4 +1,4 @@
-﻿@extends('layouts.app')
+@extends('layouts.app')
 @section('title', 'Employees')
 
 @section('content')
@@ -76,11 +76,11 @@
             </span>
         </div>
 
-        @if((float)$emp->salary > 0)
+        @if($emp->month_base > 0)
         {{-- Base-salary card (+ production line below if the worker also does piece-work) --}}
         <div class="grid grid-cols-2 gap-2 mb-3">
             <div class="bg-indigo-50 dark:bg-indigo-900/20 rounded-lg p-2 text-center">
-                <p class="text-sm font-bold text-indigo-600 dark:text-indigo-400">৳{{ number_format($emp->salary) }}</p>
+                <p class="text-sm font-bold text-indigo-600 dark:text-indigo-400">৳{{ number_format($emp->month_base) }}</p>
                 <p class="text-xs text-gray-400 dark:text-slate-500">Monthly Salary</p>
             </div>
             <div class="bg-green-50 dark:bg-green-900/20 rounded-lg p-2 text-center">
@@ -141,7 +141,7 @@
                     {{ $emp->phone }}
                 </a>
             @endif
-            <span class="font-medium text-gray-700 dark:text-slate-300">৳{{ number_format($emp->salary) }}/mo</span>
+            <span class="font-medium text-gray-700 dark:text-slate-300">৳{{ number_format($emp->month_base) }}/mo</span>
         </div>
 
         <div class="flex items-center gap-1.5 pt-2 border-t border-gray-50 dark:border-slate-700 opacity-0 group-hover:opacity-100 transition-opacity">

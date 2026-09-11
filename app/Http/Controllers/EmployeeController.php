@@ -35,13 +35,14 @@ class EmployeeController extends Controller
 
         $employees  = $query->paginate(18);
         $today      = today()->toDateString();
+        $monthEnd = now()->endOfMonth()->toDateString();
         $monthStart = now()->startOfMonth()->toDateString();
 
         // Replace N+1 loops with batch aggregate queries keyed by employee_id
         $empIds = $employees->pluck('id')->toArray();
 
         $productionStats = ProductionEntry::whereIn('employee_id', $empIds)
-            ->whereBetween('entry_date', [$monthStart, $today])
+            ->whereBetween('entry_date', [$monthStart, Carbon::parse($monthEnd)->endOfDay()])
             ->selectRaw('employee_id,
                 SUM(quantity) as month_qty,
                 SUM(amount) as month_earn,
@@ -50,17 +51,8 @@ class EmployeeController extends Controller
             ->get()
             ->keyBy('employee_id');
 
-        $paymentStats = EmployeePayment::whereIn('employee_id', $empIds)
-            ->whereBetween('payment_date', [$monthStart, $today])
-            ->selectRaw('employee_id,
-                SUM(CASE WHEN type IN (\'salary\',\'advance\') THEN amount ELSE 0 END) as month_paid,
-                SUM(CASE WHEN type = \'deduction\' THEN amount ELSE 0 END) as month_deducted')
-            ->groupBy('employee_id')
-            ->get()
-            ->keyBy('employee_id');
-
         $attendanceStats = Attendance::whereIn('employee_id', $empIds)
-            ->whereBetween('attendance_date', [$monthStart, $today])
+            ->whereBetween('attendance_date', [$monthStart, Carbon::parse($monthEnd)->endOfDay()])
             ->whereIn('status', ['present', 'late'])
             ->selectRaw('employee_id, COUNT(*) as days_present')
             ->groupBy('employee_id')
@@ -69,20 +61,20 @@ class EmployeeController extends Controller
 
         foreach ($employees as $emp) {
             $prod = $productionStats->get($emp->id);
-            $pay  = $paymentStats->get($emp->id);
+            $ledger = $emp->payrollLedger($monthStart, $monthEnd);
             $att  = $attendanceStats->get($emp->id);
 
             $emp->today_production = $prod->today_qty ?? 0;
             $emp->month_production = $prod->month_qty ?? 0;
             $emp->month_earning    = $prod->month_earn ?? 0;
-            $emp->month_advance    = (float)($pay->month_paid ?? 0);
-            $emp->month_deducted   = (float)($pay->month_deducted ?? 0);
+            $emp->month_advance    = $ledger['paid'];
+            $emp->month_deducted   = $ledger['deduction'];
             $emp->days_present     = $att->days_present ?? 0;
 
-            // Unified: net = base salary + production − paid + deductions.
+            // Unified: net = base salary + production − paid − deductions.
             // Base uses the salary effective for this month (salary-revision aware).
             $emp->month_base = $emp->salaryForMonth($monthStart);
-            $emp->month_net  = $emp->month_base + $emp->month_earning - $emp->month_advance - $emp->month_deducted;
+            $emp->month_net  = $ledger['closing'];
             $emp->is_hybrid  = $emp->month_base > 0 && $emp->month_earning > 0;
         }
 
@@ -110,37 +102,40 @@ class EmployeeController extends Controller
         $request->validate([
             'name'   => 'required|string|max:100',
             'phone'  => 'nullable|string|max:20',
+            'joining_date' => 'nullable|date',
             'salary' => 'nullable|numeric|min:0',
             'type'   => 'nullable|in:salary,production,both',
         ]);
 
-        $employee = Employee::create([
-            'business_id'  => auth()->user()->business_id,
-            'user_id'      => $request->user_id ?: null,
-            'name'         => $request->name,
-            'phone'        => $request->phone,
-            'email'        => $request->email,
-            'designation'  => $request->designation,
-            'department'   => $request->department,
-            'type'         => $request->type ?? 'salary',
-            'salary'       => $request->salary ?? 0,
-            'joining_date' => $request->joining_date,
-            'status'       => $request->status ?? 'active',
-        ]);
-
-        // Seed salary history (effective from the joining month).
-        if ((float)($request->salary ?? 0) > 0) {
-            $eff = $request->joining_date
-                ? Carbon::parse($request->joining_date)->startOfMonth()
-                : now()->startOfMonth();
-            EmployeeSalary::create([
-                'business_id'    => $employee->business_id,
-                'employee_id'    => $employee->id,
-                'amount'         => $request->salary,
-                'effective_from' => $eff->toDateString(),
-                'created_by'     => auth()->id(),
+        DB::transaction(function () use ($request) {
+            $employee = Employee::create([
+                'business_id'  => auth()->user()->business_id,
+                'user_id'      => $request->user_id ?: null,
+                'name'         => $request->name,
+                'phone'        => $request->phone,
+                'email'        => $request->email,
+                'designation'  => $request->designation,
+                'department'   => $request->department,
+                'type'         => $request->type ?? 'salary',
+                'salary'       => $request->salary ?? 0,
+                'joining_date' => $request->joining_date,
+                'status'       => $request->status ?? 'active',
             ]);
-        }
+
+            // Seed salary history (effective from the joining month).
+            if ((float)($request->salary ?? 0) > 0) {
+                $eff = $request->joining_date
+                    ? Carbon::parse($request->joining_date)->startOfMonth()
+                    : now()->startOfMonth();
+                EmployeeSalary::create([
+                    'business_id'    => $employee->business_id,
+                    'employee_id'    => $employee->id,
+                    'amount'         => $request->salary,
+                    'effective_from' => $eff->toDateString(),
+                    'created_by'     => auth()->id(),
+                ]);
+            }
+        });
 
         return redirect()->route('employees.index')->with('success', 'Employee added!');
     }
@@ -156,30 +151,30 @@ class EmployeeController extends Controller
         $monthEnd   = Carbon::parse($month . '-01')->endOfMonth();
 
         $monthProduction = ProductionEntry::where('employee_id', $employee->id)
-            ->whereBetween('entry_date', [$monthStart, $monthEnd])->sum('quantity');
+            ->whereBetween('entry_date', [$monthStart, Carbon::parse($monthEnd)->endOfDay()])->sum('quantity');
 
         $monthEarning = ProductionEntry::where('employee_id', $employee->id)
-            ->whereBetween('entry_date', [$monthStart, $monthEnd])->sum('amount');
+            ->whereBetween('entry_date', [$monthStart, Carbon::parse($monthEnd)->endOfDay()])->sum('amount');
 
         $monthAdvance = EmployeePayment::where('employee_id', $employee->id)
-            ->whereBetween('payment_date', [$monthStart, $monthEnd])
+            ->whereBetween('payment_date', [$monthStart, Carbon::parse($monthEnd)->endOfDay()])
             ->whereIn('type', ['advance', 'deduction'])->sum('amount');
 
         $monthAttendance = Attendance::where('employee_id', $employee->id)
-            ->whereBetween('attendance_date', [$monthStart, $monthEnd])
+            ->whereBetween('attendance_date', [$monthStart, Carbon::parse($monthEnd)->endOfDay()])
             ->whereIn('status', ['present', 'late'])->count();
 
         // Salary-employee extras: total paid this month and recent payments
         $monthTotalPaid   = EmployeePayment::where('employee_id', $employee->id)
-            ->whereBetween('payment_date', [$monthStart, $monthEnd])
+            ->whereBetween('payment_date', [$monthStart, Carbon::parse($monthEnd)->endOfDay()])
             ->whereIn('type', ['salary', 'advance'])->sum('amount');
         $monthDeductions  = EmployeePayment::where('employee_id', $employee->id)
-            ->whereBetween('payment_date', [$monthStart, $monthEnd])
+            ->whereBetween('payment_date', [$monthStart, Carbon::parse($monthEnd)->endOfDay()])
             ->where('type', 'deduction')->sum('amount');
-        // Unified net = base salary + production earning − paid + deductions.
+        // Unified net = base salary + production earning − paid − deductions.
         // Base = the salary effective for this month (salary-revision aware).
         $monthBase        = $employee->salaryForMonth($monthStart);
-        $monthNetPayable  = $monthBase + (float)$monthEarning - (float)$monthTotalPaid - (float)$monthDeductions;
+        $monthNetPayable  = $employee->payrollLedger($monthStart, $monthEnd)['closing'];
         $isHybrid         = $monthBase > 0 && (float)$monthEarning > 0;
 
         $recentPayments   = EmployeePayment::where('employee_id', $employee->id)
@@ -241,43 +236,57 @@ class EmployeeController extends Controller
             'type'                  => 'nullable|in:salary,production,both',
             'salary'                => 'nullable|numeric|min:0',
             'salary_effective_from' => 'nullable|date',
+            'joining_date' => 'nullable|date',
         ]);
 
-        $newSalary = (float)($request->salary ?? 0);
-
-        $employee->update([
-            'user_id'      => $request->user_id ?: null,
-            'name'         => $request->name,
-            'phone'        => $request->phone,
-            'email'        => $request->email,
-            'designation'  => $request->designation,
-            'department'   => $request->department,
-            'type'         => $request->type ?? $employee->type ?? 'salary',
-            'salary'       => $newSalary,
-            'joining_date' => $request->joining_date,
-            'status'       => $request->status,
-        ]);
-
-        // Record a salary revision at the chosen effective month. The month is
-        // authoritative — upsert it so a back-dated effective-from is honoured even
-        // when the amount is unchanged. updateOrCreate keeps one row per month, so
-        // re-saving the same month is a harmless no-op. Earlier months (different
-        // effective_from rows) keep their own rate.
-        //
-        // Zero is a real value, not "no change": a worker moving from a fixed
-        // salary to piece-rate needs "0 from June" recorded, otherwise the old
-        // rate keeps applying and payroll goes on showing salary they no longer
-        // earn. Skipping the write only when the field wasn't submitted at all
-        // (the form disables it for production-only staff) keeps that case clean.
-        if ($request->has('salary')) {
-            $eff = $request->salary_effective_from
+        DB::transaction(function () use ($request, $employee) {
+            $employee = Employee::whereKey($employee->id)->lockForUpdate()->firstOrFail();
+            $oldSalary = (float) $employee->salary;
+            $oldStart = $employee->salaryStartMonth();
+            $hadHistory = $employee->salaries->isNotEmpty();
+            $newType = $request->type ?? $employee->type;
+            $toProduction = $newType === 'production'
+                && $employee->type !== 'production';
+            $recordSalary = $request->has('salary') || $toProduction;
+            $newSalary = $newType === 'production' ? 0.0 : (float) ($request->salary ?? $oldSalary);
+            $effective = $request->salary_effective_from
                 ? Carbon::parse($request->salary_effective_from)->startOfMonth()
                 : now()->startOfMonth();
-            EmployeeSalary::updateOrCreate(
-                ['employee_id' => $employee->id, 'effective_from' => $eff->toDateString()],
-                ['business_id' => $employee->business_id, 'amount' => $newSalary, 'created_by' => auth()->id()]
-            );
-        }
+
+            $employee->fill([
+                'user_id' => $request->has('user_id') ? ($request->user_id ?: null) : $employee->user_id,
+                'name' => $request->name,
+                'phone' => $request->input('phone', $employee->phone),
+                'email' => $request->input('email', $employee->email),
+                'designation' => $request->input('designation', $employee->designation),
+                'department' => $request->input('department', $employee->department),
+                'type' => $newType,
+                'joining_date' => $request->input('joining_date', $employee->joining_date),
+                'status' => $request->status ?? $employee->status,
+            ]);
+
+            if ($recordSalary) {
+                // Preserve the legacy rate before writing the first raise/zero revision.
+                if (!$hadHistory && $oldStart && $oldStart->lt($effective)) {
+                    EmployeeSalary::create([
+                        'business_id' => $employee->business_id, 'employee_id' => $employee->id,
+                        'effective_from' => $oldStart->toDateString(), 'amount' => $oldSalary,
+                        'created_by' => auth()->id(),
+                    ]);
+                }
+                $revision = EmployeeSalary::where('employee_id', $employee->id)
+                    ->whereDate('effective_from', $effective->toDateString())
+                    ->orderByDesc('id')->first() ?? new EmployeeSalary;
+                $revision->fill([
+                    'employee_id' => $employee->id, 'effective_from' => $effective->toDateString(),
+                    'business_id' => $employee->business_id, 'amount' => $newSalary, 'created_by' => auth()->id(),
+                ])->save();
+                $employee->unsetRelation('salaries');
+                // A future raise must not become today's displayed salary.
+                $employee->salary = $employee->salaryForMonth(now());
+            }
+            $employee->save();
+        });
 
         return redirect()->route('employees.show', $employee)->with('success', 'Employee updated!');
     }

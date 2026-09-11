@@ -81,7 +81,7 @@
     $money = fn ($n) => 'Tk ' . number_format((float) $n);
     $monthLabel = \Carbon\Carbon::parse($month.'-01')->format('F Y');
     $monthShort = \Carbon\Carbon::parse($month.'-01')->format('M Y');
-    $monthBalance = $monthEarned - $monthPaid;
+    $monthBalance = $monthEarned - $monthPaid - $monthDeduction;
 @endphp
 
 {{-- Header --}}
@@ -118,9 +118,9 @@
 <table class="cards">
     <tr>
         <td class="c-blue">
-            <div class="label">Piece-bill ({{ $monthShort }})</div>
+            <div class="label">Earned ({{ $monthShort }})</div>
             <div class="value">{{ $money($monthEarned) }}</div>
-            <div class="sub">{{ number_format($entries->sum('quantity')) }} pieces</div>
+            <div class="sub">{{ $money($monthSalary) }} salary + {{ $money($entries->sum('amount')) }} production</div>
         </td>
         <td class="c-green">
             <div class="label">Paid (this month)</div>
@@ -133,7 +133,7 @@
             <div class="sub">current month only</div>
         </td>
         <td class="{{ $runningDue > 0 ? 'c-red' : ($runningDue < 0 ? 'c-purple' : 'c-gray') }}">
-            <div class="label">All-time balance</div>
+            <div class="label">Balance through month</div>
             <div class="value">{{ $runningDue == 0 ? 'Clear' : $money(abs($runningDue)) }}</div>
             <div class="sub">{{ $runningDue > 0 ? 'due' : ($runningDue < 0 ? 'advance' : 'settled') }}</div>
         </td>
@@ -257,8 +257,8 @@
                         @endforelse
                         @if($payments->isNotEmpty())
                         <tr class="total-row">
-                            <td>Total Paid</td>
-                            <td class="r" style="color:#1f7a44;">{{ $money($payments->sum('amount')) }}</td>
+                            <td>Salary / advance paid</td>
+                            <td class="r" style="color:#1f7a44;">{{ $money($monthPaid) }}</td>
                         </tr>
                         @endif
                     </table>
@@ -274,20 +274,26 @@
                         <tr>
                             <td>Carry-over {{ $carryOver > 0 ? '(advance)' : '(due)' }}</td>
                             <td class="r" style="{{ $carryOver > 0 ? 'color:#1f7a44;' : 'color:#b3382f;' }}">
-                                {{ $carryOver > 0 ? '+' : '-' }}{{ $money(abs($carryOver)) }}
+                                {{ $carryOver > 0 ? '-' : '+' }}{{ $money(abs($carryOver)) }}
                             </td>
                         </tr>
                         @endif
                         <tr>
-                            <td>Piece-bill ({{ $monthShort }})</td>
+                            <td>Earned ({{ $monthShort }})</td>
                             <td class="r" style="color:#1d5f92;">{{ $money($monthEarned) }}</td>
                         </tr>
                         <tr>
                             <td>Paid ({{ $monthShort }})</td>
                             <td class="r" style="color:#1f7a44;">- {{ $money($monthPaid) }}</td>
                         </tr>
+                        @if($monthDeduction != 0)
+                        <tr><td>Deductions</td><td class="r">- {{ $money($monthDeduction) }}</td></tr>
+                        @endif
+                        @if($monthBonus != 0)
+                        <tr><td>Bonus paid (separate)</td><td class="r">{{ $money($monthBonus) }}</td></tr>
+                        @endif
                         <tr class="grand">
-                            <td>All-time Balance</td>
+                            <td>Balance through month</td>
                             <td class="r" style="{{ $runningDue > 0 ? 'color:#b3382f;' : ($runningDue < 0 ? 'color:#6b3fa0;' : 'color:#1f7a44;') }}">
                                 @if($runningDue == 0) Clear
                                 @elseif($runningDue > 0) {{ $money($runningDue) }} Due
