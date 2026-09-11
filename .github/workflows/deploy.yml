@@ -9,7 +9,7 @@ on:
       operation:
         description: Manual preflight (does not deploy)
         type: choice
-        options: [inspect]
+        options: [inspect, backup]
         default: inspect
 
 concurrency:
@@ -41,7 +41,7 @@ jobs:
             echo "Deployed: $(git log --oneline -1)"
 
   inspect:
-    if: github.event_name == 'workflow_dispatch'
+    if: github.event_name == 'workflow_dispatch' && inputs.operation == 'inspect'
     runs-on: ubuntu-latest
     steps:
       - name: Check production access without changing the application
@@ -66,3 +66,25 @@ jobs:
             test -d storage
             test -d ../public_html/app
             echo 'Production backup prerequisites available'
+
+  backup:
+    if: github.event_name == 'workflow_dispatch' && inputs.operation == 'backup'
+    runs-on: ubuntu-latest
+    permissions:
+      contents: read
+    steps:
+      - uses: actions/checkout@v4
+      - name: Capture and encrypt private production backup
+        env:
+          SSH_HOST: ${{ secrets.SSH_HOST }}
+          SSH_PORT: ${{ secrets.SSH_PORT }}
+          SSH_USER: ${{ secrets.SSH_USER }}
+          SSH_KEY: ${{ secrets.SSH_KEY }}
+          BACKUP_ID: ${{ github.run_id }}
+        run: bash .github/scripts/capture-backup.sh
+      - uses: actions/upload-artifact@v4
+        with:
+          name: encrypted-production-backup
+          path: encrypted-backup/
+          retention-days: 7
+          if-no-files-found: error
