@@ -6,7 +6,10 @@ backup_id="$1"; target="$2"
 app="$HOME/domains/leen.com.bd/fulfillo"
 backup_dir="$HOME/eltiz-private-backups/$backup_id"
 cd "$app"
-git fetch origin master
+# Read repository objects from the runner's code-only bundle, without GitHub credentials.
+git bundle verify "$backup_dir/release.bundle"
+[[ "$(git bundle list-heads "$backup_dir/release.bundle" HEAD | cut -d' ' -f1)" == "$target" ]] || exit 2
+git fetch "$backup_dir/release.bundle" HEAD:refs/remotes/origin/master
 [[ "$(git rev-parse origin/master)" == "$target" ]] || { echo 'Master moved; deploy stopped'; exit 1; }
 test -z "$(git status --porcelain --untracked-files=no)" || { echo 'Tracked production edits need review'; exit 1; }
 previous=$(git rev-parse HEAD)
