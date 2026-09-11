@@ -141,6 +141,7 @@ class ProductionController extends Controller
 
     public function payroll(Request $request)
     {
+        $request->validate(['month' => 'nullable|date_format:Y-m']);
         $bizId = auth()->user()->business_id;
         $month = $request->month ?? today()->format('Y-m');
 
@@ -200,7 +201,7 @@ class ProductionController extends Controller
             ->orderBy('name')->get();
 
         $query = ProductionEntry::where('production_entries.business_id', $bizId)
-            ->whereBetween('entry_date', [$from, $to])
+            ->whereBetween('entry_date', [$from, Carbon::parse($to)->endOfDay()])
             ->with(['employee', 'productionRate']);
 
         if ($empId) {
@@ -282,49 +283,48 @@ class ProductionController extends Controller
 
         $employee = Employee::where('business_id', $bizId)->findOrFail($request->employee_id);
 
-        // Advance, salary and bonus all move cash out of the business, so each
-        // becomes an expense transaction in the cash book. (Deduction has been
-        // retired — those were converted to advances.)
-        $transactionId = null;
-        if (in_array($request->type, ['advance', 'salary', 'bonus'])) {
-            // Categorise employee payments under "Salary & Wages" so they don't fall
-            // under "Uncategorized" in the expense reports.
-            $payCat = AccountCategory::firstOrCreate(
-                ['business_id' => $bizId, 'name' => 'Salary & Wages', 'type' => 'expense'],
-                ['business_id' => $bizId, 'name' => 'Salary & Wages', 'type' => 'expense']
+        DB::transaction(function () use ($request, $employee, $bizId) {
+            // Advance, salary and bonus all move cash out of the business, so each
+            // becomes an expense transaction in the cash book. (Deduction has been
+            // retired — those were converted to advances.)
+            $transactionId = null;
+            if (in_array($request->type, ['advance', 'salary', 'bonus'])) {
+                $payCat = AccountCategory::firstOrCreate(
+                    ['business_id' => $bizId, 'name' => 'Salary & Wages', 'type' => 'expense']
+                );
+                $transactionId = Transaction::create([
+                    'business_id'      => $bizId,
+                    'category_id'      => $payCat->id,
+                    'created_by'       => auth()->id(),
+                    'type'             => 'expense',
+                    'title'            => ucfirst($request->type) . ' payment to ' . $employee->name,
+                    'amount'           => $request->amount,
+                    'payment_method'   => $request->payment_method,
+                    'reference'        => 'EMPPAY-' . $employee->id,
+                    'transaction_date' => $request->payment_date,
+                ])->id;
+            }
+
+            EmployeePayment::create([
+                'business_id'    => $bizId,
+                'employee_id'    => $employee->id,
+                'created_by'     => auth()->id(),
+                'transaction_id' => $transactionId,
+                'payment_date'   => $request->payment_date,
+                'amount'         => $request->amount,
+                'type'           => $request->type,
+                'payment_method' => $request->payment_method,
+                'notes'          => $request->notes,
+            ]);
+
+            $typeLabels = ['advance' => 'অগ্রিম', 'salary' => 'বেতন', 'bonus' => 'বোনাস', 'deduction' => 'কর্তন'];
+            EmployeeNotification::notify(
+                $bizId, $employee->id, 'payment',
+                ($typeLabels[$request->type] ?? 'পেমেন্ট') . ' ৳' . number_format((float)$request->amount),
+                Carbon::parse($request->payment_date)->format('d M Y') . ' তারিখে ' . ($typeLabels[$request->type] ?? 'পেমেন্ট') . ' হিসেবে ৳' . number_format((float)$request->amount) . ' record হয়েছে',
+                route('production.worker.dashboard')
             );
-            $transactionId = Transaction::create([
-                'business_id'      => $bizId,
-                'category_id'      => $payCat->id,
-                'created_by'       => auth()->id(),
-                'type'             => 'expense',
-                'title'            => ucfirst($request->type) . ' payment to ' . $employee->name,
-                'amount'           => $request->amount,
-                'payment_method'   => $request->payment_method,
-                'reference'        => 'EMPPAY-' . $employee->id,
-                'transaction_date' => $request->payment_date,
-            ])->id;
-        }
-
-        EmployeePayment::create([
-            'business_id'    => $bizId,
-            'employee_id'    => $employee->id,
-            'created_by'     => auth()->id(),
-            'transaction_id' => $transactionId,
-            'payment_date'   => $request->payment_date,
-            'amount'         => $request->amount,
-            'type'           => $request->type,
-            'payment_method' => $request->payment_method,
-            'notes'          => $request->notes,
-        ]);
-
-        $typeLabels = ['advance' => 'অগ্রিম', 'salary' => 'বেতন', 'bonus' => 'বোনাস', 'deduction' => 'কর্তন'];
-        EmployeeNotification::notify(
-            $bizId, $employee->id, 'payment',
-            ($typeLabels[$request->type] ?? 'পেমেন্ট') . ' ৳' . number_format((float)$request->amount),
-            Carbon::parse($request->payment_date)->format('d M Y') . ' তারিখে ' . ($typeLabels[$request->type] ?? 'পেমেন্ট') . ' হিসেবে ৳' . number_format((float)$request->amount) . ' record হয়েছে',
-            route('production.worker.dashboard')
-        );
+        });
 
         return back()->with('success', 'Payment recorded!');
     }
@@ -340,17 +340,19 @@ class ProductionController extends Controller
         abort_if($payment->business_id !== $bizId, 403);
         abort_if(auth()->user()->role === 'employee', 403);
 
-        if ($payment->transaction_id) {
-            Transaction::where('id', $payment->transaction_id)->where('business_id', $bizId)->delete();
-        }
+        DB::transaction(function () use ($payment, $bizId) {
+            if ($payment->transaction_id) {
+                Transaction::where('id', $payment->transaction_id)->where('business_id', $bizId)->delete();
+            }
 
-        $payment->delete();
+            $payment->delete();
+        });
 
         return back()->with('success', 'Payment deleted — worker ledger and cash book reversed.');
     }
 
     /**
-     * Finalize a payroll period for one employee — locks it and creates a PayrollPeriod record.
+     * Finalize a calculated snapshot; subsequent payments remain visible in the live ledger.
      */
     public function finalizePayroll(Request $request, Employee $employee)
     {
@@ -366,26 +368,29 @@ class ProductionController extends Controller
             'notes'         => 'nullable|string|max:500',
         ]);
 
-        $period = PayrollPeriod::firstOrNew([
-            'business_id' => $bizId,
-            'employee_id' => $employee->id,
-            'period_month'=> $request->month,
-        ]);
+        $finalized = DB::transaction(function () use ($request, $employee, $bizId) {
+            $employee = Employee::whereKey($employee->id)->lockForUpdate()->firstOrFail();
+            $period = PayrollPeriod::firstOrNew([
+                'business_id' => $bizId, 'employee_id' => $employee->id,
+                'period_month' => $request->month,
+            ]);
+            if ($period->is_finalized) return false;
+            $from = Carbon::parse($request->month . '-01')->startOfMonth();
+            $to = $from->copy()->endOfMonth();
+            $ledger = $employee->payrollLedger($from, $to);
+            $period->fill([
+                'gross_earning' => $ledger['earned'],
+                'total_pieces' => $employee->productionEntries()->whereBetween('entry_date', [$from->toDateString(), $to])->sum('quantity'),
+                'total_paid' => $ledger['paid'],
+                'net_due' => $ledger['closing'],
+            ])->save();
+            $period->finalize(auth()->id(), $request->notes ?? '');
+            return true;
+        });
 
-        if ($period->is_finalized) {
-            return back()->with('error', 'This period is already finalized.');
-        }
-
-        $period->fill([
-            'gross_earning' => $request->gross_earning,
-            'total_pieces'  => $request->total_pieces ?? 0,
-            'total_paid'    => $request->total_paid,
-            'net_due'       => $request->net_due,
-        ])->save();
-
-        $period->finalize(auth()->id(), $request->notes ?? '');
-
-        return back()->with('success', "Payroll for {$employee->name} ({$request->month}) finalized and locked.");
+        return $finalized
+            ? back()->with('success', "Payroll snapshot for {$employee->name} ({$request->month}) finalized.")
+            : back()->with('error', 'This period is already finalized.');
     }
 
     /**
@@ -452,7 +457,7 @@ class ProductionController extends Controller
 
         // Earnings (production entries) in period
         $earnings = ProductionEntry::where('production_entries.business_id', $bizId)
-            ->whereBetween('entry_date', [$fromDate, $toDate])
+            ->whereBetween('entry_date', [$fromDate, Carbon::parse($toDate)->endOfDay()])
             ->selectRaw('employee_id, SUM(quantity) as total_qty, SUM(amount) as total_amount')
             ->groupBy('employee_id')
             ->get()
@@ -462,50 +467,33 @@ class ProductionController extends Controller
 
         // Advances in period
         $advances = \App\Models\EmployeePayment::where('business_id', $bizId)
-            ->whereBetween('payment_date', [$fromDate, $toDate])
+            ->whereBetween('payment_date', [$fromDate, Carbon::parse($toDate)->endOfDay()])
             ->whereIn('type', ['advance', 'deduction'])
             ->selectRaw('employee_id, SUM(amount) as total')
             ->groupBy('employee_id')
             ->pluck('total', 'employee_id');
 
-        // Salary employee payments and attendance for the period
-        $salaryPaid = \App\Models\EmployeePayment::where('business_id', $bizId)
-            ->whereBetween('payment_date', [$fromDate, $toDate])
-            ->whereIn('type', ['salary', 'advance'])
-            ->selectRaw('employee_id, SUM(amount) as total')
-            ->groupBy('employee_id')
-            ->pluck('total', 'employee_id');
-
-        // Deductions reduce what was effectively paid, so they add back to net payable
-        // (same formula as EmployeeController::index and EmployeeController::show)
-        $salaryDeductions = \App\Models\EmployeePayment::where('business_id', $bizId)
-            ->whereBetween('payment_date', [$fromDate, $toDate])
-            ->where('type', 'deduction')
-            ->selectRaw('employee_id, SUM(amount) as total')
-            ->groupBy('employee_id')
-            ->pluck('total', 'employee_id');
-
         $attendanceCounts = Attendance::whereHas('employee', fn($q) => $q->where('business_id', $bizId))
-            ->whereBetween('attendance_date', [$fromDate, $toDate])
+            ->whereBetween('attendance_date', [$fromDate, Carbon::parse($toDate)->endOfDay()])
             ->whereIn('status', ['present', 'late'])
             ->selectRaw('employee_id, COUNT(*) as cnt')
             ->groupBy('employee_id')
             ->pluck('cnt', 'employee_id');
 
         // Per-employee stats
-        $employeeStats = $employees->map(function ($emp) use ($allTasks, $earnings, $advances, $salaryPaid, $salaryDeductions, $attendanceCounts, $fromDate) {
+        $employeeStats = $employees->map(function ($emp) use ($allTasks, $earnings, $advances, $attendanceCounts, $fromDate, $toDate) {
             $tasks    = $allTasks->where('employee_id', $emp->id);
             $earning  = $earnings[$emp->id] ?? null;
             $advance  = $advances[$emp->id] ?? 0;
             $totalAmt = $earning['total_amount'] ?? 0;
 
-            if ((float)$emp->salary > 0) {
-                $paid     = (float)($salaryPaid[$emp->id] ?? 0);
-                $deducted = (float)($salaryDeductions[$emp->id] ?? 0);
+            $ledger = $emp->payrollLedger($fromDate, $toDate);
+            if ($emp->salaryForMonth($fromDate) > 0) {
+                $paid = $ledger['paid'];
                 $present  = (int)($attendanceCounts[$emp->id] ?? 0);
                 // Task stats still shown for salary employees (they may have tasks too)
                 // Unified: a base-salary worker may also earn production piece-rate.
-                // net = base salary + production − paid + deductions.
+                // net = base salary + production − paid − deductions.
                 $effSalary = $emp->salaryForMonth($fromDate);
                 return [
                     'employee'       => $emp,
@@ -513,7 +501,7 @@ class ProductionController extends Controller
                     'monthly_salary' => $effSalary,
                     'present_days'   => $present,
                     'total_paid'     => $paid,
-                    'net_payable'    => $effSalary + (float)$totalAmt - $paid - $deducted,
+                    'net_payable'    => $ledger['closing'],
                     'total_tasks'    => $tasks->count(),
                     'assigned'       => $tasks->where('status', 'assigned')->count(),
                     'in_progress'    => $tasks->where('status', 'in_progress')->count(),
@@ -543,7 +531,7 @@ class ProductionController extends Controller
                 'total_qty'      => $earning['total_qty'] ?? 0,
                 'total_earning'  => $totalAmt,
                 'advance'        => $advance,
-                'net_payable'    => $totalAmt - $advance,
+                'net_payable'    => $ledger['closing'],
                 'completion_pct' => $tasks->sum('assigned_quantity') > 0
                     ? round(($tasks->sum('completed_quantity') / $tasks->sum('assigned_quantity')) * 100)
                     : 0,
@@ -652,12 +640,12 @@ class ProductionController extends Controller
         // Salary employees get a separate professional dashboard
         // Guard: route any worker with a base salary (incl. salary+production) to the
         // salary dashboard; pure piece-rate workers (salary=0) get the production view.
-        if ((float)$employee->salary > 0) {
+        if ($employee->salaryForMonth($from) > 0) {
             $monthStart = Carbon::parse($from)->startOfMonth()->toDateString();
             $monthEnd   = Carbon::parse($from)->endOfMonth()->toDateString();
 
             $attendance = Attendance::where('employee_id', $employee->id)
-                ->whereBetween('attendance_date', [$monthStart, $monthEnd])
+                ->whereBetween('attendance_date', [$monthStart, Carbon::parse($monthEnd)->endOfDay()])
                 ->orderByDesc('attendance_date')
                 ->get();
 
@@ -669,54 +657,25 @@ class ProductionController extends Controller
             $daysNotMarked = $daysInMonth - $attendance->count();
 
             $payments = EmployeePayment::where('employee_id', $employee->id)
-                ->whereBetween('payment_date', [$monthStart, $monthEnd])
+                ->whereBetween('payment_date', [$monthStart, Carbon::parse($monthEnd)->endOfDay()])
                 ->orderByDesc('payment_date')
                 ->get();
 
-            $totalPaid     = (float)$payments->whereIn('type', ['salary', 'advance'])->sum('amount');
-            $totalDeducted = (float)$payments->where('type', 'deduction')->sum('amount');
-
-            // Opening balance: salary owed for all months before this one minus payments already made.
-            // Positive = employee is still owed from prior months. Negative = was overpaid.
-            $joiningDate = $employee->joining_date
-                ? Carbon::parse($employee->joining_date)->startOfMonth()
-                : null;
-            $periodStartMonth = Carbon::parse($monthStart);
-
-            if ($joiningDate && $joiningDate->lt($periodStartMonth)) {
-                // Salary owed for every month before this one, at each month's effective rate.
-                $salaryOwedBefore = $employee->salaryOwedForRange(
-                    $joiningDate, $periodStartMonth->copy()->subMonth()
-                );
-            } else {
-                $salaryOwedBefore = 0;
-            }
-
-            $paidBefore     = (float)EmployeePayment::where('employee_id', $employee->id)
-                ->where('payment_date', '<', $monthStart)
-                ->whereIn('type', ['salary', 'advance'])->sum('amount');
-            $deductedBefore = (float)EmployeePayment::where('employee_id', $employee->id)
-                ->where('payment_date', '<', $monthStart)
-                ->where('type', 'deduction')->sum('amount');
-
-            // Production piece-rate (salary + production hybrids) — count it as earned,
-            // same as the Worker Ledger, so both screens show the same net.
-            $monthProduction  = (float)ProductionEntry::where('employee_id', $employee->id)
-                ->whereBetween('entry_date', [$monthStart, $monthEnd])->sum('amount');
-            $productionBefore = (float)ProductionEntry::where('employee_id', $employee->id)
-                ->where('entry_date', '<', $monthStart)->sum('amount');
-
-            $openingBalance = $salaryOwedBefore + $productionBefore - $paidBefore - $deductedBefore;
-            // openingBalance: + employee is owed carry-in, − was overpaid (reduces this month's due)
-
-            $monthSalary = $employee->salaryForMonth($monthStart);
-            $netPayable  = $openingBalance + $monthSalary + $monthProduction - $totalPaid - $totalDeducted;
+            $ledger = $employee->payrollLedger($monthStart, $monthEnd);
+            $totalPaid = $ledger['paid'];
+            $totalDeducted = $ledger['deduction'];
+            $openingBalance = $ledger['opening'];
+            $monthProduction = $ledger['production'];
+            $monthSalary = $ledger['base'];
+            $netPayable = $ledger['closing'];
 
             $calendarMap   = $attendance->keyBy(fn($a) => Carbon::parse($a->attendance_date)->format('Y-m-d'));
             $calendarStart = Carbon::parse($monthStart)->dayOfWeek;
 
             $allMonths = EmployeePayment::where('employee_id', $employee->id)
-                ->selectRaw('DATE_FORMAT(payment_date, "%Y-%m") as month')
+                ->selectRaw(DB::connection()->getDriverName() === 'sqlite'
+                    ? "strftime('%Y-%m', payment_date) as month"
+                    : "DATE_FORMAT(payment_date, '%Y-%m') as month")
                 ->groupBy('month')
                 ->orderByDesc('month')
                 ->limit(12)
@@ -739,13 +698,13 @@ class ProductionController extends Controller
             ->get();
 
         $entries = ProductionEntry::where('employee_id', $employee->id)
-            ->whereBetween('entry_date', [$from, $to])
+            ->whereBetween('entry_date', [$from, Carbon::parse($to)->endOfDay()])
             ->with('productionRate')
             ->orderByDesc('entry_date')
             ->get();
 
         $payments = EmployeePayment::where('employee_id', $employee->id)
-            ->whereBetween('payment_date', [$from, $to])
+            ->whereBetween('payment_date', [$from, Carbon::parse($to)->endOfDay()])
             ->orderByDesc('payment_date')
             ->get();
 
@@ -764,7 +723,7 @@ class ProductionController extends Controller
         $netPayable     = $ledger['closing'];   // + still owed to worker, − worker over-advanced
 
         $dailyReport = ProductionEntry::where('employee_id', $employee->id)
-            ->whereBetween('entry_date', [$from, $to])
+            ->whereBetween('entry_date', [$from, Carbon::parse($to)->endOfDay()])
             ->selectRaw('entry_date as date, SUM(quantity) as total_qty, SUM(amount) as total_amount')
             ->groupBy('entry_date')
             ->orderByDesc('entry_date')
@@ -772,7 +731,7 @@ class ProductionController extends Controller
 
         $productReport = ProductionEntry::where('business_id', $bizId)
             ->where('employee_id', $employee->id)
-            ->whereBetween('entry_date', [$from, $to])
+            ->whereBetween('entry_date', [$from, Carbon::parse($to)->endOfDay()])
             ->with('productionRate')
             ->get()
             ->groupBy(fn($e) => implode('|', array_filter([
@@ -840,6 +799,7 @@ class ProductionController extends Controller
     // =============================================
     public function workerLedger(Request $request)
     {
+        $request->validate(['month' => 'nullable|date_format:Y-m']);
         $bizId = auth()->user()->business_id;
         $month = $request->month ?? now()->format('Y-m');
 
@@ -851,56 +811,26 @@ class ProductionController extends Controller
             ->orderBy('name')
             ->get();
 
-        // Earnings (production entries) for the month
-        $earnings = ProductionEntry::where('business_id', $bizId)
-            ->whereBetween('entry_date', [$from, $to])
-            ->selectRaw('employee_id, SUM(quantity) as total_qty, SUM(amount) as total_earned')
-            ->groupBy('employee_id')
-            ->pluck('total_earned', 'employee_id');
-
         $earningQty = ProductionEntry::where('business_id', $bizId)
-            ->whereBetween('entry_date', [$from, $to])
+            ->whereBetween('entry_date', [$from, Carbon::parse($to)->endOfDay()])
             ->selectRaw('employee_id, SUM(quantity) as total_qty')
             ->groupBy('employee_id')
             ->pluck('total_qty', 'employee_id');
 
-        // Payments made for the month
-        $paid = EmployeePayment::where('business_id', $bizId)
-            ->whereBetween('payment_date', [$from, $to])
-            ->selectRaw('employee_id, SUM(amount) as total_paid')
-            ->groupBy('employee_id')
-            ->pluck('total_paid', 'employee_id');
-
-        // All-time balance (cumulative)
-        $allTimeEarned = ProductionEntry::where('business_id', $bizId)
-            ->selectRaw('employee_id, SUM(amount) as total')
-            ->groupBy('employee_id')
-            ->pluck('total', 'employee_id');
-
-        $allTimePaid = EmployeePayment::where('business_id', $bizId)
-            ->selectRaw('employee_id, SUM(amount) as total')
-            ->groupBy('employee_id')
-            ->pluck('total', 'employee_id');
-
-        $workers = $employees->map(function ($emp) use ($earnings, $earningQty, $paid, $allTimeEarned, $allTimePaid) {
-            $monthEarned  = (float) ($earnings[$emp->id] ?? 0);
-            $monthQty     = (int)   ($earningQty[$emp->id] ?? 0);
-            $monthPaid    = (float) ($paid[$emp->id] ?? 0);
-            $monthBalance = $monthEarned - $monthPaid; // positive = due, negative = overpay
-
-            $cumulativeEarned  = (float) ($allTimeEarned[$emp->id] ?? 0);
-            $cumulativePaid    = (float) ($allTimePaid[$emp->id] ?? 0);
-            $cumulativeBalance = $cumulativeEarned - $cumulativePaid;
-
+        $employees->load('salaries');
+        $workers = $employees->map(function ($emp) use ($earningQty, $from, $to) {
+            $ledger = $emp->payrollLedger($from, $to);
             return [
-                'employee'          => $emp,
-                'month_earned'      => $monthEarned,
-                'month_qty'         => $monthQty,
-                'month_paid'        => $monthPaid,
-                'month_balance'     => $monthBalance,   // >0 due, <0 overpay
-                'cumulative_earned' => $cumulativeEarned,
-                'cumulative_paid'   => $cumulativePaid,
-                'cumulative_balance'=> $cumulativeBalance,
+                'employee' => $emp,
+                'month_earned' => $ledger['earned'],
+                'month_qty' => (int) ($earningQty[$emp->id] ?? 0),
+                'month_paid' => $ledger['paid'],
+                'month_bonus' => $ledger['bonus'],
+                'month_deduction' => $ledger['deduction'],
+                'month_balance' => round($ledger['earned'] - $ledger['paid'] - $ledger['deduction'], 2),
+                'cumulative_earned' => $ledger['cumulativeEarned'],
+                'cumulative_paid' => $ledger['cumulativePaid'],
+                'cumulative_balance' => $ledger['closing'],
             ];
         })->sortByDesc('month_earned')->values();
 
@@ -928,6 +858,7 @@ class ProductionController extends Controller
     // =============================================
     public function workerLedgerDetail(Request $request, Employee $employee)
     {
+        $request->validate(['month' => 'nullable|date_format:Y-m']);
         $bizId = auth()->user()->business_id;
         abort_if($employee->business_id !== $bizId, 403);
 
@@ -960,7 +891,7 @@ class ProductionController extends Controller
         // Production entries for this month
         $entries = ProductionEntry::where('business_id', $bizId)
             ->where('employee_id', $employee->id)
-            ->whereBetween('entry_date', [$from, $to])
+            ->whereBetween('entry_date', [$from, Carbon::parse($to)->endOfDay()])
             ->with('productionRate')
             ->orderBy('entry_date')
             ->get();
@@ -968,68 +899,19 @@ class ProductionController extends Controller
         // Payments for this month
         $payments = EmployeePayment::where('business_id', $bizId)
             ->where('employee_id', $employee->id)
-            ->whereBetween('payment_date', [$from, $to])
+            ->whereBetween('payment_date', [$from, Carbon::parse($to)->endOfDay()])
             ->orderBy('payment_date')
             ->get();
 
-        // This month totals
-        $monthPaid = $payments->sum('amount');
-
-        if ((float)$employee->salary > 0) {
-            // Base-salary worker — earned = the salary effective this month PLUS any
-            // production piece-rate they also did (salary + production hybrids).
-            $monthProduction = (float)$entries->sum('amount');
-            $monthEarned     = $employee->salaryForMonth($from) + $monthProduction;
-
-            // All-time earned before period = each prior month's effective salary + prior production
-            $joiningDate = $employee->joining_date
-                ? Carbon::parse($employee->joining_date)->startOfMonth()
-                : null;
-            $periodStart = Carbon::parse($from);
-
-            $salaryOwedBefore    = ($joiningDate && $joiningDate->lt($periodStart))
-                ? $employee->salaryOwedForRange($joiningDate, $periodStart->copy()->subMonth())
-                : 0;
-            $productionBefore    = (float)ProductionEntry::where('business_id', $bizId)
-                ->where('employee_id', $employee->id)
-                ->where('entry_date', '<', $from)
-                ->sum('amount');
-            $allTimeEarnedBefore = $salaryOwedBefore + $productionBefore;
-
-            $allTimePaidBefore = (float)EmployeePayment::where('business_id', $bizId)
-                ->where('employee_id', $employee->id)
-                ->where('payment_date', '<', $from)
-                ->whereIn('type', ['salary', 'advance'])
-                ->sum('amount');
-            $allTimeDeductBefore = (float)EmployeePayment::where('business_id', $bizId)
-                ->where('employee_id', $employee->id)
-                ->where('payment_date', '<', $from)
-                ->where('type', 'deduction')
-                ->sum('amount');
-
-            // carryOver > 0 means overpaid before (reduces this month's bill)
-            // carryOver < 0 means underpaid before (adds to this month's bill)
-            // Deductions reduce what was owed, so they add to any overpayment.
-            $carryOver  = $allTimePaidBefore + $allTimeDeductBefore - $allTimeEarnedBefore;
-            $runningDue = $allTimeEarnedBefore + $monthEarned - $allTimeDeductBefore
-                        - $allTimePaidBefore - $monthPaid;
-        } else {
-            $allTimeEarned = (float)ProductionEntry::where('business_id', $bizId)
-                ->where('employee_id', $employee->id)
-                ->where('entry_date', '<', $from)
-                ->sum('amount');
-
-            $allTimePaid = (float)EmployeePayment::where('business_id', $bizId)
-                ->where('employee_id', $employee->id)
-                ->where('payment_date', '<', $from)
-                ->sum('amount');
-
-            $carryOver  = $allTimePaid - $allTimeEarned;
-            $monthEarned = (float)$entries->sum('amount');
-            $runningDue  = $allTimeEarned + $monthEarned - $allTimePaid - $monthPaid;
-        }
-
-        $balance = $monthEarned - $monthPaid; // >0 due this month, <0 overpay this month
+        $ledger = $employee->payrollLedger($from, $to);
+        $monthSalary = $ledger['base'];
+        $monthEarned = $ledger['earned'];
+        $monthPaid = $ledger['paid'];
+        $monthBonus = $ledger['bonus'];
+        $monthDeduction = $ledger['deduction'];
+        $carryOver = -$ledger['opening'];
+        $runningDue = $ledger['closing'];
+        $balance = round($monthEarned - $monthPaid - $monthDeduction, 2);
 
         // Product breakdown (grouped by product name/color/size)
         $productBreakdown = $entries->groupBy(fn($e) => implode('|', array_filter([
@@ -1054,7 +936,7 @@ class ProductionController extends Controller
 
         return view('production.worker-ledger-detail', compact(
             'employee', 'entries', 'payments', 'productBreakdown',
-            'monthEarned', 'monthPaid', 'balance', 'carryOver', 'runningDue',
+            'monthEarned', 'monthPaid', 'monthSalary', 'monthBonus', 'monthDeduction', 'balance', 'carryOver', 'runningDue',
             'month', 'months', 'from', 'to'
         ));
     }
@@ -1064,6 +946,7 @@ class ProductionController extends Controller
     // =============================================
     public function workerLedgerExport(Request $request, Employee $employee)
     {
+        $request->validate(['month' => 'nullable|date_format:Y-m']);
         $bizId = auth()->user()->business_id;
         abort_if($employee->business_id !== $bizId, 403);
 
@@ -1073,19 +956,19 @@ class ProductionController extends Controller
         $to     = Carbon::parse($month . '-01')->endOfMonth()->toDateString();
 
         $entries  = ProductionEntry::where('business_id', $bizId)->where('employee_id', $employee->id)
-            ->whereBetween('entry_date', [$from, $to])->with('productionRate')->orderBy('entry_date')->get();
+            ->whereBetween('entry_date', [$from, Carbon::parse($to)->endOfDay()])->with('productionRate')->orderBy('entry_date')->get();
         $payments = EmployeePayment::where('business_id', $bizId)->where('employee_id', $employee->id)
-            ->whereBetween('payment_date', [$from, $to])->orderBy('payment_date')->get();
+            ->whereBetween('payment_date', [$from, Carbon::parse($to)->endOfDay()])->orderBy('payment_date')->get();
 
-        $prevEarned = ProductionEntry::where('business_id', $bizId)->where('employee_id', $employee->id)
-            ->where('entry_date', '<', $from)->sum('amount');
-        $prevPaid   = EmployeePayment::where('business_id', $bizId)->where('employee_id', $employee->id)
-            ->where('payment_date', '<', $from)->sum('amount');
-        $carryOver  = (float)$prevPaid - (float)$prevEarned;
-
-        $monthEarned = $entries->sum('amount');
-        $monthPaid   = $payments->sum('amount');
-        $runningDue  = (float)$prevEarned + $monthEarned - (float)$prevPaid - $monthPaid;
+        $ledger = $employee->payrollLedger($from, $to);
+        $monthSalary = $ledger['base'];
+        $monthEarned = $ledger['earned'];
+        $monthPaid = $ledger['paid'];
+        $monthBonus = $ledger['bonus'];
+        $monthDeduction = $ledger['deduction'];
+        $carryOver = -$ledger['opening'];
+        $runningDue = $ledger['closing'];
+        $balance = round($monthEarned - $monthPaid - $monthDeduction, 2);
 
         $biz = auth()->user()->business;
 
@@ -1105,7 +988,7 @@ class ProductionController extends Controller
 
             $pdf = Pdf::loadView('production.worker-ledger-pdf', compact(
                 'employee', 'entries', 'payments', 'productBreakdown',
-                'monthEarned', 'monthPaid', 'carryOver', 'runningDue', 'month', 'from', 'to', 'biz'
+                'monthEarned', 'monthPaid', 'monthSalary', 'monthBonus', 'monthDeduction', 'carryOver', 'runningDue', 'month', 'from', 'to', 'biz'
             ))->setPaper('a4', 'portrait');
             return $pdf->download("{$employee->name}_{$month}_ledger.pdf");
         }
@@ -1113,20 +996,21 @@ class ProductionController extends Controller
         // CSV
         $bom = "\xEF\xBB\xBF";
         $filename = "{$employee->name}_{$month}_ledger.csv";
-        return response()->streamDownload(function () use ($employee, $entries, $payments, $monthEarned, $monthPaid, $carryOver, $runningDue, $bom, $month) {
+        return response()->streamDownload(function () use ($employee, $entries, $payments, $monthEarned, $monthPaid, $monthSalary, $monthBonus, $monthDeduction, $carryOver, $runningDue, $bom, $month) {
             $h = fopen('php://output', 'w');
             fwrite($h, $bom);
-            fputcsv($h, ['Worker Ledger — ' . $employee->name]);
-            fputcsv($h, ['Month', \Carbon\Carbon::parse($month . '-01')->format('F Y')]);
-            fputcsv($h, []);
+            $csv = static fn (array $row) => fputcsv($h, $row, ',', '"', '');
+            $csv(['Worker Ledger — ' . $employee->name]);
+            $csv(['Month', \Carbon\Carbon::parse($month . '-01')->format('F Y')]);
+            $csv([]);
             if ($carryOver != 0) {
-                fputcsv($h, ['Carry Over from Previous', $carryOver > 0 ? 'Overpay: ' . number_format($carryOver, 2) : 'Due: ' . number_format(abs($carryOver), 2)]);
+                $csv(['Carry Over from Previous', $carryOver > 0 ? 'Overpay: ' . number_format($carryOver, 2) : 'Due: ' . number_format(abs($carryOver), 2)]);
             }
-            fputcsv($h, []);
-            fputcsv($h, ['=== PRODUCTION ENTRIES ===']);
-            fputcsv($h, ['Date', 'Product', 'Color', 'Size', 'Qty', 'Rate', 'Amount']);
+            $csv([]);
+            $csv(['=== PRODUCTION ENTRIES ===']);
+            $csv(['Date', 'Product', 'Color', 'Size', 'Qty', 'Rate', 'Amount']);
             foreach ($entries as $e) {
-                fputcsv($h, [
+                $csv([
                     $e->entry_date->format('d/m/Y'),
                     $e->productionRate?->product_name ?? 'Manual',
                     $e->productionRate?->color ?? '—',
@@ -1136,25 +1020,29 @@ class ProductionController extends Controller
                     number_format($e->amount, 2),
                 ]);
             }
-            fputcsv($h, ['', '', '', '', $entries->sum('quantity'), '', number_format($monthEarned, 2)]);
-            fputcsv($h, []);
-            fputcsv($h, ['=== PAYMENTS RECEIVED ===']);
-            fputcsv($h, ['Date', 'Amount', 'Type', 'Method', 'Notes']);
+            $csv(['', '', '', '', $entries->sum('quantity'), '', number_format($entries->sum('amount'), 2)]);
+            $csv([]);
+            $csv(['=== PAYMENTS RECEIVED ===']);
+            $csv(['Date', 'Amount', 'Type', 'Method', 'Notes']);
             foreach ($payments as $p) {
-                fputcsv($h, [
+                $csv([
                     $p->payment_date->format('d/m/Y'),
                     number_format($p->amount, 2),
                     ucfirst($p->type),
-                    ucfirst($p->payment_method),
+                    ucfirst($p->payment_method ?? ''),
                     $p->notes ?? '',
                 ]);
             }
-            fputcsv($h, ['', number_format($monthPaid, 2)]);
-            fputcsv($h, []);
-            fputcsv($h, ['=== SUMMARY ===']);
-            fputcsv($h, ['Total Earned (P.Bill)', number_format($monthEarned, 2)]);
-            fputcsv($h, ['Total Paid', number_format($monthPaid, 2)]);
-            fputcsv($h, [$runningDue >= 0 ? 'Due (All-time)' : 'Overpay (All-time)', number_format(abs($runningDue), 2)]);
+            $csv(['Salary / advance paid', number_format($monthPaid, 2)]);
+            $csv([]);
+            $csv(['=== SUMMARY ===']);
+            $csv(['Base salary', number_format($monthSalary, 2)]);
+            $csv(['Production earned', number_format($entries->sum('amount'), 2)]);
+            $csv(['Total Earned', number_format($monthEarned, 2)]);
+            $csv(['Bonus paid (separate)', number_format($monthBonus, 2)]);
+            $csv(['Deductions', number_format($monthDeduction, 2)]);
+            $csv(['Total Paid', number_format($monthPaid, 2)]);
+            $csv([$runningDue >= 0 ? 'Due (All-time)' : 'Overpay (All-time)', number_format(abs($runningDue), 2)]);
             fclose($h);
         }, $filename, ['Content-Type' => 'text/csv; charset=UTF-8']);
     }

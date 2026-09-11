@@ -2,6 +2,7 @@
 namespace App\Models;
 use Illuminate\Database\Eloquent\Model;
 use Illuminate\Database\Eloquent\SoftDeletes;
+use Carbon\Carbon;
 
 class Employee extends Model
 {
@@ -26,41 +27,49 @@ class Employee extends Model
     public function attendance()      { return $this->hasMany(Attendance::class); }
     public function attendances()     { return $this->hasMany(Attendance::class); }
     public function productionTasks() { return $this->hasMany(ProductionTask::class); }
-    public function salaries()        { return $this->hasMany(EmployeeSalary::class)->orderByDesc('effective_from'); }
+    public function salaries()        { return $this->hasMany(EmployeeSalary::class)->orderByDesc('effective_from')->orderByDesc('id'); }
 
-    /**
-     * The monthly salary in effect for a given month — the latest revision whose
-     * effective_from is on or before that month. Falls back to the `salary`
-     * column when there is no history (so a raise never rewrites past months).
-     */
-    public function salaryForMonth($month): float
+    /** Salary history defines payroll eligibility, independently of HR joining date. */
+    public function salaryStartMonth(): ?Carbon
     {
-        $m = ($month instanceof \Carbon\Carbon ? $month->copy() : \Carbon\Carbon::parse($month))
-                ->startOfMonth()->toDateString();
-
-        // Use the eager-loaded collection when present (relation is ordered DESC,
-        // so the first match on-or-before $m is the effective one).
-        if ($this->relationLoaded('salaries')) {
-            $rec = $this->salaries->first(fn($s) => $s->effective_from->toDateString() <= $m);
-            return $rec ? (float) $rec->amount : (float) $this->salary;
+        $this->loadMissing('salaries');
+        if ($this->salaries->isNotEmpty()) {
+            return Carbon::parse($this->salaries->min('effective_from'))->startOfMonth();
         }
 
-        $rec = $this->salaries()->where('effective_from', '<=', $m)->first();
-        return $rec ? (float) $rec->amount : (float) $this->salary;
+        // Legacy employees without revisions have a stable start, never the viewed month.
+        $start = $this->joining_date ?? $this->created_at;
+        return $start ? Carbon::parse($start)->startOfMonth() : null;
     }
 
-    /** Sum of the effective monthly salary across every month in [$from, $to]. */
+    public function salaryForMonth($month): float
+    {
+        $month = Carbon::parse($month)->startOfMonth();
+        $this->loadMissing('salaries');
+        if ($this->salaries->isNotEmpty()) {
+            $revision = $this->salaries->first(fn ($salary) => $salary->effective_from->lte($month));
+            // A gap before recorded history is not permission to use today's salary.
+            return $revision ? (float) $revision->amount : 0.0;
+        }
+
+        $start = $this->salaryStartMonth();
+        return $start && $month->gte($start) ? (float) $this->salary : 0.0;
+    }
+
+    /** Sum the effective monthly rates, including both endpoint months. */
     public function salaryOwedForRange($from, $to): float
     {
-        $start = \Carbon\Carbon::parse($from)->startOfMonth();
-        $end   = \Carbon\Carbon::parse($to)->startOfMonth();
-        if ($end->lt($start)) return 0.0;
+        $start = Carbon::parse($from)->startOfMonth();
+        $end = Carbon::parse($to)->startOfMonth();
+        $eligible = $this->salaryStartMonth();
+        if (!$eligible || $end->lt($start) || $end->lt($eligible)) return 0.0;
+        if ($start->lt($eligible)) $start = $eligible;
 
         $total = 0.0;
-        for ($m = $start->copy(); $m->lte($end); $m->addMonth()) {
-            $total += $this->salaryForMonth($m);
+        for ($month = $start->copy(); $month->lte($end); $month->addMonth()) {
+            $total += $this->salaryForMonth($month);
         }
-        return $total;
+        return round($total, 2);
     }
 
     public function todayProduction(): int
@@ -78,83 +87,63 @@ class Employee extends Model
     public int $month_production  = 0;
 
     /**
-     * Running payroll ledger for production-based employees.
-     * Opening = all earnings before $from minus all payments before $from.
-     * Closing = opening + period earned - period paid - period deductions.
-     * Positive closing = still owed to employee. Negative = overpaid.
+     * Salary is credited on the first day of its effective month. Salary/advance
+     * payments settle it; paid bonuses are separate and never settle base salary.
+     * Positive opening/closing balances are owed to the employee.
      */
     public function payrollLedger($from, $to): array
     {
-        $from = is_string($from) ? $from : $from->toDateString();
-        $to   = is_string($to)   ? $to   : $to->toDateString();
+        $from = Carbon::parse($from)->startOfDay();
+        $to = Carbon::parse($to)->startOfDay();
+        if ($to->lt($from)) throw new \InvalidArgumentException('Payroll end must not precede its start.');
 
-        // Base salary owed before the period (each month at its effective rate).
-        $priorBase = 0.0;
-        if ((float)$this->salary > 0 || $this->salaries()->exists()) {
-            $start = $this->joining_date
-                ? \Carbon\Carbon::parse($this->joining_date)->startOfMonth()
-                : \Carbon\Carbon::parse($from)->startOfMonth();
-            $beforePeriod = \Carbon\Carbon::parse($from)->startOfMonth()->subMonth();
-            if ($start->lte($beforePeriod)) $priorBase = $this->salaryOwedForRange($start, $beforePeriod);
-        }
+        $firstSalaryMonth = $from->copy()->startOfMonth();
+        if ($from->day !== 1) $firstSalaryMonth->addMonth();
+        $start = $this->salaryStartMonth();
+        $priorBase = $start
+            ? $this->salaryOwedForRange($start, $firstSalaryMonth->copy()->subMonth()) : 0.0;
+        $base = $this->salaryOwedForRange($firstSalaryMonth, $to);
+        $from = $from->toDateString();
+        $to = $to->endOfDay()->toDateTimeString();
 
-        $priorProduction = (float)$this->productionEntries()->where('entry_date', '<', $from)->sum('amount');
-        $priorPaid       = $this->payments()->where('payment_date', '<', $from)->whereIn('type', ['salary', 'advance'])->sum('amount');
-        $priorDeducted   = $this->payments()->where('payment_date', '<', $from)->where('type', 'deduction')->sum('amount');
-        $opening         = $priorBase + (float)$priorProduction - (float)$priorPaid - (float)$priorDeducted;
+        $priorProduction = (float) $this->productionEntries()->where('entry_date', '<', $from)->sum('amount');
+        $production = (float) $this->productionEntries()->whereBetween('entry_date', [$from, $to])->sum('amount');
+        $prior = $this->payments()->where('payment_date', '<', $from)
+            ->selectRaw('type, SUM(amount) as total')->groupBy('type')->pluck('total', 'type');
+        $period = $this->payments()->whereBetween('payment_date', [$from, $to])
+            ->selectRaw('type, SUM(amount) as total')->groupBy('type')->pluck('total', 'type');
 
-        // This period: base salary (effective per month) + production piece-rate.
-        $base       = $this->salaryOwedForRange($from, $to);
-        $production = (float)$this->productionEntries()->whereBetween('entry_date', [$from, $to])->sum('amount');
-        $earned     = $base + $production;
-        $advance    = (float)$this->payments()->whereBetween('payment_date', [$from, $to])->where('type', 'advance')->sum('amount');
-        $bonus      = (float)$this->payments()->whereBetween('payment_date', [$from, $to])->where('type', 'bonus')->sum('amount');
-        $deduction  = (float)$this->payments()->whereBetween('payment_date', [$from, $to])->where('type', 'deduction')->sum('amount');
-        $paid       = (float)$this->payments()->whereBetween('payment_date', [$from, $to])->whereIn('type', ['salary', 'advance'])->sum('amount');
-        $closing    = $opening + $earned - $deduction - $paid;
+        $priorPaid = (float) ($prior['salary'] ?? 0) + (float) ($prior['advance'] ?? 0);
+        $priorDeducted = (float) ($prior['deduction'] ?? 0);
+        $advance = (float) ($period['advance'] ?? 0);
+        $bonus = (float) ($period['bonus'] ?? 0);
+        $deduction = (float) ($period['deduction'] ?? 0);
+        $paid = round((float) ($period['salary'] ?? 0) + $advance, 2);
+        $earned = round($base + $production, 2);
+        $opening = round($priorBase + $priorProduction - $priorPaid - $priorDeducted, 2);
+        $closing = round($opening + $earned - $paid - $deduction, 2);
+        $cumulativeEarned = round($priorBase + $priorProduction + $earned, 2);
+        $cumulativePaid = round($priorPaid + $paid, 2);
 
-        return compact('opening', 'earned', 'base', 'production', 'advance', 'bonus', 'deduction', 'paid', 'closing');
+        return compact('opening', 'earned', 'base', 'production', 'advance', 'bonus',
+            'deduction', 'paid', 'closing', 'cumulativeEarned', 'cumulativePaid');
     }
 
-    /**
-     * Unified compensation for a period — works for every worker type at once:
-     *   - Fixed base salary  (monthly salary × months in range; 0 if none)
-     *   - Variable earnings  (production piece-rate; 0 if none)
-     * A worker can have one, the other, or both. Net keeps the same convention
-     * used across the app: net = base + production − paid − deduction, where
-     * `paid` = salary/advance/bonus payments. This reduces exactly to the old
-     * salary-only and production-only formulas.
-     */
+    /** Period-only compensation; use payrollLedger for a balance including arrears. */
     public function compensation($from, $to): array
     {
-        $from = is_string($from) ? $from : $from->toDateString();
-        $to   = is_string($to)   ? $to   : $to->toDateString();
-
-        $production = (float) $this->productionEntries()->whereBetween('entry_date', [$from, $to])->sum('amount');
-
-        // Base = sum of the effective salary for each month in the range, so a
-        // later raise never changes past months.
-        $base = $this->salaryOwedForRange($from, $to);
-
-        $advance   = (float) $this->payments()->whereBetween('payment_date', [$from, $to])->where('type', 'advance')->sum('amount');
-        $bonus     = (float) $this->payments()->whereBetween('payment_date', [$from, $to])->where('type', 'bonus')->sum('amount');
-        $deduction = (float) $this->payments()->whereBetween('payment_date', [$from, $to])->where('type', 'deduction')->sum('amount');
-        $paid      = (float) $this->payments()->whereBetween('payment_date', [$from, $to])->whereIn('type', ['salary', 'advance'])->sum('amount');
-
-        $gross = $base + $production;
-        $net   = $gross - $paid - $deduction;
-
+        $ledger = $this->payrollLedger($from, $to);
         return [
-            'base'           => $base,
-            'production'     => $production,
-            'gross'          => $gross,
-            'advance'        => $advance,
-            'bonus'          => $bonus,
-            'deduction'      => $deduction,
-            'paid'           => $paid,
-            'net'            => $net,
-            'has_base'       => $base > 0,
-            'has_production' => $production > 0,
+            'base' => $ledger['base'],
+            'production' => $ledger['production'],
+            'gross' => $ledger['earned'],
+            'advance' => $ledger['advance'],
+            'bonus' => $ledger['bonus'],
+            'deduction' => $ledger['deduction'],
+            'paid' => $ledger['paid'],
+            'net' => round($ledger['earned'] - $ledger['paid'] - $ledger['deduction'], 2),
+            'has_base' => $ledger['base'] > 0,
+            'has_production' => $ledger['production'] > 0,
         ];
     }
 }

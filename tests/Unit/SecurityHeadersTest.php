@@ -12,7 +12,7 @@ use Tests\TestCase;
  */
 class SecurityHeadersTest extends TestCase
 {
-    private function run(string $url): Response
+    private function responseFor(string $url): Response
     {
         $middleware = new SecurityHeaders();
 
@@ -24,7 +24,7 @@ class SecurityHeadersTest extends TestCase
 
     public function test_baseline_headers_are_present(): void
     {
-        $headers = $this->run('http://localhost/')->headers;
+        $headers = $this->responseFor('http://localhost/')->headers;
 
         $this->assertSame('nosniff', $headers->get('X-Content-Type-Options'));
         $this->assertSame('SAMEORIGIN', $headers->get('X-Frame-Options'));
@@ -34,7 +34,7 @@ class SecurityHeadersTest extends TestCase
 
     public function test_csp_locks_down_framing_objects_and_base_uri(): void
     {
-        $csp = $this->run('http://localhost/')->headers->get('Content-Security-Policy');
+        $csp = $this->responseFor('http://localhost/')->headers->get('Content-Security-Policy');
 
         $this->assertStringContainsString("frame-ancestors 'none'", $csp);
         $this->assertStringContainsString("object-src 'none'", $csp);
@@ -44,7 +44,7 @@ class SecurityHeadersTest extends TestCase
 
     public function test_csp_allows_only_the_known_script_hosts(): void
     {
-        $csp = $this->run('http://localhost/')->headers->get('Content-Security-Policy');
+        $csp = $this->responseFor('http://localhost/')->headers->get('Content-Security-Policy');
 
         $this->assertStringContainsString('https://cdn.jsdelivr.net', $csp);
         $this->assertStringContainsString('https://unpkg.com', $csp);
@@ -55,7 +55,7 @@ class SecurityHeadersTest extends TestCase
 
     public function test_hsts_is_sent_only_over_tls(): void
     {
-        $this->assertNull($this->run('http://localhost/')->headers->get('Strict-Transport-Security'));
-        $this->assertNotNull($this->run('https://localhost/')->headers->get('Strict-Transport-Security'));
+        $this->assertNull($this->responseFor('http://localhost/')->headers->get('Strict-Transport-Security'));
+        $this->assertNotNull($this->responseFor('https://localhost/')->headers->get('Strict-Transport-Security'));
     }
 }

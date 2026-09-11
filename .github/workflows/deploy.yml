@@ -4,7 +4,13 @@ name: Deploy to production
 on:
   push:
     branches: [master]
-  workflow_dispatch: {}   # also lets you trigger it manually from the Actions tab
+  workflow_dispatch:
+    inputs:
+      operation:
+        description: Manual preflight (does not deploy)
+        type: choice
+        options: [inspect, backup]
+        default: inspect
 
 concurrency:
   group: production-deploy
@@ -12,23 +18,74 @@ concurrency:
 
 jobs:
   deploy:
+    if: github.event_name == 'push'
+    runs-on: ubuntu-latest
+    permissions:
+      contents: read
+    steps:
+      - uses: actions/checkout@v4
+      - name: Back up, deploy exact commit, and verify payroll
+        env:
+          SSH_HOST: ${{ secrets.SSH_HOST }}
+          SSH_PORT: ${{ secrets.SSH_PORT }}
+          SSH_USER: ${{ secrets.SSH_USER }}
+          SSH_KEY: ${{ secrets.SSH_KEY }}
+          BACKUP_ID: ${{ github.run_id }}
+          DEPLOY_SHA: ${{ github.sha }}
+        run: bash .github/scripts/capture-backup.sh
+      - uses: actions/upload-artifact@v4
+        if: always()
+        with:
+          name: encrypted-production-backup
+          path: encrypted-backup/
+          retention-days: 7
+          if-no-files-found: warn
+
+  inspect:
+    if: github.event_name == 'workflow_dispatch' && inputs.operation == 'inspect'
     runs-on: ubuntu-latest
     steps:
-      - name: SSH → pull latest & run Laravel deploy steps
+      - name: Check production access without changing the application
         uses: appleboy/ssh-action@v1.2.0
         with:
           host: ${{ secrets.SSH_HOST }}
           port: ${{ secrets.SSH_PORT }}
           username: ${{ secrets.SSH_USER }}
           key: ${{ secrets.SSH_KEY }}
-          command_timeout: 10m
+          timeout: 45s
+          command_timeout: 2m
           script: |
             set -e
             cd ~/domains/leen.com.bd/fulfillo
-            git fetch origin
-            git reset --hard origin/master
-            php artisan migrate --force
-            php artisan config:clear
-            php artisan route:clear
-            php artisan view:clear
-            echo "Deployed: $(git log --oneline -1)"
+            printf 'Current commit: '
+            git rev-parse HEAD
+            printf 'Tracked modifications: '
+            git status --porcelain --untracked-files=no | wc -l
+            php -v | head -n 1
+            command -v mysqldump || command -v mariadb-dump
+            test -f .env
+            test -d storage
+            test -d ../public_html/app
+            echo 'Production backup prerequisites available'
+
+  backup:
+    if: github.event_name == 'workflow_dispatch' && inputs.operation == 'backup'
+    runs-on: ubuntu-latest
+    permissions:
+      contents: read
+    steps:
+      - uses: actions/checkout@v4
+      - name: Capture and encrypt private production backup
+        env:
+          SSH_HOST: ${{ secrets.SSH_HOST }}
+          SSH_PORT: ${{ secrets.SSH_PORT }}
+          SSH_USER: ${{ secrets.SSH_USER }}
+          SSH_KEY: ${{ secrets.SSH_KEY }}
+          BACKUP_ID: ${{ github.run_id }}
+        run: bash .github/scripts/capture-backup.sh
+      - uses: actions/upload-artifact@v4
+        with:
+          name: encrypted-production-backup
+          path: encrypted-backup/
+          retention-days: 7
+          if-no-files-found: error

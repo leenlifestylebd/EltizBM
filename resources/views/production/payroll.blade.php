@@ -1,4 +1,4 @@
-﻿@extends('layouts.app')
+@extends('layouts.app')
 @section('title', 'Payroll')
 
 @section('content')
@@ -110,6 +110,7 @@
                                     Finalized
                                 </span>
                                 <span class="text-xs text-gray-400">{{ $period->finalized_at?->format('d M') }}</span>
+                                <span class="text-xs text-gray-500">Snapshot balance: ৳{{ number_format($period->net_due) }}</span>
                             </div>
                         @else
                             <span class="inline-flex px-2 py-0.5 bg-yellow-100 text-yellow-700 dark:bg-yellow-900/30 dark:text-yellow-400 text-xs font-medium rounded-full">Open</span>
@@ -128,7 +129,7 @@
                             </button>
                             @else
                             <form method="POST" action="{{ route('production.payroll.unfinalize', $period->id) }}"
-                                  onsubmit="return confirm('Unlock this finalized payroll? Changes will be possible again.')">
+                                  onsubmit="return confirm('Reopen this payroll snapshot so it can be finalized again?')">
                                 @csrf
                                 <button type="submit" class="px-2.5 py-1.5 bg-gray-500 text-white text-xs rounded-lg hover:bg-gray-600 transition-colors">
                                     Unlock
@@ -255,8 +256,8 @@
 
             <div class="bg-yellow-50 dark:bg-yellow-900/20 border border-yellow-200 dark:border-yellow-800 rounded-lg p-3">
                 <p class="text-xs text-yellow-700 dark:text-yellow-400">
-                    ⚠️ Finalizing locks this employee's payroll for <strong>{{ \Carbon\Carbon::parse($month.'-01')->format('F Y') }}</strong>.
-                    Further payments can still be added, but the record will be marked as finalized.
+                    Finalizing saves a snapshot of this employee's payroll for <strong>{{ \Carbon\Carbon::parse($month.'-01')->format('F Y') }}</strong>.
+                    Further payments update the live balance. The saved snapshot keeps the amounts recorded at finalization.
                 </p>
             </div>
 
