@@ -4,6 +4,8 @@ namespace App\Models;
 
 use Illuminate\Database\Eloquent\Model;
 use Illuminate\Database\Eloquent\SoftDeletes;
+use Illuminate\Support\Facades\DB;
+use Illuminate\Validation\ValidationException;
 
 class ProductionTask extends Model
 {
@@ -21,6 +23,27 @@ class ProductionTask extends Model
         'deadline'    => 'date',
         'assigned_at' => 'datetime',
     ];
+
+    public static function assignWithCurrentRate(array $attributes): self
+    {
+        return DB::transaction(function () use ($attributes) {
+            if (!empty($attributes['production_rate_id'])) {
+                // Serialize assignment with edits so stale forms cannot assign
+                // an archived rate after the rate edit has committed.
+                $rate = ProductionRate::where('business_id', $attributes['business_id'])
+                    ->whereKey($attributes['production_rate_id'])
+                    ->lockForUpdate()->first();
+
+                if (!$rate || !$rate->is_active) {
+                    throw ValidationException::withMessages([
+                        'production_rate_id' => 'This rate has changed or been archived. Refresh the page and select the current rate.',
+                    ]);
+                }
+            }
+
+            return static::create($attributes);
+        });
+    }
 
     public function employee()        { return $this->belongsTo(Employee::class); }
     public function assignedBy()      { return $this->belongsTo(User::class, 'assigned_by'); }
