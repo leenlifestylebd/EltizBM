@@ -20,7 +20,7 @@ class StoreProductionEntryRequest extends FormRequest
             // Scope to the current business so an entry can never be filed against
             // another tenant's employee or pay rate.
             'employee_id'        => ['required', Rule::exists('employees', 'id')->where('business_id', $bizId)],
-            'production_rate_id' => ['required', Rule::exists('production_rates', 'id')->where('business_id', $bizId)],
+            'production_rate_id' => ['required', Rule::exists('production_rates', 'id')->where('business_id', $bizId)->where('is_active', true)],
             'entry_date'         => 'required|date|before_or_equal:today',
             'quantity'           => 'required|integer|min:1|max:10000',
             'color'              => 'nullable|string|max:100',

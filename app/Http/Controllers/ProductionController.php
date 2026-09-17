@@ -24,6 +24,7 @@ class ProductionController extends Controller
     {
         $bizId = auth()->user()->business_id;
         $rates = ProductionRate::where('business_id', $bizId)
+            ->orderByDesc('is_active')
             ->orderBy('product_name')
             ->get();
         return view('production.rates', compact('rates'));
@@ -54,8 +55,31 @@ class ProductionController extends Controller
     public function updateRate(Request $request, ProductionRate $rate)
     {
         abort_if($rate->business_id !== auth()->user()->business_id, 403);
-        $rate->update($request->only(['product_name', 'variant_name', 'color', 'size', 'rate', 'unit', 'stage', 'is_active']));
-        return back()->with('success', 'Rate updated!');
+        $data = $request->validate([
+            'rate' => 'required|numeric|min:0|max:9999999999.99|decimal:0,2',
+        ]);
+
+        DB::transaction(function () use ($rate, $data) {
+            $current = ProductionRate::whereKey($rate->id)->lockForUpdate()->firstOrFail();
+            if (!$current->is_active) {
+                throw \Illuminate\Validation\ValidationException::withMessages([
+                    'rate' => 'This rate has been archived or changed. Refresh the page and edit the active rate.',
+                ]);
+            }
+
+            if ((float) $current->rate === (float) $data['rate']) {
+                return;
+            }
+
+            // Keep the original ID and amount for every existing task and entry.
+            // Only new assignments select the replacement active rate.
+            $replacement = $current->replicate();
+            $replacement->rate = $data['rate'];
+            $replacement->save();
+            $current->update(['is_active' => false]);
+        });
+
+        return back()->with('success', 'Rate updated! Existing assignments keep their previous rate.');
     }
 
     public function destroyRate(ProductionRate $rate)
@@ -64,8 +88,9 @@ class ProductionController extends Controller
         // buttons for other roles but the endpoint must enforce it too.
         abort_unless(auth()->user()->isAdmin(), 403, 'Only an admin can delete this.');
         abort_if($rate->business_id !== auth()->user()->business_id, 403);
-        $rate->delete();
-        return back()->with('success', 'Rate deleted!');
+        // Physical deletion can cascade into earnings and clear task rate links.
+        $rate->update(['is_active' => false]);
+        return back()->with('success', 'Rate archived. Existing assignments and earnings are preserved.');
     }
 
     public function index(Request $request)

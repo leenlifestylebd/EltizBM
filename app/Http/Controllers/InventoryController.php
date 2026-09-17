@@ -140,7 +140,7 @@ class InventoryController extends Controller
             'product_ids'        => 'required|array|min:1',
             'product_ids.*'      => 'integer',
             'employee_id'        => ['required', Rule::exists('employees', 'id')->where('business_id', $bizId)],
-            'production_rate_id' => ['nullable', Rule::exists('production_rates', 'id')->where('business_id', $bizId)->where('stage', 'cutting')],
+            'production_rate_id' => ['nullable', Rule::exists('production_rates', 'id')->where('business_id', $bizId)->where('stage', 'cutting')->where('is_active', true)],
         ]);
 
         $worker = Employee::where('business_id', $bizId)->findOrFail($request->employee_id);
@@ -155,7 +155,7 @@ class InventoryController extends Controller
             $qty = max(0, (int) $p->low_stock_alert - (int) $p->stock);
             if ($qty <= 0) continue;
 
-            ProductionTask::create([
+            ProductionTask::assignWithCurrentRate([
                 'business_id'        => $bizId,
                 'employee_id'        => $worker->id,
                 'assigned_by'        => auth()->id(),
