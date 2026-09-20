@@ -15,6 +15,11 @@ class StoreOrderRequest extends FormRequest
     public function rules(): array
     {
         return [
+            'warehouse_id' => [
+                Rule::requiredIf(fn () => \App\Models\Warehouse::where('business_id', auth()->user()->business_id)->exists()),
+                'nullable', 'integer',
+                Rule::exists('warehouses', 'id')->where('business_id', auth()->user()->business_id),
+            ],
             'customer_name'        => 'required|string|max:100',
             'customer_id'          => ['nullable', Rule::exists('customers', 'id')->where('business_id', auth()->user()->business_id)],
             'customer_phone'       => 'nullable|string|max:20',
@@ -31,7 +36,7 @@ class StoreOrderRequest extends FormRequest
             'shipping_address'     => 'nullable|string|max:500',
             'notes'                => 'nullable|string|max:1000',
             'items'                => 'required|array|min:1',
-            'items.*.product_id'   => 'required|integer',
+            'items.*.product_id' => ['required', 'integer', Rule::exists('products', 'id')->where('business_id', auth()->user()->business_id)],
             'items.*.product_name' => 'required|string',
             'items.*.price'        => 'required|numeric|min:0',
             'items.*.quantity'     => 'required|integer|min:1',
@@ -42,6 +47,8 @@ class StoreOrderRequest extends FormRequest
     public function messages(): array
     {
         return [
+            'warehouse_id.required' => 'Select the warehouse or outlet that will supply this order.',
+            'warehouse_id.exists' => 'Select a stock location belonging to your business.',
             'items.required'          => 'At least one product is required.',
             'items.min'               => 'At least one product is required.',
             'items.*.quantity.min'    => 'Quantity must be at least 1.',

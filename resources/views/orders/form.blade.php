@@ -30,6 +30,12 @@
         @if(isset($order)) @method('PUT') @endif
         @if($isWholesale && !isset($order)) <input type="hidden" name="source" value="wholesale"> @endif
 
+        @if($errors->any())
+            <div role="alert" class="mb-4 rounded-xl border border-red-200 bg-red-50 p-4 text-sm text-red-700">
+                <ul class="list-disc pl-5">@foreach($errors->all() as $error)<li>{{ $error }}</li>@endforeach</ul>
+            </div>
+        @endif
+
         <div class="grid grid-cols-1 lg:grid-cols-3 gap-4">
 
             {{-- LEFT: Products + Customer --}}
@@ -115,7 +121,7 @@
                                               'bg-red-100 text-red-700 dark:bg-red-900/40 dark:text-red-400': fraudResult?.risk === 'high',
                                               'bg-gray-100 text-gray-600 dark:bg-slate-600 dark:text-slate-300': fraudResult?.risk === 'new',
                                           }"
-                                          x-text="fraudResult?.success_rate !== null ? fraudResult.success_rate + '% success' : 'No history'">
+                                          x-text="fraudResult?.success_rate != null ? fraudResult.success_rate + '% success' : 'No history'">
                                     </span>
                                 </div>
                                 {{-- Stats --}}
@@ -175,6 +181,28 @@
                                    placeholder="Dhaka, Chittagong...">
                         </div>
                     </div>
+                </div>
+
+                <div class="bg-white dark:bg-slate-800 rounded-xl border border-gray-100 dark:border-slate-700 p-4">
+                    <label for="warehouse_id" class="block text-sm font-semibold text-gray-900 dark:text-white mb-2">Stock from / পণ্য যাবে যেখান থেকে</label>
+                    <select id="warehouse_id" name="warehouse_id" x-model="warehouseId"
+                            @disabled($locationLocked) @required(!isset($order) && $warehouses->isNotEmpty())
+                            class="w-full px-3 py-2.5 text-sm border border-gray-200 dark:border-slate-600 rounded-lg bg-white dark:bg-slate-700 text-gray-900 dark:text-white">
+                        <option value="">{{ isset($order) ? 'Legacy order — location not recorded' : 'Select warehouse / outlet' }}</option>
+                        @foreach($warehouses as $warehouse)
+                            <option value="{{ $warehouse->id }}">{{ $warehouse->name }}</option>
+                        @endforeach
+                    </select>
+                    <p class="mt-2 text-xs text-gray-500 dark:text-slate-300">
+                        @if($locationLocked)
+                            পুরোনো unassigned order অথবা shipment/closed order-এর stock location বদলানো যাবে না।
+                        @elseif($warehouses->isEmpty())
+                            Warehouse / outlet যোগ করুন Settings → Warehouses থেকে।
+                        @else
+                            এই অর্ডারের সব পণ্য নির্বাচিত warehouse / outlet-এর stock থেকে যাবে।
+                        @endif
+                    </p>
+                    <p x-show="stockProblem" x-cloak role="alert" class="mt-2 text-sm text-red-600" x-text="stockProblem"></p>
                 </div>
 
                 {{-- Product Search + Cart --}}
@@ -259,8 +287,8 @@
                     {{-- Cart Items --}}
                     <div class="space-y-2 mb-4" x-show="cart.length > 0">
                         <template x-for="(item, index) in cart" :key="index">
-                            <div class="flex items-center gap-2 p-3 bg-gray-50 dark:bg-slate-700/50 rounded-xl">
-                                <div class="flex-1 min-w-0">
+                            <div class="flex flex-wrap sm:flex-nowrap items-center gap-2 p-3 bg-gray-50 dark:bg-slate-700/50 rounded-xl">
+                                <div class="w-full sm:w-auto sm:flex-1 min-w-0">
                                     <p class="text-sm font-medium text-gray-900 dark:text-white truncate" x-text="item.name"></p>
                                     <div class="flex items-center gap-1 mt-1">
                                         <span class="text-xs text-gray-400 dark:text-slate-500">৳</span>
@@ -269,6 +297,7 @@
                                                class="w-20 px-1.5 py-0.5 text-xs border border-gray-200 dark:border-slate-600 rounded bg-white dark:bg-slate-700 text-gray-900 dark:text-white focus:outline-none focus:ring-1 focus:ring-primary-500">
                                         <span class="text-xs text-gray-400 dark:text-slate-500" x-text="'/ ' + item.unit"></span>
                                     </div>
+                                    <p class="text-xs" :class="isShort(item) ? 'text-red-600' : 'text-gray-500 dark:text-slate-300'" x-text="'Available for this order: ' + stockLabel(item.product_id)"></p>
                                     <input type="hidden" :name="'items[' + index + '][product_id]'" :value="item.product_id">
                                     <input type="hidden" :name="'items[' + index + '][product_name]'" :value="item.name">
                                     <input type="hidden" :name="'items[' + index + '][cost_price]'" :value="item.cost_price || 0">
@@ -403,7 +432,7 @@
                             </option>
                         @endforeach
                     </select>
-                    <button type="submit"
+                    <button type="submit" :disabled="!!stockProblem"
                             class="w-full mt-3 bg-primary-600 hover:bg-primary-700 text-white font-medium py-2.5 rounded-lg text-sm transition-colors">
                         {{ isset($order) ? 'Update Order' : 'Place Order' }}
                     </button>
@@ -420,7 +449,48 @@
 <script>
 function orderForm() {
     return {
-        cart: @json($cartItems ?? []),
+        cart: {{ \Illuminate\Support\Js::from(old('items') !== null ? collect(old('items'))->map(fn ($item) => [
+            'product_id' => (int) ($item['product_id'] ?? 0),
+            'name' => $item['product_name'] ?? '',
+            'price' => (float) ($item['price'] ?? 0),
+            'cost_price' => (float) ($item['cost_price'] ?? 0),
+            'qty' => (int) ($item['quantity'] ?? 1),
+            'discount' => (float) ($item['discount'] ?? 0),
+            'unit' => 'pcs',
+        ])->values() : ($cartItems ?? [])) }},
+        warehouseId: {{ \Illuminate\Support\Js::from((string) old('warehouse_id', $order->warehouse_id ?? '')) }},
+        locationStock: {{ \Illuminate\Support\Js::from($locationStock) }},
+        stockProducts: {{ \Illuminate\Support\Js::from($stockProducts) }},
+        heldStock: {{ \Illuminate\Support\Js::from($heldStock) }},
+        originalWarehouseId: {{ \Illuminate\Support\Js::from((string) ($originalWarehouseId ?? '')) }},
+        hasLocations: @js($warehouses->isNotEmpty()),
+        isNewOrder: @js(!isset($order)),
+        holdsStock: @js(!isset($order) || $order->holdsStock()),
+
+        available(productId) {
+            const product = this.stockProducts[productId];
+            if (!product || !product.track_stock) return null;
+            const held = Number(this.heldStock[productId] || 0);
+            if (!this.warehouseId) return Number(product.stock) + held;
+            const local = Number(this.locationStock[this.warehouseId]?.[productId] || 0);
+            const sameSource = this.warehouseId === this.originalWarehouseId;
+            return Math.min(local + (sameSource ? held : 0), Number(product.stock) + held);
+        },
+        stockLabel(productId) {
+            if (!this.warehouseId && this.hasLocations && this.isNewOrder) return 'Select location';
+            const available = this.available(productId);
+            return available === null ? 'Not tracked' : available + ' pcs';
+        },
+        isShort(item) {
+            const available = this.available(item.product_id);
+            const requested = this.cart.filter(i => i.product_id === item.product_id).reduce((sum, i) => sum + i.qty, 0);
+            return this.holdsStock && available !== null && requested > available;
+        },
+        get stockProblem() {
+            if (this.isNewOrder && this.hasLocations && !this.warehouseId) return 'Warehouse / outlet নির্বাচন করুন।';
+            const item = this.cart.find(i => this.isShort(i));
+            return item ? item.name + ': নির্বাচিত জায়গায় পর্যাপ্ত stock নেই। Quantity কমান অথবা অন্য location বেছে নিন।' : '';
+        },
         productResults: [],
         customerResults: [],
 
@@ -432,9 +502,9 @@ function orderForm() {
             { id: {{ $p->id }}, name: @js($p->name), sku: @js($p->sku ?? ''), price: {{ (float) $p->current_price }}, cost_price: {{ (float) ($p->cost_price ?? 0) }}, stock: {{ (float) $p->stock }}, unit: @js($p->unit ?? 'pcs'), qty: null },
             @endforeach
         ],
-        discount: {{ old('discount', isset($order) ? $order->discount : 0) }},
-        shippingCharge: {{ old('shipping_charge', isset($order) ? $order->shipping_charge : 0) }},
-        paidAmount: {{ old('paid_amount', isset($order) ? $order->paid_amount : 0) }},
+        discount: {{ (float) old('discount', isset($order) ? $order->discount : 0) }},
+        shippingCharge: {{ (float) old('shipping_charge', isset($order) ? $order->shipping_charge : 0) }},
+        paidAmount: {{ (float) old('paid_amount', isset($order) ? $order->paid_amount : 0) }},
         subtotal: 0,
         total: 0,
         dueAmount: 0,

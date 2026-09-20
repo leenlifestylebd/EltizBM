@@ -315,6 +315,9 @@ class SettingsController extends Controller
         // buttons for other roles but the endpoint must enforce it too.
         abort_unless(auth()->user()->isAdmin(), 403, 'Only an admin can delete this.');
         abort_if($warehouse->business_id !== auth()->user()->business_id, 403);
+        if (\App\Models\Order::withTrashed()->where('warehouse_id', $warehouse->id)->exists()) {
+            return back()->with('error', 'This stock location is used by orders and must be kept for stock history.');
+        }
         $warehouse->delete();
         return back()->with('success', 'Warehouse deleted.');
     }

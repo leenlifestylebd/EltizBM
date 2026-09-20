@@ -9,6 +9,7 @@ use App\Models\Warehouse;
 use App\Models\WarehouseStock;
 use Illuminate\Support\Facades\DB;
 use Illuminate\Support\Facades\Log;
+use Illuminate\Validation\ValidationException;
 
 /**
  * StockService — Single source of truth for all inventory movements.
@@ -29,6 +30,7 @@ class StockService
      */
     public function deductForOrder(Order $order): void
     {
+        if ($order->warehouse_id) { $this->moveSelectedStock($order, false); return; }
         $warehouseId = $this->defaultWarehouseId($order->business_id);
 
         foreach ($order->items as $item) {
@@ -63,6 +65,7 @@ class StockService
      */
     public function restoreForOrder(Order $order): void
     {
+        if ($order->warehouse_id) { $this->moveSelectedStock($order, true); return; }
         $warehouseId = $this->defaultWarehouseId($order->business_id);
 
         foreach ($order->items as $item) {
@@ -138,6 +141,7 @@ class StockService
 
     public function restorePartial(Order $order, array $lines): int
     {
+        if ($order->warehouse_id) { return $this->moveSelectedStock($order, true, $lines); }
         $warehouseId = $this->defaultWarehouseId($order->business_id);
         $restored    = 0;
 
@@ -284,6 +288,78 @@ class StockService
     public function defaultWarehouseId(int $bizId): ?int
     {
         return Warehouse::where('business_id', $bizId)->orderByDesc('is_default')->value('id');
+    }
+
+    public function hasPartialReturns(Order $order): bool
+    {
+        return StockAdjustment::where('business_id', $order->business_id)->where('type', 'return')
+            ->where('reason', "Partial return - Order #{$order->order_number}")->exists();
+    }
+
+    private function moveSelectedStock(Order $order, bool $restoring, ?array $partial = null): int
+    {
+        return DB::transaction(function () use ($order, $restoring, $partial) {
+            // Serialize edits, courier callbacks, and partial returns for this order.
+            $locked = Order::whereKey($order->id)->lockForUpdate()->firstOrFail();
+            $warehouseId = $locked->warehouse_id;
+            if (!Warehouse::where('business_id', $order->business_id)->whereKey($warehouseId)->exists()) {
+                throw ValidationException::withMessages(['warehouse_id' => 'The selected stock location is unavailable.']);
+            }
+            if ($partial !== null && !$locked->holdsStock()) {
+                throw ValidationException::withMessages(['returns' => 'This order has already been cancelled or returned.']);
+            }
+            $quantities = $order->items()->get()->whereNotNull('product_id')->groupBy('product_id')
+                ->map(fn ($items) => (int) $items->sum('quantity'));
+            $products = Product::where('business_id', $order->business_id)->whereIn('id', $quantities->keys())
+                ->orderBy('id')->lockForUpdate()->get();
+            $returned = StockAdjustment::where('business_id', $order->business_id)->where('type', 'return')
+                ->where('reason', "Partial return - Order #{$order->order_number}")
+                ->selectRaw('product_id, SUM(quantity) as quantity')->groupBy('product_id')->pluck('quantity', 'product_id');
+            $moved = 0;
+            foreach ($products as $product) {
+                if (!$product->track_stock) continue;
+                $qty = $quantities[$product->id];
+                if ($restoring) $qty = max(0, $qty - (int) ($returned[$product->id] ?? 0));
+                if ($partial !== null) {
+                    $requested = (int) ($partial[$product->id] ?? 0);
+                    if ($requested > $qty) {
+                        throw ValidationException::withMessages(['returns' => "Only {$qty} unreturned unit(s) of {$product->name} remain in this order."]);
+                    }
+                    $qty = max(0, $requested);
+                }
+                if ($qty === 0) continue;
+                $before = (int) $product->stock;
+                $rows = WarehouseStock::where('business_id', $order->business_id)->where('warehouse_id', $warehouseId)
+                    ->where('product_id', $product->id)->whereNull('variant_id')->orderBy('id')->lockForUpdate()->get();
+                $available = (int) $rows->sum('quantity');
+                if (!$restoring && ($available < $qty || $before < $qty)) {
+                    throw ValidationException::withMessages(['warehouse_id' => "Insufficient stock at the selected location for {$product->name}. Available: " . min($available, $before) . "; requested: {$qty}."]);
+                }
+                $after = $restoring ? $before + $qty : $before - $qty;
+                $product->update(['stock' => $after]);
+                if ($restoring) {
+                    $this->adjustWarehouseStock($order->business_id, $product->id, $warehouseId, $qty);
+                } else {
+                    $remaining = $qty;
+                    foreach ($rows as $row) {
+                        $taken = min($remaining, max(0, (int) $row->quantity));
+                        $row->decrement('quantity', $taken);
+                        $remaining -= $taken;
+                        if ($remaining === 0) break;
+                    }
+                }
+                // The audit row also records partial-return quantities; fail atomically if it cannot be saved.
+                StockAdjustment::create([
+                    'business_id' => $order->business_id, 'product_id' => $product->id,
+                    'warehouse_id' => $warehouseId, 'created_by' => auth()->id() ?? $order->created_by,
+                    'type' => $restoring ? 'return' : 'decrease', 'quantity' => $qty,
+                    'quantity_before' => $before, 'quantity_after' => $after,
+                    'reason' => ($partial !== null ? 'Partial return' : ($restoring ? 'Return/Cancel' : 'Sale')) . " - Order #{$order->order_number}",
+                ]);
+                $moved += $qty;
+            }
+            return $moved;
+        });
     }
 
     private function adjustWarehouseStock(int $bizId, int $productId, ?int $warehouseId, int $delta): void
