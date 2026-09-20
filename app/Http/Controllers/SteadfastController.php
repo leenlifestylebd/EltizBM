@@ -70,23 +70,26 @@ class SteadfastController extends Controller
      */
     private function applyDelivered(Shipment $shipment, ?float $codAmount = null, bool $partial = false): void
     {
-        $order = $shipment->order;
-        if (!$order || $order->status === 'delivered') return;
+        \Illuminate\Support\Facades\DB::transaction(function () use ($shipment, $codAmount, $partial) {
+            $order = Order::whereKey($shipment->order_id)->lockForUpdate()->first();
+            $shipment->setRelation('order', $order);
+            if (!$order || !$order->holdsStock() || $order->status === 'delivered') return;
 
-        // Partial delivery: only the courier knows how much was actually collected.
-        // Without that figure, book nothing rather than assume the full total.
-        if ($partial && $codAmount === null) return;
+            // Partial delivery: only the courier knows how much was actually collected.
+            // Without that figure, book nothing rather than assume the full total.
+            if ($partial && $codAmount === null) return;
 
-        $amount = $codAmount !== null ? (float) $codAmount : (float) $order->total;
+            $amount = $codAmount !== null ? (float) $codAmount : (float) $order->total;
 
-        $order->update([
-            'status'         => 'delivered',
-            'paid_amount'    => $amount,
-            'due_amount'     => 0,
-            'payment_status' => $partial ? 'partial' : 'paid',
-        ]);
+            $order->update([
+                'status'         => 'delivered',
+                'paid_amount'    => $amount,
+                'due_amount'     => 0,
+                'payment_status' => $partial ? 'partial' : 'paid',
+            ]);
 
-        $this->addIncomeTransaction($shipment, $amount);
+            $this->addIncomeTransaction($shipment, $amount);
+        });
     }
 
     /**
@@ -166,30 +169,33 @@ class SteadfastController extends Controller
      */
     private function applyCancelled(Shipment $shipment): void
     {
-        $order = $shipment->order;
-        if (!$order || $order->status === 'returned') return;
+        \Illuminate\Support\Facades\DB::transaction(function () use ($shipment) {
+            $order = Order::whereKey($shipment->order_id)->lockForUpdate()->first();
+            $shipment->setRelation('order', $order);
+            if (!$order || !$order->holdsStock()) return;
 
-        app(\App\Services\StockService::class)->restoreForOrder($order->load('items'));
+            app(\App\Services\StockService::class)->restoreForOrder($order->load('items'));
 
-        if ((float) $order->paid_amount > 0) {
-            Transaction::create([
-                'business_id'      => $shipment->business_id,
-                'created_by'       => auth()->id() ?? $order->created_by,
-                'order_id'         => $order->id,
-                'type'             => 'expense',
-                'title'            => 'Return/Cancel - Order #' . $order->order_number,
-                'amount'           => $order->paid_amount,
-                'payment_method'   => 'cod',
-                'transaction_date' => today(),
+            if ((float) $order->paid_amount > 0) {
+                Transaction::create([
+                    'business_id'      => $shipment->business_id,
+                    'created_by'       => auth()->id() ?? $order->created_by,
+                    'order_id'         => $order->id,
+                    'type'             => 'expense',
+                    'title'            => 'Return/Cancel - Order #' . $order->order_number,
+                    'amount'           => $order->paid_amount,
+                    'payment_method'   => 'cod',
+                    'transaction_date' => today(),
+                ]);
+            }
+
+            $order->update([
+                'status'         => 'returned',
+                'paid_amount'    => 0,
+                'due_amount'     => 0,
+                'payment_status' => 'refunded',
             ]);
-        }
-
-        $order->update([
-            'status'         => 'returned',
-            'paid_amount'    => 0,
-            'due_amount'     => 0,
-            'payment_status' => 'refunded',
-        ]);
+        });
     }
 
     public function index()

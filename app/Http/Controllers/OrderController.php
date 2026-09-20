@@ -9,6 +9,10 @@ use App\Models\OrderItem;
 use App\Models\Product;
 use App\Models\Customer;
 use App\Models\Transaction;
+use App\Models\Warehouse;
+use App\Models\WarehouseStock;
+use Illuminate\Validation\Rule;
+use Illuminate\Validation\ValidationException;
 use App\Services\OrderService;
 use Illuminate\Http\Request;
 use Illuminate\Support\Str;
@@ -93,7 +97,7 @@ class OrderController extends Controller
     $customers = \App\Models\Customer::where('business_id', $bizId)->orderBy('name')->get();
     $cartItems = [];
     $wholesale = request()->routeIs('wholesale.*');
-    return view('orders.form', compact('products', 'customers', 'cartItems', 'wholesale'));
+    return view('orders.form', compact('products', 'customers', 'cartItems', 'wholesale') + $this->stockLocationData($bizId));
 }
     // =============================================
     // STORE
@@ -119,7 +123,7 @@ class OrderController extends Controller
     public function show(Order $order)
     {
         $this->authorize($order);
-        $order->load(['items.product', 'shipments', 'customer']);
+        $order->load(['items.product', 'shipments', 'customer', 'warehouse']);
         $business = auth()->user()->business;
         $isConnected = \App\Models\CourierSetting::where('business_id', $order->business_id)
             ->where('provider', 'steadfast')->where('is_active', true)
@@ -147,7 +151,7 @@ class OrderController extends Controller
             'discount'   => (float) $i->discount,
         ];
     })->values()->toArray();
-    return view('orders.form', compact('order', 'products', 'customers', 'cartItems'));
+    return view('orders.form', compact('order', 'products', 'customers', 'cartItems') + $this->stockLocationData($bizId, $order));
 }
 
     // =============================================
@@ -258,6 +262,7 @@ class OrderController extends Controller
             // Create the net new order — return credit rides in as the discount.
             $data                 = $request->all();
             $data['discount']     = $returnCredit;
+            $data['warehouse_id'] = $order->warehouse_id;
             $data['created_by']   = auth()->id();
             $data['customer_id']  = $order->customer_id;
             $data['customer_name']= $order->customer_name;
@@ -353,7 +358,11 @@ class OrderController extends Controller
 
         $request->validate([
             'customer_name' => 'required|string|max:100',
-            'status'        => 'required|string',
+            'status' => 'required|in:pending,confirmed,processing,shipped,delivered,completed,cancelled,returned,refunded',
+            'warehouse_id' => ['nullable', 'integer', Rule::exists('warehouses', 'id')->where('business_id', $order->business_id)],
+            'items' => 'sometimes|array|min:1',
+            'items.*.quantity' => 'required_with:items|integer|min:1',
+            'items.*.price' => 'required_with:items|numeric|min:0',
             'payment_method'=> 'required|string',
             'order_date'    => 'nullable|date|before_or_equal:today',
         ]);
@@ -362,40 +371,25 @@ class OrderController extends Controller
         $stock = app(\App\Services\StockService::class);
 
         DB::transaction(function () use ($request, $order, $bizId, $stock) {
+            $order = Order::whereKey($order->id)->lockForUpdate()->firstOrFail();
+            $warehouseId = $request->filled('warehouse_id') ? (int) $request->warehouse_id : $order->warehouse_id;
+            $locationChanged = (int) $warehouseId !== (int) $order->warehouse_id;
+            if ($locationChanged && (!$order->warehouse_id || !in_array($order->status, ['pending', 'confirmed', 'processing'], true) || $order->shipments()->exists())) {
+                throw ValidationException::withMessages(['warehouse_id' => 'Stock location can only be changed on an assigned order before shipment. Historical orders keep their original accounting.']);
+            }
+            if ($order->warehouse_id && ($locationChanged || $request->has('items')) && $stock->hasPartialReturns($order)) {
+                throw ValidationException::withMessages(['items' => 'Items or stock location cannot be edited after a partial return.']);
+            }
             // Discount & shipping fall back to the order's existing values.
             $discount = floatval($request->discount ?? $order->discount);
             $shipping = floatval($request->shipping_charge ?? $order->shipping_charge);
 
-            // Re-create items if provided, and derive subtotal from them.
             if ($request->has('items')) {
-                // Restore stock for the OLD item set (scoped + logged).
-                $stock->restoreForOrder($order);
-
-                $order->items()->delete();
-
-                $subtotal = 0;
-                foreach ($request->items as $item) {
-                    // Only link catalog products owned by this business.
-                    $product = !empty($item['product_id'])
-                        ? Product::where('id', $item['product_id'])->where('business_id', $bizId)->first()
-                        : null;
-
-                    OrderItem::create([
-                        'order_id'     => $order->id,
-                        'product_id'   => $product?->id,
-                        'product_name' => $item['product_name'],
-                        'price'        => $item['price'],
-                        'cost_price'   => $item['cost_price'] ?? 0,
-                        'quantity'     => $item['quantity'],
-                        'discount'     => $item['discount'] ?? 0,
-                        'total'        => $item['total'],
-                    ]);
-                    $subtotal += floatval($item['total']);
-                }
-
+                $subtotal = $this->orderService->replaceItems($order, $request->items, $warehouseId);
                 $order->update(['subtotal' => $subtotal]);
-                // Deduct stock for the NEW item set.
-                $order->load('items');
+            } elseif ($locationChanged) {
+                $stock->restoreForOrder($order->load('items'));
+                $order->update(['warehouse_id' => $warehouseId]);
                 $stock->deductForOrder($order);
             }
 
@@ -410,7 +404,6 @@ class OrderController extends Controller
             elseif ($paid > 0)                 $payStatus = 'partial';
 
             $order->update([
-                'status'           => $request->status,
                 'payment_status'   => $payStatus,
                 'payment_method'   => $request->payment_method,
                 'customer_name'    => $request->customer_name,
@@ -425,6 +418,8 @@ class OrderController extends Controller
                 'due_amount'       => $due,
                 'notes'            => $request->notes,
             ]);
+
+            $this->applyStatusTransition($order, $request->status);
 
             // Allow correcting the order (sale) date, keeping clock time on that day.
             if ($request->filled('order_date')) {
@@ -472,31 +467,10 @@ class OrderController extends Controller
             'status' => 'required|in:pending,confirmed,processing,shipped,delivered,completed,cancelled,returned,refunded',
         ]);
 
-        $status   = $request->status;
-        $previous = $order->status;
-
-        // No-op if the status hasn't actually changed — prevents duplicate income,
-        // double stock restore, and repeat notifications from re-clicking a status.
-        if ($status === $previous) {
-            return back()->with('success', 'Order status unchanged.');
-        }
-
-        $cancelStates = ['cancelled', 'returned', 'refunded'];
-        $order->update(['status' => $status]);
-
-        if ($status === 'confirmed') {
-            $this->orderService->notifyConfirmed($order, $bizName);
-        }
-
-        // COD auto-complete only when transitioning INTO delivered and not yet paid.
-        if ($status === 'delivered' && $order->payment_method === 'cod' && $order->payment_status !== 'paid') {
-            $this->orderService->completeCod($order);
-        }
-
-        // Cancel/return side effects only when moving from a non-cancelled state.
-        if (in_array($status, $cancelStates) && !in_array($previous, $cancelStates)) {
-            $this->orderService->cancel($order, $status);
-        }
+        DB::transaction(function () use ($order, $request) {
+            $locked = Order::whereKey($order->id)->lockForUpdate()->firstOrFail();
+            $this->applyStatusTransition($locked, $request->status);
+        });
 
         return back()->with('success', 'Order status updated!');
     }
@@ -618,6 +592,7 @@ class OrderController extends Controller
         ]);
 
         DB::transaction(function () use ($order) {
+            $order = Order::whereKey($order->id)->lockForUpdate()->firstOrFail();
             // Restore stock (scoped + logged) only for orders that still hold stock —
             // cancelled/returned orders already had their stock restored.
             if (!in_array($order->status, ['cancelled', 'returned', 'refunded'])) {
@@ -679,8 +654,50 @@ class OrderController extends Controller
     }
 
     // =============================================
+    private function stockLocationData(int $bizId, ?Order $order = null): array
+    {
+        $warehouses = Warehouse::where('business_id', $bizId)->orderByDesc('is_default')->orderBy('name')->get();
+        $locationStock = WarehouseStock::where('business_id', $bizId)->whereNull('variant_id')
+            ->selectRaw('warehouse_id, product_id, SUM(quantity) as available')
+            ->groupBy('warehouse_id', 'product_id')->get()
+            ->groupBy('warehouse_id')->map(fn ($rows) => $rows->pluck('available', 'product_id'));
+        $stockProducts = Product::where('business_id', $bizId)->get(['id', 'track_stock', 'stock'])->keyBy('id');
+        $heldStock = $order && $order->holdsStock()
+            ? $order->items->groupBy('product_id')->map(fn ($items) => (int) $items->sum('quantity'))
+            : collect();
+        $originalWarehouseId = $order?->warehouse_id;
+        $locationLocked = $order && (!$order->warehouse_id || !in_array($order->status, ['pending', 'confirmed', 'processing'], true) || $order->shipments()->exists());
+
+        return compact('warehouses', 'locationStock', 'stockProducts', 'heldStock', 'originalWarehouseId', 'locationLocked');
+    }
+
     private function authorize(Order $order): void
     {
         abort_if($order->business_id !== auth()->user()->business_id, 403);
+    }
+    private function applyStatusTransition(Order $order, string $status): void
+    {
+        $previous = $order->status;
+        if ($status === $previous) return;
+
+        $terminal = ['cancelled', 'returned', 'refunded'];
+        if (in_array($previous, $terminal, true) && !in_array($status, $terminal, true)) {
+            throw ValidationException::withMessages([
+                'status' => 'A cancelled, returned, or refunded order cannot be reopened automatically.',
+            ]);
+        }
+
+        if (in_array($status, $terminal, true) && !in_array($previous, $terminal, true)) {
+            $this->orderService->cancel($order, $status);
+            return;
+        }
+        $order->update(['status' => $status]);
+
+        if ($status === 'confirmed') {
+            $this->orderService->notifyConfirmed($order, auth()->user()->business->name);
+        }
+        if ($status === 'delivered' && $order->payment_method === 'cod' && $order->payment_status !== 'paid') {
+            $this->orderService->completeCod($order);
+        }
     }
 }
