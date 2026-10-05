@@ -262,67 +262,6 @@ class SettingsController extends Controller
     }
 
     // =============================================
-    // WAREHOUSES
-    // =============================================
-    public function warehouses()
-    {
-        $bizId      = auth()->user()->business_id;
-        $warehouses = \App\Models\Warehouse::where('business_id', $bizId)->get();
-        return view('settings.warehouses', compact('warehouses'));
-    }
-
-    public function storeWarehouse(Request $request)
-    {
-        $request->validate(['name' => 'required|string|max:100']);
-
-        $bizId = auth()->user()->business_id;
-
-        if ($request->boolean('is_default')) {
-            \App\Models\Warehouse::where('business_id', $bizId)->update(['is_default' => false]);
-        }
-
-        \App\Models\Warehouse::create([
-            'business_id' => $bizId,
-            'name'        => $request->name,
-            'address'     => $request->address,
-            'is_default'  => $request->boolean('is_default'),
-        ]);
-
-        return back()->with('success', 'Warehouse added!');
-    }
-
-    public function updateWarehouse(Request $request, \App\Models\Warehouse $warehouse)
-    {
-        abort_if($warehouse->business_id !== auth()->user()->business_id, 403);
-        $request->validate(['name' => 'required|string|max:100']);
-
-        if ($request->boolean('is_default')) {
-            \App\Models\Warehouse::where('business_id', $warehouse->business_id)->update(['is_default' => false]);
-        }
-
-        $warehouse->update([
-            'name'       => $request->name,
-            'address'    => $request->address,
-            'is_default' => $request->boolean('is_default'),
-        ]);
-
-        return back()->with('success', 'Warehouse updated!');
-    }
-
-    public function destroyWarehouse(\App\Models\Warehouse $warehouse)
-    {
-        // Deleting financial/operational records is admin-only; the UI hides these
-        // buttons for other roles but the endpoint must enforce it too.
-        abort_unless(auth()->user()->isAdmin(), 403, 'Only an admin can delete this.');
-        abort_if($warehouse->business_id !== auth()->user()->business_id, 403);
-        if (\App\Models\Order::withTrashed()->where('warehouse_id', $warehouse->id)->exists()) {
-            return back()->with('error', 'This stock location is used by orders and must be kept for stock history.');
-        }
-        $warehouse->delete();
-        return back()->with('success', 'Warehouse deleted.');
-    }
-
-    // =============================================
     // STATUSES (custom order statuses)
     // =============================================
     public function statuses()

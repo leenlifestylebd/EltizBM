@@ -164,7 +164,7 @@ class SteadfastController extends Controller
     }
 
     /**
-     * Parcel cancelled/returned — put the stock back (warehouse-aware + logged)
+     * Parcel cancelled/returned — put the stock back (audited)
      * and reverse any COD income already booked. Idempotent.
      */
     private function applyCancelled(Shipment $shipment): void

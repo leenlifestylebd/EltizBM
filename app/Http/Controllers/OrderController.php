@@ -9,8 +9,6 @@ use App\Models\OrderItem;
 use App\Models\Product;
 use App\Models\Customer;
 use App\Models\Transaction;
-use App\Models\Warehouse;
-use App\Models\WarehouseStock;
 use Illuminate\Validation\Rule;
 use Illuminate\Validation\ValidationException;
 use App\Services\OrderService;
@@ -97,7 +95,7 @@ class OrderController extends Controller
     $customers = \App\Models\Customer::where('business_id', $bizId)->orderBy('name')->get();
     $cartItems = [];
     $wholesale = request()->routeIs('wholesale.*');
-    return view('orders.form', compact('products', 'customers', 'cartItems', 'wholesale') + $this->stockLocationData($bizId));
+    return view('orders.form', compact('products', 'customers', 'cartItems', 'wholesale') + $this->stockData($bizId));
 }
     // =============================================
     // STORE
@@ -123,7 +121,7 @@ class OrderController extends Controller
     public function show(Order $order)
     {
         $this->authorize($order);
-        $order->load(['items.product', 'shipments', 'customer', 'warehouse']);
+        $order->load(['items.product', 'shipments', 'customer']);
         $business = auth()->user()->business;
         $isConnected = \App\Models\CourierSetting::where('business_id', $order->business_id)
             ->where('provider', 'steadfast')->where('is_active', true)
@@ -151,7 +149,7 @@ class OrderController extends Controller
             'discount'   => (float) $i->discount,
         ];
     })->values()->toArray();
-    return view('orders.form', compact('order', 'products', 'customers', 'cartItems') + $this->stockLocationData($bizId, $order));
+    return view('orders.form', compact('order', 'products', 'customers', 'cartItems') + $this->stockData($bizId, $order));
 }
 
     // =============================================
@@ -254,7 +252,7 @@ class OrderController extends Controller
         }
 
         \Illuminate\Support\Facades\DB::transaction(function () use ($order, $request, $bizId, $returnLines, $returnCredit, $returnedQty) {
-            // Restock the returned items (warehouse-aware + logged).
+            // Restock the returned items (audited).
             if (!empty($returnLines)) {
                 app(\App\Services\StockService::class)->restorePartial($order, $returnLines);
             }
@@ -262,7 +260,6 @@ class OrderController extends Controller
             // Create the net new order — return credit rides in as the discount.
             $data                 = $request->all();
             $data['discount']     = $returnCredit;
-            $data['warehouse_id'] = $order->warehouse_id;
             $data['created_by']   = auth()->id();
             $data['customer_id']  = $order->customer_id;
             $data['customer_name']= $order->customer_name;
@@ -359,7 +356,6 @@ class OrderController extends Controller
         $request->validate([
             'customer_name' => 'required|string|max:100',
             'status' => 'required|in:pending,confirmed,processing,shipped,delivered,completed,cancelled,returned,refunded',
-            'warehouse_id' => ['nullable', 'integer', Rule::exists('warehouses', 'id')->where('business_id', $order->business_id)],
             'items' => 'sometimes|array|min:1',
             'items.*.quantity' => 'required_with:items|integer|min:1',
             'items.*.price' => 'required_with:items|numeric|min:0',
@@ -372,25 +368,19 @@ class OrderController extends Controller
 
         DB::transaction(function () use ($request, $order, $bizId, $stock) {
             $order = Order::whereKey($order->id)->lockForUpdate()->firstOrFail();
-            $warehouseId = $request->filled('warehouse_id') ? (int) $request->warehouse_id : $order->warehouse_id;
-            $locationChanged = (int) $warehouseId !== (int) $order->warehouse_id;
-            if ($locationChanged && (!$order->warehouse_id || !in_array($order->status, ['pending', 'confirmed', 'processing'], true) || $order->shipments()->exists())) {
-                throw ValidationException::withMessages(['warehouse_id' => 'Stock location can only be changed on an assigned order before shipment. Historical orders keep their original accounting.']);
-            }
-            if ($order->warehouse_id && ($locationChanged || $request->has('items')) && $stock->hasPartialReturns($order)) {
-                throw ValidationException::withMessages(['items' => 'Items or stock location cannot be edited after a partial return.']);
+
+            // A partial return has already put units back, so rewriting the lines
+            // would make the order's history unrestorable.
+            if ($request->has('items') && $stock->hasPartialReturns($order)) {
+                throw ValidationException::withMessages(['items' => 'Items cannot be edited after a partial return.']);
             }
             // Discount & shipping fall back to the order's existing values.
             $discount = floatval($request->discount ?? $order->discount);
             $shipping = floatval($request->shipping_charge ?? $order->shipping_charge);
 
             if ($request->has('items')) {
-                $subtotal = $this->orderService->replaceItems($order, $request->items, $warehouseId);
+                $subtotal = $this->orderService->replaceItems($order, $request->items);
                 $order->update(['subtotal' => $subtotal]);
-            } elseif ($locationChanged) {
-                $stock->restoreForOrder($order->load('items'));
-                $order->update(['warehouse_id' => $warehouseId]);
-                $stock->deductForOrder($order);
             }
 
             // Total is always derived server-side, never trusted from the client.
@@ -654,21 +644,15 @@ class OrderController extends Controller
     }
 
     // =============================================
-    private function stockLocationData(int $bizId, ?Order $order = null): array
+    private function stockData(int $bizId, ?Order $order = null): array
     {
-        $warehouses = Warehouse::where('business_id', $bizId)->orderByDesc('is_default')->orderBy('name')->get();
-        $locationStock = WarehouseStock::where('business_id', $bizId)->whereNull('variant_id')
-            ->selectRaw('warehouse_id, product_id, SUM(quantity) as available')
-            ->groupBy('warehouse_id', 'product_id')->get()
-            ->groupBy('warehouse_id')->map(fn ($rows) => $rows->pluck('available', 'product_id'));
         $stockProducts = Product::where('business_id', $bizId)->get(['id', 'track_stock', 'stock'])->keyBy('id');
+        // Units this order already holds, so the form can offer them back to the user.
         $heldStock = $order && $order->holdsStock()
             ? $order->items->groupBy('product_id')->map(fn ($items) => (int) $items->sum('quantity'))
             : collect();
-        $originalWarehouseId = $order?->warehouse_id;
-        $locationLocked = $order && (!$order->warehouse_id || !in_array($order->status, ['pending', 'confirmed', 'processing'], true) || $order->shipments()->exists());
 
-        return compact('warehouses', 'locationStock', 'stockProducts', 'heldStock', 'originalWarehouseId', 'locationLocked');
+        return compact('stockProducts', 'heldStock');
     }
 
     private function authorize(Order $order): void

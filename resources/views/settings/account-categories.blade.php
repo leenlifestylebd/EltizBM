@@ -11,7 +11,6 @@
         ['route'=>'settings.general',           'label'=>'Profile'],
         ['route'=>'settings.business',          'label'=>'Business'],
         ['route'=>'settings.user-management',   'label'=>'Users'],
-        ['route'=>'settings.warehouses',        'label'=>'Warehouses'],
         ['route'=>'settings.statuses',          'label'=>'Statuses'],
         ['route'=>'settings.tags',              'label'=>'Tags'],
         ['route'=>'settings.account-categories','label'=>'Categories'],
