@@ -129,7 +129,7 @@ class PosController extends Controller
                     ]);
                 }
 
-                // Deduct stock (warehouse-aware)
+                // Deduct stock (audited)
                 app(\App\Services\StockService::class)->deductForOrder($order->load('items'));
 
                 // Income transaction

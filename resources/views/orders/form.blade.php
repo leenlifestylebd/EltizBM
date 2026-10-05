@@ -183,26 +183,7 @@
                     </div>
                 </div>
 
-                <div class="bg-white dark:bg-slate-800 rounded-xl border border-gray-100 dark:border-slate-700 p-4">
-                    <label for="warehouse_id" class="block text-sm font-semibold text-gray-900 dark:text-white mb-2">Stock from / পণ্য যাবে যেখান থেকে</label>
-                    <select id="warehouse_id" name="warehouse_id" x-model="warehouseId"
-                            @disabled($locationLocked) @required(!isset($order) && $warehouses->isNotEmpty())
-                            class="w-full px-3 py-2.5 text-sm border border-gray-200 dark:border-slate-600 rounded-lg bg-white dark:bg-slate-700 text-gray-900 dark:text-white">
-                        <option value="">{{ isset($order) ? 'Legacy order — location not recorded' : 'Select warehouse / outlet' }}</option>
-                        @foreach($warehouses as $warehouse)
-                            <option value="{{ $warehouse->id }}">{{ $warehouse->name }}</option>
-                        @endforeach
-                    </select>
-                    <p class="mt-2 text-xs text-gray-500 dark:text-slate-300">
-                        @if($locationLocked)
-                            পুরোনো unassigned order অথবা shipment/closed order-এর stock location বদলানো যাবে না।
-                        @elseif($warehouses->isEmpty())
-                            Warehouse / outlet যোগ করুন Settings → Warehouses থেকে।
-                        @else
-                            এই অর্ডারের সব পণ্য নির্বাচিত warehouse / outlet-এর stock থেকে যাবে।
-                        @endif
-                    </p>
-                    <p x-show="stockProblem" x-cloak role="alert" class="mt-2 text-sm text-red-600" x-text="stockProblem"></p>
+                <p x-show="stockProblem" x-cloak role="alert" class="mt-2 text-sm text-red-600" x-text="stockProblem"></p>
                 </div>
 
                 {{-- Product Search + Cart --}}
@@ -458,26 +439,18 @@ function orderForm() {
             'discount' => (float) ($item['discount'] ?? 0),
             'unit' => 'pcs',
         ])->values() : ($cartItems ?? [])) }},
-        warehouseId: {{ \Illuminate\Support\Js::from((string) old('warehouse_id', $order->warehouse_id ?? '')) }},
-        locationStock: {{ \Illuminate\Support\Js::from($locationStock) }},
         stockProducts: {{ \Illuminate\Support\Js::from($stockProducts) }},
         heldStock: {{ \Illuminate\Support\Js::from($heldStock) }},
-        originalWarehouseId: {{ \Illuminate\Support\Js::from((string) ($originalWarehouseId ?? '')) }},
-        hasLocations: @js($warehouses->isNotEmpty()),
         isNewOrder: @js(!isset($order)),
         holdsStock: @js(!isset($order) || $order->holdsStock()),
 
         available(productId) {
             const product = this.stockProducts[productId];
             if (!product || !product.track_stock) return null;
-            const held = Number(this.heldStock[productId] || 0);
-            if (!this.warehouseId) return Number(product.stock) + held;
-            const local = Number(this.locationStock[this.warehouseId]?.[productId] || 0);
-            const sameSource = this.warehouseId === this.originalWarehouseId;
-            return Math.min(local + (sameSource ? held : 0), Number(product.stock) + held);
+            // Units this order already holds are available again while editing.
+            return Number(product.stock) + Number(this.heldStock[productId] || 0);
         },
         stockLabel(productId) {
-            if (!this.warehouseId && this.hasLocations && this.isNewOrder) return 'Select location';
             const available = this.available(productId);
             return available === null ? 'Not tracked' : available + ' pcs';
         },
@@ -486,10 +459,9 @@ function orderForm() {
             const requested = this.cart.filter(i => i.product_id === item.product_id).reduce((sum, i) => sum + i.qty, 0);
             return this.holdsStock && available !== null && requested > available;
         },
-        get stockProblem() {
-            if (this.isNewOrder && this.hasLocations && !this.warehouseId) return 'Warehouse / outlet নির্বাচন করুন।';
+get stockProblem() {
             const item = this.cart.find(i => this.isShort(i));
-            return item ? item.name + ': নির্বাচিত জায়গায় পর্যাপ্ত stock নেই। Quantity কমান অথবা অন্য location বেছে নিন।' : '';
+            return item ? item.name + ': পর্যাপ্ত stock নেই। Quantity কমান।' : '';
         },
         productResults: [],
         customerResults: [],

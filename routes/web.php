@@ -187,9 +187,6 @@ Route::middleware(['auth', 'business'])->group(function () {
         Route::post('/quick-adjust',    [InventoryController::class, 'quickAdjust'])->name('quick-adjust');
         Route::get('/barcode',          [InventoryController::class, 'barcode'])->name('barcode');
         Route::post('/barcode/print',   [InventoryController::class, 'printBarcode'])->name('barcode.print');
-        Route::get('/transfers',        [InventoryController::class, 'transfers'])->name('transfers');
-        Route::post('/transfers',       [InventoryController::class, 'storeTransfer'])->name('transfers.store');
-        Route::get('/warehouse-stock',  [InventoryController::class, 'warehouseStock'])->name('warehouse-stock');
     });
 
     // ---- ACCOUNTS ----
@@ -338,10 +335,6 @@ Route::middleware(['auth', 'business'])->group(function () {
         Route::delete('/users/{user}/reject',[SettingsController::class, 'rejectUser'])->name('users.reject');
         Route::get('/statuses',       [SettingsController::class, 'statuses'])->name('statuses');
         Route::post('/statuses',      [SettingsController::class, 'updateStatuses'])->name('statuses.update');
-        Route::get('/warehouses',                          [SettingsController::class, 'warehouses'])->name('warehouses');
-        Route::post('/warehouses',                         [SettingsController::class, 'storeWarehouse'])->name('warehouses.store');
-        Route::put('/warehouses/{warehouse}',              [SettingsController::class, 'updateWarehouse'])->name('warehouses.update');
-        Route::delete('/warehouses/{warehouse}',           [SettingsController::class, 'destroyWarehouse'])->name('warehouses.destroy');
         Route::get('/tags',           [SettingsController::class, 'tags'])->name('tags');
         Route::post('/tags',          [SettingsController::class, 'storeTag'])->name('tags.store');
         Route::delete('/tags',        [SettingsController::class, 'destroyTag'])->name('tags.destroy');

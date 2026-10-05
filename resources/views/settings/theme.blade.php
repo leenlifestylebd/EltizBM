@@ -34,7 +34,6 @@
             ['route'=>'settings.general',          'label'=>'Profile'],
             ['route'=>'settings.business',         'label'=>'Business'],
             ['route'=>'settings.user-management',  'label'=>'Users'],
-            ['route'=>'settings.warehouses',       'label'=>'Warehouses'],
             ['route'=>'settings.print-templates',  'label'=>'Print'],
             ['route'=>'settings.account-categories','label'=>'Categories'],
             ['route'=>'settings.theme',            'label'=>'Theme'],
