@@ -66,9 +66,12 @@ php artisan route:clear
 php artisan view:clear
 if [[ ${#pending_migrations[@]} -gt 0 ]]; then
   # Chronological order matters when more than one migration is pending.
+  # Use a here-string, not process substitution: this host has no /dev/fd.
+  sorted_migrations=$(printf '%s\n' "${pending_migrations[@]}" | sort)
   while IFS= read -r migration; do
+    [[ -n "$migration" ]] || continue
     php artisan migrate --path="$migration" --force
-  done < <(printf '%s\n' "${pending_migrations[@]}" | sort)
+  done <<< "$sorted_migrations"
 fi
 php "$backup_dir/verify-order-stock.php" "$app" after "$backup_dir/order-stock-before.json"
 php artisan view:cache
