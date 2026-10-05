@@ -14,11 +14,26 @@ git fetch "$backup_dir/release.bundle" HEAD:refs/remotes/origin/master
 test -z "$(git status --porcelain --untracked-files=no)" || { echo 'Tracked production edits need review'; exit 1; }
 previous=$(git rev-parse HEAD)
 git merge-base --is-ancestor "$previous" "$target"
-# Only the additive, restore-tested order-location migration is permitted here.
-migration="database/migrations/2026_09_20_000001_add_warehouse_id_to_orders.php"
+# Only additive, restore-tested migrations are permitted here. Each one is
+# reviewed against a restored production database before being listed.
+allowed_migrations=(
+  database/migrations/2026_09_20_000001_add_warehouse_id_to_orders.php
+  database/migrations/2026_10_05_000001_keep_single_main_warehouse.php
+)
 test -z "$(git diff --name-only "$previous" "$target" -- composer.json composer.lock)" || { echo 'Dependency change needs separate staging'; exit 1; }
 schema_changes=$(git diff --name-only "$previous" "$target" -- database/migrations)
-[[ -z "$schema_changes" || "$schema_changes" == "$migration" ]] || { echo 'Unreviewed schema change'; exit 1; }
+pending_migrations=()
+if [[ -n "$schema_changes" ]]; then
+  while IFS= read -r change; do
+    [[ -n "$change" ]] || continue
+    permitted=0
+    for allowed in "${allowed_migrations[@]}"; do
+      if [[ "$change" == "$allowed" ]]; then permitted=1; break; fi
+    done
+    [[ "$permitted" == 1 ]] || { echo 'Unreviewed schema change'; exit 1; }
+    pending_migrations+=("$change")
+  done <<< "$schema_changes"
+fi
 test ! -f storage/framework/down || { echo 'Application already in maintenance'; exit 1; }
 if pgrep -u "$(id -u)" -f '[a]rtisan (queue:work|queue:listen|horizon|schedule:work)' >/dev/null; then
   echo 'Background workers require a coordinated pause'; exit 1
@@ -49,8 +64,11 @@ git reset --hard "$target"
 php artisan config:clear
 php artisan route:clear
 php artisan view:clear
-if [[ -n "$schema_changes" ]]; then
-  php artisan migrate --path="$migration" --force
+if [[ ${#pending_migrations[@]} -gt 0 ]]; then
+  # Chronological order matters when more than one migration is pending.
+  while IFS= read -r migration; do
+    php artisan migrate --path="$migration" --force
+  done < <(printf '%s\n' "${pending_migrations[@]}" | sort)
 fi
 php "$backup_dir/verify-order-stock.php" "$app" after "$backup_dir/order-stock-before.json"
 php artisan view:cache
