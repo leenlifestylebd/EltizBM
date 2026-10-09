@@ -19,10 +19,12 @@ class DashboardController extends Controller
             'total_orders' => Order::where('business_id', $bizId)->whereDate('created_at', $today)->count(),
             'revenue'      => Order::where('business_id', $bizId)->whereDate('created_at', $today)
                                    ->whereIn('status', ['completed', 'delivered'])->sum('total'),
+            // Internal account transfers are not income/expense; exclude them so the
+            // dashboard totals match the reports.
             'income'       => Transaction::where('business_id', $bizId)->where('type', 'income')
-                                         ->whereDate('transaction_date', $today)->sum('amount'),
+                                         ->whereDate('transaction_date', $today)->notInternalTransfer()->sum('amount'),
             'expenses'     => Transaction::where('business_id', $bizId)->where('type', 'expense')
-                                         ->whereDate('transaction_date', $today)->sum('amount'),
+                                         ->whereDate('transaction_date', $today)->notInternalTransfer()->sum('amount'),
             'products'     => Product::where('business_id', $bizId)->count(),
             'shipments'    => Shipment::where('business_id', $bizId)->whereDate('created_at', $today)->count(),
             'low_stock'    => Product::where('business_id', $bizId)->where('track_stock', true)

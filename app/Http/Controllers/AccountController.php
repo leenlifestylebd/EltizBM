@@ -14,7 +14,7 @@ class AccountController extends Controller
         $bizId = auth()->user()->business_id;
         $period = $request->period ?? 'month';
         [$from, $to] = $this->getPeriodDates($period);
-        $query = Transaction::where('business_id', $bizId)->whereBetween('transaction_date', [$from, $to]);
+        $query = Transaction::where('business_id', $bizId)->whereBetween('transaction_date', [$from, $to])->notInternalTransfer();
         $summary = [
             'income'        => (clone $query)->where('type','income')->sum('amount'),
             'expense'       => (clone $query)->where('type','expense')->sum('amount'),
@@ -29,8 +29,8 @@ class AccountController extends Controller
             $m = now()->subMonths($i);
             $monthlyData[] = [
                 'label'   => $m->format('M'),
-                'income'  => Transaction::where('business_id',$bizId)->where('type','income')->whereYear('transaction_date',$m->year)->whereMonth('transaction_date',$m->month)->sum('amount'),
-                'expense' => Transaction::where('business_id',$bizId)->where('type','expense')->whereYear('transaction_date',$m->year)->whereMonth('transaction_date',$m->month)->sum('amount'),
+                'income'  => Transaction::where('business_id',$bizId)->where('type','income')->whereYear('transaction_date',$m->year)->whereMonth('transaction_date',$m->month)->notInternalTransfer()->sum('amount'),
+                'expense' => Transaction::where('business_id',$bizId)->where('type','expense')->whereYear('transaction_date',$m->year)->whereMonth('transaction_date',$m->month)->notInternalTransfer()->sum('amount'),
             ];
         }
         return view('accounts.overview', compact('summary','recentTransactions','monthlyData','period'));
@@ -38,12 +38,12 @@ class AccountController extends Controller
     public function income(Request $request)
     {
         $bizId = auth()->user()->business_id;
-        $query = Transaction::where('business_id',$bizId)->where('type','income')->with('category')->orderByDesc('transaction_date');
+        $query = Transaction::where('business_id',$bizId)->where('type','income')->notInternalTransfer()->with('category')->orderByDesc('transaction_date');
         if ($month = $request->month) { [$y,$m] = explode('-',$month); $query->whereYear('transaction_date',$y)->whereMonth('transaction_date',$m); }
         if ($cat = $request->category) $query->where('category_id',$cat);
         $transactions = $query->paginate(20);
         $categories   = AccountCategory::where('business_id',$bizId)->where('type','income')->get();
-        $totalAmount  = Transaction::where('business_id',$bizId)->where('type','income')->sum('amount');
+        $totalAmount  = Transaction::where('business_id',$bizId)->where('type','income')->notInternalTransfer()->sum('amount');
         return view('accounts.income', compact('transactions','categories','totalAmount'));
     }
     public function storeIncome(Request $request)
@@ -55,12 +55,12 @@ class AccountController extends Controller
     public function expenses(Request $request)
     {
         $bizId = auth()->user()->business_id;
-        $query = Transaction::where('business_id',$bizId)->where('type','expense')->with('category')->orderByDesc('transaction_date');
+        $query = Transaction::where('business_id',$bizId)->where('type','expense')->notInternalTransfer()->with('category')->orderByDesc('transaction_date');
         if ($month = $request->month) { [$y,$m] = explode('-',$month); $query->whereYear('transaction_date',$y)->whereMonth('transaction_date',$m); }
         if ($cat = $request->category) $query->where('category_id',$cat);
         $transactions = $query->paginate(20);
         $categories   = AccountCategory::where('business_id',$bizId)->where('type','expense')->get();
-        $totalAmount  = Transaction::where('business_id',$bizId)->where('type','expense')->sum('amount');
+        $totalAmount  = Transaction::where('business_id',$bizId)->where('type','expense')->notInternalTransfer()->sum('amount');
         return view('accounts.expenses', compact('transactions','categories','totalAmount'));
     }
     public function storeExpense(Request $request)
