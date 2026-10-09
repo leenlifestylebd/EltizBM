@@ -86,7 +86,7 @@ Route::middleware(['auth', 'business'])->group(function () {
     Route::get('/', [DashboardController::class, 'index'])->name('dashboard');
 
     // ---- ORDERS ----
-    Route::prefix('orders')->name('orders.')->group(function () {
+    Route::prefix('orders')->name('orders.')->middleware('permission:orders')->group(function () {
         Route::get('/',            [OrderController::class, 'index'])->name('index');
         Route::get('/create',      [OrderController::class, 'create'])->name('create');
         Route::post('/',           [OrderController::class, 'store'])->name('store');
@@ -94,8 +94,8 @@ Route::middleware(['auth', 'business'])->group(function () {
         Route::get('/{order}',     [OrderController::class, 'show'])->name('show');
         Route::get('/{order}/edit',[OrderController::class, 'edit'])->name('edit');
         Route::put('/{order}',     [OrderController::class, 'update'])->name('update');
-        Route::delete('/{order}',  [OrderController::class, 'destroy'])->name('destroy');
-        Route::post('/{order}/status', [OrderController::class, 'updateStatus'])->name('status');
+        Route::delete('/{order}',  [OrderController::class, 'destroy'])->name('destroy')->middleware('role:owner,admin,manager');
+        Route::post('/{order}/status', [OrderController::class, 'updateStatus'])->name('status')->middleware('role:owner,admin,manager');
         Route::get('/{order}/invoice',          [OrderController::class, 'invoice'])->name('invoice');
         Route::get('/{order}/invoice/pdf',      [OrderController::class, 'downloadPdf'])->name('invoice.pdf');
         Route::get('/{order}/invoice/receipt',  [OrderController::class, 'receipt'])->name('receipt');
@@ -103,7 +103,7 @@ Route::middleware(['auth', 'business'])->group(function () {
     });
 
     // ---- WEB ORDERS (WooCommerce) ----
-    Route::prefix('web-orders')->name('web-orders.')->group(function () {
+    Route::prefix('web-orders')->name('web-orders.')->middleware('permission:orders')->group(function () {
         Route::get('/',                [WebOrderController::class, 'index'])->name('index');
         Route::get('/{order}',         [WebOrderController::class, 'show'])->name('show');
         Route::post('/sync',           [WebOrderController::class, 'sync'])->name('sync');
@@ -111,7 +111,7 @@ Route::middleware(['auth', 'business'])->group(function () {
     });
 
     // ---- PRODUCTS ----
-    Route::prefix('products')->name('products.')->group(function () {
+    Route::prefix('products')->name('products.')->middleware('permission:products')->group(function () {
         Route::get('/',            [ProductController::class, 'index'])->name('index');
         Route::get('/create',      [ProductController::class, 'create'])->name('create');
         Route::post('/',           [ProductController::class, 'store'])->name('store');
@@ -134,12 +134,14 @@ Route::middleware(['auth', 'business'])->group(function () {
         Route::patch('/{product}/bom/{bom}/toggle',[BomController::class, 'toggle'])->name('bom.toggle');
     });
 
-    Route::resource('categories', CategoryController::class);
-    Route::resource('brands',     BrandController::class);
-    Route::resource('attributes', AttributeController::class);
+    Route::middleware('permission:products')->group(function () {
+        Route::resource('categories', CategoryController::class);
+        Route::resource('brands',     BrandController::class);
+        Route::resource('attributes', AttributeController::class);
+    });
 
     // ---- COURIER & RETURNS ----
-    Route::prefix('courier')->name('courier.')->group(function () {
+    Route::prefix('courier')->name('courier.')->middleware('permission:courier')->group(function () {
         Route::get('/',        [CourierController::class, 'index'])->name('index');
         Route::get('/create',  [CourierController::class, 'create'])->name('create');
         Route::post('/',       [CourierController::class, 'store'])->name('store');
@@ -148,37 +150,35 @@ Route::middleware(['auth', 'business'])->group(function () {
         Route::post('/{shipment}/track',[CourierController::class, 'track'])->name('track');
     });
 
-    Route::prefix('returns')->name('returns.')->group(function () {
+    Route::prefix('returns')->name('returns.')->middleware('permission:orders')->group(function () {
         Route::get('/',                                   [\App\Http\Controllers\ReturnController::class, 'index'])->name('index');
-        Route::post('/orders/{order}/request',            [\App\Http\Controllers\ReturnController::class, 'requestReturn'])->name('request');
-        Route::post('/orders/{order}/approve',            [\App\Http\Controllers\ReturnController::class, 'approve'])->name('approve');
-        Route::post('/orders/{order}/receive',            [\App\Http\Controllers\ReturnController::class, 'receive'])->name('receive');
-        Route::post('/orders/{order}/refund',             [\App\Http\Controllers\ReturnController::class, 'refund'])->name('refund');
-        Route::post('/orders/{order}/reject',             [\App\Http\Controllers\ReturnController::class, 'reject'])->name('reject');
+        Route::post('/orders/{order}/request',            [\App\Http\Controllers\ReturnController::class, 'requestReturn'])->name('request')->middleware('role:owner,admin,manager');
+        Route::post('/orders/{order}/approve',            [\App\Http\Controllers\ReturnController::class, 'approve'])->name('approve')->middleware('role:owner,admin,manager');
+        Route::post('/orders/{order}/receive',            [\App\Http\Controllers\ReturnController::class, 'receive'])->name('receive')->middleware('role:owner,admin,manager');
+        Route::post('/orders/{order}/refund',             [\App\Http\Controllers\ReturnController::class, 'refund'])->name('refund')->middleware('role:owner,admin,manager');
+        Route::post('/orders/{order}/reject',             [\App\Http\Controllers\ReturnController::class, 'reject'])->name('reject')->middleware('role:owner,admin,manager');
     });
 
     // ---- INVENTORY ----
-    Route::prefix('inventory')->name('inventory.')->group(function () {
+    Route::prefix('inventory')->name('inventory.')->middleware('permission:inventory')->group(function () {
         Route::get('/overview',         [InventoryController::class, 'overview'])->name('overview');
         Route::get('/purchase-orders',  [InventoryController::class, 'purchaseOrders'])->name('purchase-orders');
         Route::post('/purchase-orders', [InventoryController::class, 'storePurchaseOrder'])->name('purchase-orders.store');
+        Route::post('/purchase-orders/{po}/pay', [InventoryController::class, 'payPurchaseOrder'])->name('purchase-orders.pay')->middleware('role:owner,admin,manager');
         Route::get('/stock-levels',     [InventoryController::class, 'stockLevels'])->name('stock-levels');
         Route::get('/export-stock',     [InventoryController::class, 'exportStock'])->name('export-stock');
         Route::get('/cutting-list',        [InventoryController::class, 'cuttingList'])->name('cutting-list');
         Route::get('/cutting-list/export', [InventoryController::class, 'exportCuttingList'])->name('cutting-list.export');
         Route::post('/cutting-list/send',  [InventoryController::class, 'sendToCutting'])->name('cutting-list.send');
         Route::get('/adjustments',      [InventoryController::class, 'adjustments'])->name('adjustments');
-        Route::post('/adjustments',     [InventoryController::class, 'storeAdjustment'])->name('adjustments.store');
-        Route::post('/quick-adjust',    [InventoryController::class, 'quickAdjust'])->name('quick-adjust');
+        Route::post('/adjustments',     [InventoryController::class, 'storeAdjustment'])->name('adjustments.store')->middleware('role:owner,admin,manager');
+        Route::post('/quick-adjust',    [InventoryController::class, 'quickAdjust'])->name('quick-adjust')->middleware('role:owner,admin,manager');
         Route::get('/barcode',          [InventoryController::class, 'barcode'])->name('barcode');
         Route::post('/barcode/print',   [InventoryController::class, 'printBarcode'])->name('barcode.print');
-        Route::get('/transfers',        [InventoryController::class, 'transfers'])->name('transfers');
-        Route::post('/transfers',       [InventoryController::class, 'storeTransfer'])->name('transfers.store');
-        Route::get('/warehouse-stock',  [InventoryController::class, 'warehouseStock'])->name('warehouse-stock');
     });
 
     // ---- ACCOUNTS ----
-    Route::prefix('accounts')->name('accounts.')->group(function () {
+    Route::prefix('accounts')->name('accounts.')->middleware('permission:accounts')->group(function () {
         Route::get('/overview',          [AccountController::class, 'overview'])->name('overview');
         Route::get('/income',            [AccountController::class, 'income'])->name('income');
         Route::post('/income',           [AccountController::class, 'storeIncome'])->name('income.store');
@@ -194,7 +194,7 @@ Route::middleware(['auth', 'business'])->group(function () {
     });
 
     // ---- REPORTS ----
-    Route::prefix('reports')->name('reports.')->group(function () {
+    Route::prefix('reports')->name('reports.')->middleware('permission:reports')->group(function () {
         Route::get('/all',               [ReportController::class, 'all'])->name('all');
         Route::get('/profit-loss',       [ReportController::class, 'profitLoss'])->name('profit-loss');
         Route::get('/expense-category',  [ReportController::class, 'expenseCategory'])->name('expense-category');
@@ -208,6 +208,7 @@ Route::middleware(['auth', 'business'])->group(function () {
         Route::get('/return-refund',     [ReportController::class, 'returnRefund'])->name('return-refund');
         Route::get('/purchase-orders',   [ReportController::class, 'purchaseOrders'])->name('purchase-orders');
         Route::get('/account-balance',       [ReportController::class, 'accountBalance'])->name('account-balance');
+        Route::post('/account-balance/opening', [ReportController::class, 'saveOpeningBalances'])->name('account-balance.opening')->middleware('role:owner,admin');
         Route::get('/employee-production',   [ReportController::class, 'employeeProduction'])->name('employee-production');
         Route::get('/sales-channel',         [ReportController::class, 'salesChannel'])->name('sales-channel');
 
@@ -216,7 +217,7 @@ Route::middleware(['auth', 'business'])->group(function () {
     });
 
     // ---- PEOPLE ----
-    Route::prefix('people')->name('people.')->group(function () {
+    Route::prefix('people')->name('people.')->middleware('permission:people')->group(function () {
         Route::get('/customers',               [PeopleController::class, 'customers'])->name('customers');
         Route::post('/customers',              [PeopleController::class, 'storeCustomer'])->name('customers.store');
         Route::get('/customers/{customer}',    [PeopleController::class, 'showCustomer'])->name('customers.show');
@@ -231,7 +232,7 @@ Route::middleware(['auth', 'business'])->group(function () {
     });
 
     // ---- EMPLOYEES ----
-    Route::prefix('employees')->name('employees.')->group(function () {
+    Route::prefix('employees')->name('employees.')->middleware('permission:employees')->group(function () {
         Route::get('/',                       [EmployeeController::class, 'index'])->name('index');
         Route::get('/create',                 [EmployeeController::class, 'create'])->name('create');
         Route::post('/',                      [EmployeeController::class, 'store'])->name('store');
@@ -242,10 +243,10 @@ Route::middleware(['auth', 'business'])->group(function () {
         Route::post('/{employee}/attendance', [EmployeeController::class, 'storeAttendance'])->name('attendance.store');
     });
 
-    Route::get('/attendance', [EmployeeController::class, 'attendanceOverview'])->name('attendance.index');
+    Route::get('/attendance', [EmployeeController::class, 'attendanceOverview'])->middleware('permission:employees')->name('attendance.index');
 
     // ---- PRODUCTION SYSTEM ----
-    Route::prefix('production')->name('production.')->group(function () {
+    Route::prefix('production')->name('production.')->middleware('permission:employees')->group(function () {
         Route::get('/admin-overview',  [App\Http\Controllers\ProductionController::class, 'adminOverview'])->name('admin-overview');
         Route::get('/rates',           [App\Http\Controllers\ProductionController::class, 'rates'])->name('rates');
         Route::post('/rates',          [App\Http\Controllers\ProductionController::class, 'storeRate'])->name('rates.store');
@@ -283,7 +284,7 @@ Route::middleware(['auth', 'business'])->group(function () {
     });
 
     // ---- MATERIALS ----
-    Route::prefix('materials')->name('materials.')->group(function () {
+    Route::prefix('materials')->name('materials.')->middleware('permission:inventory')->group(function () {
         Route::get('/',               [MaterialController::class, 'index'])->name('index');
         Route::post('/',              [MaterialController::class, 'store'])->name('store');
         Route::delete('/{material}',  [MaterialController::class, 'destroy'])->name('destroy');
@@ -291,10 +292,10 @@ Route::middleware(['auth', 'business'])->group(function () {
     });
 
     // ---- TASKS ----
-    Route::resource('tasks', TaskController::class);
+    Route::resource('tasks', TaskController::class)->middleware('permission:employees');
 
     // ---- POS ----
-    Route::prefix('pos')->name('pos.')->group(function () {
+    Route::prefix('pos')->name('pos.')->middleware('permission:pos')->group(function () {
         Route::get('/',                [PosController::class, 'index'])->name('index');
         Route::post('/checkout',       [PosController::class, 'checkout'])->name('checkout');
         Route::get('/receipt/{order}', [PosController::class, 'receipt'])->name('receipt');
@@ -304,6 +305,7 @@ Route::middleware(['auth', 'business'])->group(function () {
 
     // ---- SETTINGS ----
     Route::prefix('settings')->name('settings.')->group(function () {
+        Route::middleware('permission:settings')->group(function () {
         Route::get('/general',        [SettingsController::class, 'general'])->name('general');
         Route::post('/general',       [SettingsController::class, 'updateGeneral'])->name('general.update');
         Route::get('/business',       [SettingsController::class, 'business'])->name('business');
@@ -318,10 +320,6 @@ Route::middleware(['auth', 'business'])->group(function () {
         Route::delete('/users/{user}/reject',[SettingsController::class, 'rejectUser'])->name('users.reject');
         Route::get('/statuses',       [SettingsController::class, 'statuses'])->name('statuses');
         Route::post('/statuses',      [SettingsController::class, 'updateStatuses'])->name('statuses.update');
-        Route::get('/warehouses',                          [SettingsController::class, 'warehouses'])->name('warehouses');
-        Route::post('/warehouses',                         [SettingsController::class, 'storeWarehouse'])->name('warehouses.store');
-        Route::put('/warehouses/{warehouse}',              [SettingsController::class, 'updateWarehouse'])->name('warehouses.update');
-        Route::delete('/warehouses/{warehouse}',           [SettingsController::class, 'destroyWarehouse'])->name('warehouses.destroy');
         Route::get('/tags',           [SettingsController::class, 'tags'])->name('tags');
         Route::post('/tags',          [SettingsController::class, 'storeTag'])->name('tags.store');
         Route::delete('/tags',        [SettingsController::class, 'destroyTag'])->name('tags.destroy');
@@ -337,18 +335,19 @@ Route::middleware(['auth', 'business'])->group(function () {
         Route::get('/theme',  [SettingsController::class, 'theme'])->name('theme');
         Route::post('/theme', [SettingsController::class, 'updateTheme'])->name('theme.update');
         Route::post('/theme/reset', [SettingsController::class, 'resetTheme'])->name('theme.reset');
+        });
     });
 
     // ---- INTEGRATIONS ----
     // Payment Gateways
-    Route::post('/payment/settings',           [\App\Http\Controllers\PaymentController::class, 'saveSettings'])->name('payment.settings.save');
-    Route::post('/payment/disable',            [\App\Http\Controllers\PaymentController::class, 'disableGateway'])->name('payment.disable');
-    Route::post('/payment/bkash/{order}',      [\App\Http\Controllers\PaymentController::class, 'bkashCreate'])->name('payment.bkash.create');
-    Route::get('/payment/bkash/{order}/callback', [\App\Http\Controllers\PaymentController::class, 'bkashCallback'])->name('payment.bkash.callback');
-    Route::post('/payment/nagad/{order}',      [\App\Http\Controllers\PaymentController::class, 'nagadCreate'])->name('payment.nagad.create');
-    Route::get('/payment/nagad/{order}/callback', [\App\Http\Controllers\PaymentController::class, 'nagadCallback'])->name('payment.nagad.callback');
+    Route::post('/payment/settings',           [\App\Http\Controllers\PaymentController::class, 'saveSettings'])->middleware('permission:integrations')->name('payment.settings.save');
+    Route::post('/payment/disable',            [\App\Http\Controllers\PaymentController::class, 'disableGateway'])->middleware('permission:integrations')->name('payment.disable');
+    Route::post('/payment/bkash/{order}',      [\App\Http\Controllers\PaymentController::class, 'bkashCreate'])->middleware('permission:orders')->name('payment.bkash.create');
+    Route::get('/payment/bkash/{order}/callback', [\App\Http\Controllers\PaymentController::class, 'bkashCallback'])->middleware('permission:orders')->name('payment.bkash.callback');
+    Route::post('/payment/nagad/{order}',      [\App\Http\Controllers\PaymentController::class, 'nagadCreate'])->middleware('permission:orders')->name('payment.nagad.create');
+    Route::get('/payment/nagad/{order}/callback', [\App\Http\Controllers\PaymentController::class, 'nagadCallback'])->middleware('permission:orders')->name('payment.nagad.callback');
 
-    Route::prefix('integrations')->name('integrations.')->group(function () {
+    Route::prefix('integrations')->name('integrations.')->middleware('permission:integrations')->group(function () {
         Route::get('/',                   [IntegrationController::class, 'index'])->name('index');
         Route::get('/woocommerce',        [WooCommerceController::class, 'settings'])->name('woocommerce');
         Route::get('/payment-gateways',   [IntegrationController::class, 'paymentGateways'])->name('payment-gateways');
@@ -363,7 +362,7 @@ Route::middleware(['auth', 'business'])->group(function () {
     });
 
     // ---- TAILORING ----
-    Route::prefix('tailoring')->name('tailoring.')->group(function () {
+    Route::prefix('tailoring')->name('tailoring.')->middleware('permission:orders')->group(function () {
         Route::get('/',                                    [TailoringController::class, 'index'])->name('index');
         Route::get('/create',                              [TailoringController::class, 'create'])->name('create');
         Route::post('/',                                   [TailoringController::class, 'store'])->name('store');
@@ -379,7 +378,7 @@ Route::middleware(['auth', 'business'])->group(function () {
     });
 
     // ---- STEADFAST ----
-    Route::prefix('steadfast')->name('steadfast.')->group(function () {
+    Route::prefix('steadfast')->name('steadfast.')->middleware('permission:courier')->group(function () {
         Route::get('/',                        [SteadfastController::class, 'index'])->name('index');
         Route::post('/send/{order}',           [SteadfastController::class, 'sendOrder'])->name('send-order');
         Route::post('/bulk-send',              [SteadfastController::class, 'bulkSend'])->name('bulk-send');
@@ -394,9 +393,9 @@ Route::middleware(['auth', 'business'])->group(function () {
 
     // ---- API (AJAX) ----
     Route::prefix('api')->name('api.')->group(function () {
-        Route::get('/products/search',  [ProductController::class, 'apiSearch'])->name('products.search');
-        Route::get('/customers/search', [PeopleController::class, 'apiSearch'])->name('customers.search');
-        Route::get('/dashboard/stats',  [DashboardController::class, 'apiStats'])->name('dashboard.stats');
+        Route::get('/products/search',  [ProductController::class, 'apiSearch'])->middleware('permission:products|orders|pos|inventory')->name('products.search');
+        Route::get('/customers/search', [PeopleController::class, 'apiSearch'])->middleware('permission:people|orders|pos')->name('customers.search');
+        Route::get('/dashboard/stats',  [DashboardController::class, 'apiStats'])->middleware('permission:reports|accounts|orders')->name('dashboard.stats');
     });
 
 });

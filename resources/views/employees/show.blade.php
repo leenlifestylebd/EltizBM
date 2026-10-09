@@ -1,4 +1,4 @@
-﻿@extends('layouts.app')
+@extends('layouts.app')
 @section('title', $employee->name)
 
 @section('content')
@@ -42,7 +42,7 @@
             @foreach([
                 ['label'=>'Phone',       'value'=> $employee->phone ?? '—'],
                 ['label'=>'Email',       'value'=> $employee->email ?? '—'],
-                ['label'=>'Salary',      'value'=> '৳'.number_format($employee->salary).'/mo'],
+                ['label'=>'Salary',      'value'=> '৳'.number_format($monthBase).'/mo'],
                 ['label'=>'Joined',      'value'=> $employee->joining_date?->format('d M Y') ?? '—'],
             ] as $info)
             <div class="bg-gray-50 dark:bg-slate-700/50 rounded-lg p-2.5">
@@ -55,9 +55,9 @@
 
     {{-- Stats Cards --}}
     <div class="grid grid-cols-2 sm:grid-cols-4 gap-3 mb-4">
-        @if((float)$employee->salary > 0)
+        @if($monthBase > 0)
         <div class="bg-white dark:bg-slate-800 rounded-xl border border-indigo-100 dark:border-indigo-900/30 p-3 text-center">
-            <p class="text-xl font-bold text-indigo-600 dark:text-indigo-400">৳{{ number_format($employee->salary, 0) }}</p>
+            <p class="text-xl font-bold text-indigo-600 dark:text-indigo-400">৳{{ number_format($monthBase, 0) }}</p>
             <p class="text-xs text-gray-500 dark:text-slate-400">Monthly Salary</p>
         </div>
         <div class="bg-white dark:bg-slate-800 rounded-xl border border-green-100 dark:border-green-900/30 p-3 text-center">
@@ -96,7 +96,7 @@
 
     {{-- Tabs --}}
     @php
-        $hasBase = (float)$employee->salary > 0;
+        $hasBase = $monthBase > 0;
         $hasProd = $monthEarning > 0 || $employee->type === 'production' || !$hasBase;
         $tabs = [['key'=>'overview','label'=>'Overview']];
         if ($hasBase) $tabs[] = ['key'=>'payments','label'=>'Payments'];
@@ -115,7 +115,7 @@
 
     {{-- Tab: Overview --}}
     <div x-show="tab === 'overview'">
-        @if((float)$employee->salary > 0)
+        @if($monthBase > 0)
         {{-- Base-salary overview (+ production line when the worker also does piece-work) --}}
         <div class="bg-white dark:bg-slate-800 rounded-xl border border-gray-100 dark:border-slate-700 p-4 mb-4">
             <h3 class="text-sm font-semibold text-gray-900 dark:text-white mb-3">
@@ -125,7 +125,7 @@
             <div class="space-y-2">
                 <div class="flex justify-between text-sm">
                     <span class="text-gray-500 dark:text-slate-400">Monthly Salary</span>
-                    <span class="font-semibold text-gray-900 dark:text-white">৳{{ number_format($employee->salary, 0) }}</span>
+                    <span class="font-semibold text-gray-900 dark:text-white">৳{{ number_format($monthBase, 0) }}</span>
                 </div>
                 @if($monthEarning > 0)
                 <div class="flex justify-between text-sm">
@@ -253,7 +253,7 @@
     </div>
 
     {{-- Tab: Payments (any worker with a base salary) --}}
-    @if((float)$employee->salary > 0)
+    @if($monthBase > 0)
     <div x-show="tab === 'payments'" x-cloak>
         <div class="bg-white dark:bg-slate-800 rounded-xl border border-gray-100 dark:border-slate-700 overflow-hidden">
             <div class="px-4 py-3 border-b border-gray-50 dark:border-slate-700 flex items-center justify-between">

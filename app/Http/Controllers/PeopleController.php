@@ -159,7 +159,13 @@ class PeopleController extends Controller
         $purchaseOrders = \App\Models\PurchaseOrder::where('vendor_id', $vendor->id)
             ->orderByDesc('created_at')->paginate(10);
         $totalPurchased = \App\Models\PurchaseOrder::where('vendor_id', $vendor->id)->sum('total');
-        return view('people.vendor-show', compact('vendor', 'purchaseOrders', 'totalPurchased'));
+        // vendors.due_amount was never maintained; derive the real outstanding from the
+        // purchase orders so this page agrees with the Supplier Due report.
+        $vendorDue = (float) \App\Models\PurchaseOrder::where('vendor_id', $vendor->id)
+            ->where('payment_status', '!=', 'paid')
+            ->selectRaw('COALESCE(SUM(total - paid_amount), 0) as due')
+            ->value('due');
+        return view('people.vendor-show', compact('vendor', 'purchaseOrders', 'totalPurchased', 'vendorDue'));
     }
 
     public function updateVendor(Request $request, \App\Models\Vendor $vendor)

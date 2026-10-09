@@ -13,6 +13,7 @@ use App\Services\OrderService;
 use Illuminate\Http\Request;
 use Illuminate\Support\Str;
 use Illuminate\Support\Facades\DB;
+use Illuminate\Validation\ValidationException;
 use Barryvdh\DomPDF\Facade\Pdf;
 
 class OrderController extends Controller
@@ -81,8 +82,8 @@ class OrderController extends Controller
     $products  = \App\Models\Product::where('business_id', $bizId)->where('is_active', true)->get();
     $customers = \App\Models\Customer::where('business_id', $bizId)->orderBy('name')->get();
     $cartItems = [];
-    return view('orders.form', compact('products', 'customers', 'cartItems'));
-}
+return view('orders.form', compact('products', 'customers', 'cartItems') + $this->stockData($bizId));
+    }
     // =============================================
     // STORE
     // =============================================
@@ -104,7 +105,7 @@ class OrderController extends Controller
     public function show(Order $order)
     {
         $this->authorize($order);
-        $order->load(['items.product', 'shipments', 'customer']);
+        $order->load(['items.product', 'shipments', 'customer', 'warehouse']);
         $business = auth()->user()->business;
         return view('orders.show', compact('order', 'business'));
     }
@@ -129,8 +130,8 @@ class OrderController extends Controller
             'discount'   => (float) $i->discount,
         ];
     })->values()->toArray();
-    return view('orders.form', compact('order', 'products', 'customers', 'cartItems'));
-}
+return view('orders.form', compact('order', 'products', 'customers', 'cartItems') + $this->stockData($bizId, $order));
+    }
 
     // =============================================
     // UPDATE
@@ -141,55 +142,44 @@ class OrderController extends Controller
 
         $request->validate([
             'customer_name' => 'required|string|max:100',
-            'status'        => 'required|string',
-            'payment_method'=> 'required|string',
+            'status'        => 'required|in:pending,confirmed,processing,shipped,delivered,completed,cancelled,returned,refunded',
+            'payment_method'=> 'required|in:cash,card,bkash,nagad,rocket,bank,cod,other',
+            'paid_amount'   => 'nullable|numeric|min:0',
+            'discount'      => 'nullable|numeric|min:0',
+            'shipping_charge' => 'nullable|numeric|min:0',
+            'items'                  => 'sometimes|array|min:1',
+            'items.*.product_id'     => 'required_with:items|integer',
+            'items.*.quantity'       => 'required_with:items|integer|min:1',
+            'items.*.discount'       => 'nullable|numeric|min:0',
         ]);
 
         $bizId = $order->business_id;
-        $stock = app(\App\Services\StockService::class);
-
-        DB::transaction(function () use ($request, $order, $bizId, $stock) {
+        DB::transaction(function () use ($request, $order, $bizId) {
+            $order = Order::whereKey($order->id)->lockForUpdate()->firstOrFail();
+            $oldTotal = (float) $order->total;
+            $oldDue   = (float) $order->due_amount;
             // Discount & shipping fall back to the order's existing values.
             $discount = floatval($request->discount ?? $order->discount);
             $shipping = floatval($request->shipping_charge ?? $order->shipping_charge);
 
-            // Re-create items if provided, and derive subtotal from them.
+            // Re-create items from authoritative tenant catalog values if provided.
             if ($request->has('items')) {
-                // Restore stock for the OLD item set (scoped + logged).
-                $stock->restoreForOrder($order);
-
-                $order->items()->delete();
-
-                $subtotal = 0;
-                foreach ($request->items as $item) {
-                    // Only link catalog products owned by this business.
-                    $product = !empty($item['product_id'])
-                        ? Product::where('id', $item['product_id'])->where('business_id', $bizId)->first()
-                        : null;
-
-                    OrderItem::create([
-                        'order_id'     => $order->id,
-                        'product_id'   => $product?->id,
-                        'product_name' => $item['product_name'],
-                        'price'        => $item['price'],
-                        'cost_price'   => $item['cost_price'] ?? 0,
-                        'quantity'     => $item['quantity'],
-                        'discount'     => $item['discount'] ?? 0,
-                        'total'        => $item['total'],
-                    ]);
-                    $subtotal += floatval($item['total']);
-                }
-
+                $subtotal = $this->orderService->replaceItems($order, $request->items);
                 $order->update(['subtotal' => $subtotal]);
-                // Deduct stock for the NEW item set.
-                $order->load('items');
-                $stock->deductForOrder($order);
             }
 
             // Total is always derived server-side, never trusted from the client.
             // $order->subtotal reflects the new items (if provided) or the existing value.
+            $discount = min($discount, (float) $order->subtotal);
             $total = max(0, $order->subtotal - $discount + $shipping);
-            $paid     = floatval($request->paid_amount ?? $order->paid_amount);
+            // Payments are changed only through collect/refund flows so ledger
+            // transactions and customer balances cannot silently diverge.
+            $paid = (float) $order->paid_amount;
+            if ($paid > $total) {
+                throw ValidationException::withMessages([
+                    'total' => 'The revised total cannot be lower than the amount already paid. Refund the difference first.',
+                ]);
+            }
             $due      = max(0, $total - $paid);
 
             $payStatus = 'unpaid';
@@ -197,7 +187,6 @@ class OrderController extends Controller
             elseif ($paid > 0)                 $payStatus = 'partial';
 
             $order->update([
-                'status'           => $request->status,
                 'payment_status'   => $payStatus,
                 'payment_method'   => $request->payment_method,
                 'customer_name'    => $request->customer_name,
@@ -212,6 +201,20 @@ class OrderController extends Controller
                 'due_amount'       => $due,
                 'notes'            => $request->notes,
             ]);
+
+            if ($order->customer_id) {
+                $customer = Customer::where('business_id', $bizId)->find($order->customer_id);
+                if ($customer) {
+                    $totalDelta = $total - $oldTotal;
+                    $dueDelta   = $due - $oldDue;
+                    if ($totalDelta > 0) $customer->increment('total_purchase', $totalDelta);
+                    elseif ($totalDelta < 0) $customer->decrement('total_purchase', abs($totalDelta));
+                    if ($dueDelta > 0) $customer->increment('due_amount', $dueDelta);
+                    elseif ($dueDelta < 0) $customer->decrement('due_amount', abs($dueDelta));
+                }
+            }
+
+            $this->applyStatusTransition($order, $request->status);
         });
 
         return redirect()->route('orders.show', $order)
@@ -255,22 +258,10 @@ class OrderController extends Controller
             return back()->with('success', 'Order status unchanged.');
         }
 
-        $cancelStates = ['cancelled', 'returned', 'refunded'];
-        $order->update(['status' => $status]);
-
-        if ($status === 'confirmed') {
-            $this->orderService->notifyConfirmed($order, $bizName);
-        }
-
-        // COD auto-complete only when transitioning INTO delivered and not yet paid.
-        if ($status === 'delivered' && $order->payment_method === 'cod' && $order->payment_status !== 'paid') {
-            $this->orderService->completeCod($order);
-        }
-
-        // Cancel/return side effects only when moving from a non-cancelled state.
-        if (in_array($status, $cancelStates) && !in_array($previous, $cancelStates)) {
-            $this->orderService->cancel($order, $status);
-        }
+        DB::transaction(function () use ($order, $status) {
+            $locked = Order::whereKey($order->id)->lockForUpdate()->firstOrFail();
+            $this->applyStatusTransition($locked, $status);
+        });
 
         return back()->with('success', 'Order status updated!');
     }
@@ -320,6 +311,14 @@ class OrderController extends Controller
     {
         $this->authorize($order);
 
+        // Never erase an order that already has money booked against it — deleting it
+        // would silently remove revenue/expense from the books with no offsetting entry
+        // and leave the customer ledger inconsistent. Such orders must be cancelled or
+        // refunded instead, which keeps the financial trail intact.
+        if (Transaction::withTrashed()->where('order_id', $order->id)->exists()) {
+            return back()->with('error', 'This order has financial transactions. Cancel or refund it instead of deleting, so the books stay balanced.');
+        }
+
         $this->logActivity('deleted', $order, [
             'order_number' => $order->order_number,
             'total'        => $order->total,
@@ -327,18 +326,28 @@ class OrderController extends Controller
         ]);
 
         DB::transaction(function () use ($order) {
-            // Restore stock (scoped + logged) only for orders that still hold stock —
-            // cancelled/returned orders already had their stock restored.
-            if (!in_array($order->status, ['cancelled', 'returned', 'refunded'])) {
+            $order = Order::whereKey($order->id)->lockForUpdate()->firstOrFail();
+
+            // Return stock to the shelf only for orders that still hold it and whose
+            // goods have not already shipped — a delivered/completed order's stock is
+            // gone and must not reappear.
+            if ($order->holdsStock() && !in_array($order->status, ['shipped', 'delivered', 'completed'], true)) {
                 app(\App\Services\StockService::class)->restoreForOrder($order);
             }
 
-            // Remove this order's money from the books: drop its linked income/expense
-            // transactions and roll back any due it was holding against the customer.
-            if ($order->customer_id && $order->due_amount > 0) {
-                Customer::where('id', $order->customer_id)->decrement('due_amount', $order->due_amount);
+            // Roll back everything this order added to the customer ledger (create()
+            // incremented both total_purchase and due_amount).
+            if ($order->customer_id) {
+                $customer = Customer::where('business_id', $order->business_id)->find($order->customer_id);
+                if ($customer) {
+                    if ($order->due_amount > 0) {
+                        $customer->decrement('due_amount', min((float) $order->due_amount, (float) $customer->due_amount));
+                    }
+                    if ($order->total > 0) {
+                        $customer->decrement('total_purchase', min((float) $order->total, (float) $customer->total_purchase));
+                    }
+                }
             }
-            Transaction::where('order_id', $order->id)->delete();
 
             $order->delete();
         });
@@ -388,8 +397,44 @@ class OrderController extends Controller
     }
 
     // =============================================
+    private function stockData(int $bizId, ?Order $order = null): array
+    {
+        $stockProducts = Product::where('business_id', $bizId)->get(['id', 'track_stock', 'stock'])->keyBy('id');
+        $heldStock = $order && $order->holdsStock()
+            ? $order->items->groupBy('product_id')->map(fn ($items) => (int) $items->sum('quantity'))
+            : collect();
+
+        return compact('stockProducts', 'heldStock');
+    }
+
     private function authorize(Order $order): void
     {
         abort_if($order->business_id !== auth()->user()->business_id, 403);
+    }
+
+    private function applyStatusTransition(Order $order, string $status): void
+    {
+        $previous = $order->status;
+        if ($status === $previous) return;
+
+        $terminal = ['cancelled', 'returned', 'refunded'];
+        if (in_array($previous, $terminal, true) && !in_array($status, $terminal, true)) {
+            throw ValidationException::withMessages([
+                'status' => 'A cancelled, returned, or refunded order cannot be reopened automatically.',
+            ]);
+        }
+
+        if (in_array($status, $terminal, true) && !in_array($previous, $terminal, true)) {
+            $this->orderService->cancel($order, $status);
+            return;
+        }
+        $order->update(['status' => $status]);
+
+        if ($status === 'confirmed') {
+            $this->orderService->notifyConfirmed($order, auth()->user()->business->name);
+        }
+        if ($status === 'delivered' && $order->payment_method === 'cod' && $order->payment_status !== 'paid') {
+            $this->orderService->completeCod($order);
+        }
     }
 }

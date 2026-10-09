@@ -9,6 +9,8 @@ use App\Models\ProductVariant;
 use App\Models\Order;
 use App\Models\OrderItem;
 use App\Models\Customer;
+use App\Models\Transaction;
+use App\Services\StockService;
 use Illuminate\Support\Facades\Http;
 use Illuminate\Support\Facades\Log;
 use Illuminate\Support\Str;
@@ -451,9 +453,39 @@ class WooCommerceService
                 'price'        => floatval($item['price']),
                 'cost_price'   => $localProduct?->cost_price ?? 0,
                 'quantity'     => $item['quantity'],
-                'discount'     => floatval($item['total_tax'] ?? 0),
+                // Per-line discount is subtotal − total; tax is a separate concern (it
+                // was previously (and wrongly) stored as the discount).
+                'discount'     => max(0, floatval($item['subtotal'] ?? 0) - floatval($item['total'] ?? 0)),
                 'total'        => floatval($item['total']),
             ]);
+        }
+
+        // Mirror the rest of the order pipeline: deduct stock, book the payment, and
+        // update the customer ledger. Without this a paid online order was invisible
+        // to the books and left the customer's due unsynced.
+        if ($order->holdsStock()) {
+            app(StockService::class)->deductForOrder($order->load('items'));
+        }
+
+        if ($order->holdsStock() && $paymentStatus === 'paid' && $total > 0) {
+            Transaction::create([
+                'business_id'      => $businessId,
+                'created_by'       => $this->systemUserId,
+                'order_id'         => $order->id,
+                'type'             => 'income',
+                'title'            => 'WooCommerce payment for Order #' . $order->order_number,
+                'amount'           => $total,
+                'payment_method'   => $order->payment_method,
+                'reference'        => 'WOO-PAY-' . $wo['id'],
+                'transaction_date' => today(),
+            ]);
+        }
+
+        if ($customer && $order->holdsStock()) {
+            $customer->increment('total_purchase', $total);
+            if ((float) $order->due_amount > 0) {
+                $customer->increment('due_amount', (float) $order->due_amount);
+            }
         }
 
         return $order;

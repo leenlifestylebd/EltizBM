@@ -14,7 +14,7 @@ class TaskController extends Controller
 
         $query = Task::where('business_id', $bizId)
             ->with(['assignedTo','createdBy'])
-            ->orderByRaw("FIELD(priority, 'urgent','high','medium','low')")
+            ->orderByRaw("CASE priority WHEN 'urgent' THEN 1 WHEN 'high' THEN 2 WHEN 'medium' THEN 3 WHEN 'low' THEN 4 ELSE 5 END")
             ->orderByDesc('created_at');
 
         if ($status = $request->status) $query->where('status', $status);

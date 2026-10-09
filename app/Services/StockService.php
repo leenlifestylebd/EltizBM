@@ -5,13 +5,15 @@ namespace App\Services;
 use App\Models\Order;
 use App\Models\Product;
 use App\Models\StockAdjustment;
-use App\Models\Warehouse;
-use App\Models\WarehouseStock;
 use Illuminate\Support\Facades\DB;
 use Illuminate\Support\Facades\Log;
 
 /**
  * StockService — Single source of truth for all inventory movements.
+ *
+ * Stock is tracked on a single "Main Warehouse" per business: products.stock is
+ * the only authoritative quantity. The warehouses / warehouse_stocks tables are
+ * retained for historical records but are no longer read or written.
  *
  * Replaces duplicated stock logic in:
  *   - OrderController@store / update / updateStatus / destroy
@@ -29,93 +31,110 @@ class StockService
      */
     public function deductForOrder(Order $order): void
     {
-        $warehouseId = $this->defaultWarehouseId($order->business_id);
-
-        foreach ($order->items as $item) {
-            if (!$item->product_id) continue;
-
-            $product = Product::where('id', $item->product_id)
-                ->where('business_id', $order->business_id)
-                ->first();
-            if (!$product || !$product->track_stock) continue;
-
-            $before = $product->stock;
-            $after  = max(0, $before - $item->quantity);
-
-            Product::where('id', $product->id)->update(['stock' => $after]);
-            $this->adjustWarehouseStock($order->business_id, $item->product_id, $warehouseId, -$item->quantity);
-
-            $this->logAdjustment(
-                business_id: $order->business_id,
-                product_id:  $product->id,
-                type:        'decrease',
-                quantity:    $item->quantity,
-                before:      $before,
-                after:       $after,
-                reason:      "Sale - Order #{$order->order_number}",
-                warehouse_id: $warehouseId,
-            );
-        }
+        $this->moveOrderStock($order, restoring: false);
     }
 
-    /**
-     * Restore stock for each item in an order (cancel / return / update).
-     */
     public function restoreForOrder(Order $order): void
     {
-        $warehouseId = $this->defaultWarehouseId($order->business_id);
-
-        foreach ($order->items as $item) {
-            if (!$item->product_id) continue;
-
-            $product = Product::where('id', $item->product_id)
-                ->where('business_id', $order->business_id)
-                ->first();
-            if (!$product || !$product->track_stock) continue;
-
-            $before = $product->stock;
-            $after  = $before + $item->quantity;
-
-            Product::where('id', $product->id)->update(['stock' => $after]);
-            $this->adjustWarehouseStock($order->business_id, $item->product_id, $warehouseId, +$item->quantity);
-
-            $this->logAdjustment(
-                business_id: $order->business_id,
-                product_id:  $product->id,
-                type:        'return',
-                quantity:    $item->quantity,
-                before:      $before,
-                after:       $after,
-                reason:      "Return/Cancel - Order #{$order->order_number}",
-                warehouse_id: $warehouseId,
-            );
-        }
+        $this->moveOrderStock($order, restoring: true);
     }
 
     /**
-     * Direct stock adjustment (increase / decrease / damage / transfer).
+     * Restore specific returned quantities (e.g. a partial RMA), business-scoped,
+     * row-locked and audited the same way as an order restore.
+     *
+     * @param  array<int,int>  $quantitiesByProductId
+     */
+    public function restoreReturned(Order $order, array $quantitiesByProductId, string $reason = 'Customer return'): void
+    {
+        $quantities = collect($quantitiesByProductId)
+            ->filter(fn ($qty, $id) => (int) $id > 0 && (int) $qty > 0);
+
+        if ($quantities->isEmpty()) {
+            return;
+        }
+
+        DB::transaction(function () use ($order, $quantities, $reason) {
+            $products = Product::where('business_id', $order->business_id)
+                ->whereIn('id', $quantities->keys())
+                ->orderBy('id')->lockForUpdate()->get();
+
+            foreach ($products as $product) {
+                if (!$product->track_stock) continue;
+                $qty = (int) $quantities[$product->id];
+                if ($qty <= 0) continue;
+
+                $before = (int) $product->stock;
+                $after  = $before + $qty;
+                $product->update(['stock' => $after]);
+
+                $this->logAdjustment(
+                    business_id: $order->business_id,
+                    product_id: $product->id,
+                    type: 'return',
+                    quantity: $qty,
+                    before: $before,
+                    after: $after,
+                    reason: $reason,
+                    created_by: $order->created_by,
+                );
+            }
+        });
+    }
+
+    private function moveOrderStock(Order $order, bool $restoring): void
+    {
+        DB::transaction(function () use ($order, $restoring) {
+            // Lock in product order and aggregate duplicate lines before applying the movement.
+            $quantities = $order->items->whereNotNull('product_id')->groupBy('product_id')
+                ->map(fn ($items) => (int) $items->sum('quantity'));
+            $products = Product::where('business_id', $order->business_id)
+                ->whereIn('id', $quantities->keys())->orderBy('id')->lockForUpdate()->get();
+
+            foreach ($products as $product) {
+                if (!$product->track_stock) continue;
+                $qty = $quantities[$product->id];
+                $before = (int) $product->stock;
+
+                $after = $restoring ? $before + $qty : max(0, $before - $qty);
+                $product->update(['stock' => $after]);
+
+                $this->logAdjustment(
+                    business_id: $order->business_id,
+                    product_id: $product->id,
+                    type: $restoring ? 'return' : 'decrease',
+                    quantity: $qty,
+                    before: $before,
+                    after: $after,
+                    reason: ($restoring ? 'Return/Cancel' : 'Sale') . " - Order #{$order->order_number}",
+                    created_by: $order->created_by,
+                );
+            }
+        });
+    }
+
+    /**
+     * Direct stock adjustment (increase / decrease / damage / return).
      */
     public function adjust(
         int    $businessId,
         int    $productId,
         string $type,
         float  $quantity,
-        string $reason = '',
-        ?int   $warehouseId = null
+        string $reason = ''
     ): Product {
-        $product = Product::findOrFail($productId);
+        $product = Product::where('id', $productId)->where('business_id', $businessId)->firstOrFail();
         $before  = $product->stock;
 
         $after = match ($type) {
             'increase', 'return' => $before + $quantity,
             'decrease', 'damage' => max(0, $before - $quantity),
-            'transfer'           => max(0, $before - $quantity),
             default              => $before,
         };
 
-        Product::where('id', $productId)->update(['stock' => $after]);
+        $product->update(['stock' => $after]);
 
-        $this->logAdjustment($businessId, $productId, $type, $quantity, $before, $after, $reason, $warehouseId);
+        $this->logAdjustment($businessId, $productId, $type, $quantity, $before, $after, $reason);
 
         return $product->fresh();
     }
@@ -125,12 +144,12 @@ class StockService
      */
     public function setStock(int $businessId, int $productId, float $newStock, string $reason = 'Manual count'): Product
     {
-        $product = Product::findOrFail($productId);
+        $product = Product::where('id', $productId)->where('business_id', $businessId)->firstOrFail();
         $before  = $product->stock;
         $diff    = $newStock - $before;
         $type    = $diff >= 0 ? 'increase' : 'decrease';
 
-        Product::where('id', $productId)->update(['stock' => $newStock]);
+        $product->update(['stock' => $newStock]);
 
         $this->logAdjustment($businessId, $productId, $type, abs($diff), $before, $newStock, $reason);
 
@@ -138,13 +157,11 @@ class StockService
     }
 
     // ──────────────────────────────────────────────
-    // Warehouse-aware operations
-    // ──────────────────────────────────────────────
 
     /**
-     * Add stock to a specific warehouse. Also increments product.stock total.
+     * Receive stock into the main warehouse (purchase order, opening stock).
      */
-    public function addToWarehouse(int $bizId, int $productId, int $warehouseId, int $qty, string $reason = 'Stock received'): void
+    public function addStock(int $bizId, int $productId, int $qty, string $reason = 'Stock received'): void
     {
         if ($qty <= 0) return;
 
@@ -154,67 +171,10 @@ class StockService
         $before = $product->stock;
         $after  = $before + $qty;
 
-        DB::transaction(function () use ($bizId, $productId, $warehouseId, $qty, $before, $after, $reason) {
-            Product::where('id', $productId)->update(['stock' => $after]);
-            $this->adjustWarehouseStock($bizId, $productId, $warehouseId, +$qty);
-            $this->logAdjustment($bizId, $productId, 'increase', $qty, $before, $after, $reason, $warehouseId);
+        DB::transaction(function () use ($product, $bizId, $qty, $before, $after, $reason) {
+            $product->update(['stock' => $after]);
+            $this->logAdjustment($bizId, $product->id, 'increase', $qty, $before, $after, $reason);
         });
-    }
-
-    /**
-     * Transfer stock between two warehouses. product.stock total is unchanged.
-     */
-    public function transferBetweenWarehouses(int $bizId, int $productId, int $fromId, int $toId, int $qty, string $reason = 'Warehouse transfer'): void
-    {
-        if ($qty <= 0 || $fromId === $toId) return;
-
-        $product = Product::where('id', $productId)->where('business_id', $bizId)->first();
-        if (!$product) return;
-
-        DB::transaction(function () use ($bizId, $productId, $fromId, $toId, $qty, $product, $reason) {
-            $this->adjustWarehouseStock($bizId, $productId, $fromId, -$qty);
-            $this->adjustWarehouseStock($bizId, $productId, $toId,   +$qty);
-            // product.stock total unchanged — just log the transfer
-            $this->logAdjustment($bizId, $productId, 'transfer', $qty, $product->stock, $product->stock, $reason, $fromId);
-        });
-    }
-
-    /**
-     * Seed warehouse_stocks from existing product.stock values into the default warehouse.
-     * Run once after migration via `php artisan app:seed-warehouse-stock`.
-     */
-    public function seedFromProductStock(int $bizId): int
-    {
-        $defaultId = $this->defaultWarehouseId($bizId);
-        if (!$defaultId) return 0;
-
-        $seeded = 0;
-        Product::where('business_id', $bizId)->where('stock', '>', 0)->each(function ($product) use ($bizId, $defaultId, &$seeded) {
-            WarehouseStock::updateOrCreate(
-                ['business_id' => $bizId, 'warehouse_id' => $defaultId, 'product_id' => $product->id, 'variant_id' => null],
-                ['quantity' => $product->stock]
-            );
-            $seeded++;
-        });
-
-        return $seeded;
-    }
-
-    public function defaultWarehouseId(int $bizId): ?int
-    {
-        return Warehouse::where('business_id', $bizId)->orderByDesc('is_default')->value('id');
-    }
-
-    private function adjustWarehouseStock(int $bizId, int $productId, ?int $warehouseId, int $delta): void
-    {
-        if (!$warehouseId || $delta === 0) return;
-
-        $row = WarehouseStock::firstOrCreate(
-            ['business_id' => $bizId, 'warehouse_id' => $warehouseId, 'product_id' => $productId, 'variant_id' => null],
-            ['quantity' => 0]
-        );
-        $row->quantity = max(0, $row->quantity + $delta);
-        $row->save();
     }
 
     // ──────────────────────────────────────────────
@@ -230,14 +190,13 @@ class StockService
         float   $before,
         float   $after,
         string  $reason = '',
-        ?int    $warehouse_id = null
+        ?int    $created_by = null
     ): void {
         try {
             StockAdjustment::create([
                 'business_id'     => $business_id,
                 'product_id'      => $product_id,
-                'warehouse_id'    => $warehouse_id,
-                'created_by'      => auth()->id(),
+                'created_by'      => $created_by ?? auth()->id(),
                 'type'            => $type,
                 'quantity'        => $quantity,
                 'quantity_before' => $before,

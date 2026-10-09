@@ -33,15 +33,12 @@ class User extends Authenticatable
     /**
      * Module-level access check.
      * - owner/admin always have full access
-     * - a user with no explicit permissions set keeps full access (backward compatible
-     *   with every account that existed before per-user permissions were introduced)
-     * - once permissions ARE set, only the listed modules are allowed
+     * - non-admin users only receive explicitly granted modules
      */
     public function hasPermission(string $p): bool
     {
         if ($this->isAdmin()) return true;
         $perms = $this->permissions ?? [];
-        if (empty($perms)) return true;
         return in_array($p, $perms);
     }
 

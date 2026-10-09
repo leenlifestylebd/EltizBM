@@ -4,6 +4,7 @@ use App\Models\Transaction;
 use App\Models\AccountCategory;
 use App\Models\Employee;
 use App\Models\Attendance;
+use App\Helpers\DbHelper;
 use Illuminate\Http\Request;
 use Carbon\Carbon;
 
@@ -24,13 +25,22 @@ class AccountController extends Controller
         ];
         $summary['profit'] = $summary['income'] - $summary['expense'];
         $recentTransactions = Transaction::where('business_id', $bizId)->with('category')->orderByDesc('transaction_date')->limit(10)->get();
+        // Single grouped query for the 6-month chart instead of 12 separate queries.
+        $grouped = Transaction::where('business_id', $bizId)
+            ->where('transaction_date', '>=', now()->subMonths(5)->startOfMonth())
+            ->selectRaw(DbHelper::yearMonth('transaction_date') . ' as ym, type, SUM(amount) as total')
+            ->groupBy('ym', 'type')
+            ->get()
+            ->groupBy('ym');
+
         $monthlyData = [];
         for ($i = 5; $i >= 0; $i--) {
             $m = now()->subMonths($i);
+            $g = $grouped[$m->format('Y-m')] ?? collect();
             $monthlyData[] = [
                 'label'   => $m->format('M'),
-                'income'  => Transaction::where('business_id',$bizId)->where('type','income')->whereYear('transaction_date',$m->year)->whereMonth('transaction_date',$m->month)->sum('amount'),
-                'expense' => Transaction::where('business_id',$bizId)->where('type','expense')->whereYear('transaction_date',$m->year)->whereMonth('transaction_date',$m->month)->sum('amount'),
+                'income'  => (float) ($g->firstWhere('type', 'income')->total ?? 0),
+                'expense' => (float) ($g->firstWhere('type', 'expense')->total ?? 0),
             ];
         }
         return view('accounts.overview', compact('summary','recentTransactions','monthlyData','period'));

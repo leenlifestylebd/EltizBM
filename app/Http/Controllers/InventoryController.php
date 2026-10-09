@@ -6,8 +6,6 @@ use App\Models\Product;
 use App\Models\PurchaseOrder;
 use App\Models\PurchaseOrderItem;
 use App\Models\StockAdjustment;
-use App\Models\Warehouse;
-use App\Models\WarehouseStock;
 use App\Models\Vendor;
 use App\Models\Category;
 use App\Models\Employee;
@@ -140,7 +138,7 @@ class InventoryController extends Controller
             'product_ids'        => 'required|array|min:1',
             'product_ids.*'      => 'integer',
             'employee_id'        => ['required', Rule::exists('employees', 'id')->where('business_id', $bizId)],
-            'production_rate_id' => ['nullable', Rule::exists('production_rates', 'id')->where('business_id', $bizId)->where('stage', 'cutting')],
+            'production_rate_id' => ['nullable', Rule::exists('production_rates', 'id')->where('business_id', $bizId)->where('stage', 'cutting')->where('is_active', true)],
         ]);
 
         $worker = Employee::where('business_id', $bizId)->findOrFail($request->employee_id);
@@ -155,7 +153,7 @@ class InventoryController extends Controller
             $qty = max(0, (int) $p->low_stock_alert - (int) $p->stock);
             if ($qty <= 0) continue;
 
-            ProductionTask::create([
+            ProductionTask::assignWithCurrentRate([
                 'business_id'        => $bizId,
                 'employee_id'        => $worker->id,
                 'assigned_by'        => auth()->id(),
@@ -243,25 +241,29 @@ class InventoryController extends Controller
                 return back()->with('error', 'This purchase order is already received.');
             }
 
-            $stock       = app(StockService::class);
-            $warehouseId = (int) ($request->warehouse_id ?: $stock->defaultWarehouseId($bizId));
+            $stock = app(StockService::class);
 
-            DB::transaction(function () use ($po, $bizId, $stock, $warehouseId) {
+            DB::transaction(function () use ($po, $bizId, $stock) {
                 $po->update(['status' => 'received']);
 
                 foreach ($po->items as $item) {
-                    $stock->addToWarehouse(
-                        bizId:       $bizId,
-                        productId:   $item->product_id,
-                        warehouseId: $warehouseId,
-                        qty:         $item->quantity,
-                        reason:      'Purchase Order: ' . $po->po_number,
+                    $stock->addStock(
+                        bizId:    $bizId,
+                        productId: $item->product_id,
+                        qty:      $item->quantity,
+                        reason:   'Purchase Order: ' . $po->po_number,
                     );
                     $item->update(['received_quantity' => $item->quantity]);
+
+                    // Recognise cost only when goods are actually received, scoped to
+                    // this tenant's product (a draft PO must not revalue inventory).
+                    Product::where('id', $item->product_id)
+                        ->where('business_id', $bizId)
+                        ->update(['cost_price' => $item->cost_price]);
                 }
             });
 
-            return back()->with('success', 'Purchase order received. Stock added to warehouse!');
+            return back()->with('success', 'Purchase order received. Stock added!');
         }
 
         // Create new PO
@@ -294,11 +296,6 @@ class InventoryController extends Controller
                     'cost_price'        => $item['cost_price'],
                     'total'             => $item['quantity'] * $item['cost_price'],
                 ]);
-
-                // Update product cost price
-                Product::where('id', $item['product_id'])
-                    ->where('business_id', $bizId)
-                    ->update(['cost_price' => $item['cost_price']]);
             }
         });
 
@@ -375,7 +372,7 @@ class InventoryController extends Controller
     {
         $request->validate([
             'product_id' => 'required|integer',
-            'type'       => 'required|in:increase,decrease,damage,return,transfer',
+            'type'       => 'required|in:increase,decrease,damage,return',
             'quantity'   => 'required|integer|min:1',
         ]);
 
@@ -497,87 +494,6 @@ class InventoryController extends Controller
     {
         // Handled on frontend via JS barcode library
         return response()->json(['success' => true]);
-    }
-
-    // =============================================
-    // STOCK TRANSFERS
-    // =============================================
-    public function transfers()
-    {
-        $bizId = auth()->user()->business_id;
-
-        $products   = Product::where('business_id', $bizId)->orderBy('name')->get();
-        $warehouses = Warehouse::where('business_id', $bizId)->orderBy('name')->get();
-        $transfers  = StockAdjustment::where('business_id', $bizId)
-            ->where('type', 'transfer')
-            ->with('product')
-            ->orderByDesc('created_at')
-            ->paginate(20);
-
-        return view('inventory.transfers', compact('products', 'warehouses', 'transfers'));
-    }
-
-    public function storeTransfer(Request $request)
-    {
-        $request->validate([
-            'product_id'        => 'required|integer',
-            'quantity'          => 'required|integer|min:1',
-            'from_warehouse_id' => 'required|integer',
-            'to_warehouse_id'   => 'required|integer|different:from_warehouse_id',
-        ]);
-
-        $bizId   = auth()->user()->business_id;
-        $product = Product::where('id', $request->product_id)
-            ->where('business_id', $bizId)
-            ->firstOrFail();
-
-        $fromStock = WarehouseStock::where('business_id', $bizId)
-            ->where('warehouse_id', $request->from_warehouse_id)
-            ->where('product_id', $product->id)
-            ->value('quantity') ?? 0;
-
-        if ($fromStock < $request->quantity) {
-            return back()->with('error', "Insufficient stock in source warehouse (available: {$fromStock}).");
-        }
-
-        app(StockService::class)->transferBetweenWarehouses(
-            bizId:     $bizId,
-            productId: $product->id,
-            fromId:    (int) $request->from_warehouse_id,
-            toId:      (int) $request->to_warehouse_id,
-            qty:       (int) $request->quantity,
-            reason:    $request->reason ?? 'Warehouse transfer',
-        );
-
-        return back()->with('success', 'Transfer completed!');
-    }
-
-    // =============================================
-    // WAREHOUSE STOCK VIEW
-    // =============================================
-    public function warehouseStock(Request $request)
-    {
-        $bizId      = auth()->user()->business_id;
-        $warehouses = Warehouse::where('business_id', $bizId)->orderBy('name')->get();
-
-        $whId = $request->warehouse_id
-            ? (int) $request->warehouse_id
-            : ($warehouses->where('is_default', true)->first()?->id ?? $warehouses->first()?->id);
-
-        $query = WarehouseStock::where('business_id', $bizId)
-            ->where('warehouse_id', $whId)
-            ->where('quantity', '>', 0)
-            ->with(['product.category'])
-            ->orderByDesc('quantity');
-
-        if ($request->search) {
-            $search = $request->search;
-            $query->whereHas('product', fn($q) => $q->where('name', 'like', "%{$search}%")->orWhere('sku', 'like', "%{$search}%"));
-        }
-
-        $stocks = $query->paginate(40)->withQueryString();
-
-        return view('inventory.warehouse-stock', compact('warehouses', 'stocks', 'whId'));
     }
 
     // =============================================

@@ -1,4 +1,4 @@
-﻿@extends('layouts.app')
+@extends('layouts.app')
 @section('title', $employee->name . ' Ledger')
 @section('content')
 
@@ -72,12 +72,12 @@
 
     <div class="bg-primary-50 dark:bg-primary-900/20 rounded-xl p-4 border border-primary-100 dark:border-primary-900/40">
         <p class="text-xs text-primary-600 dark:text-primary-400 font-medium mb-1">
-            {{ (float)$employee->salary > 0 ? 'Earned This Month' : 'P.Bill (This Month)' }}
+            {{ $monthSalary > 0 ? 'Earned This Month' : 'P.Bill (This Month)' }}
         </p>
         <p class="text-2xl font-bold text-primary-700 dark:text-primary-300">৳{{ number_format($monthEarned) }}</p>
         <p class="text-xs text-primary-500 mt-1">
-            @if((float)$employee->salary > 0)
-                ৳{{ number_format($employee->salary) }} salary{{ $entries->sum('amount') > 0 ? ' + ৳'.number_format($entries->sum('amount')).' production' : '' }}
+            @if($monthSalary > 0)
+                ৳{{ number_format($monthSalary) }} salary{{ $entries->sum('amount') > 0 ? ' + ৳'.number_format($entries->sum('amount')).' production' : '' }}
             @else
                 {{ $entries->sum('quantity') }} pieces
             @endif
@@ -97,7 +97,7 @@
             ৳{{ number_format(abs($runningDue)) }}
         </p>
         <p class="text-xs text-{{ $isOverpay ? 'purple' : 'red' }}-500 mt-1">
-            cumulative balance
+            balance through selected month
         </p>
     </div>
 </div>
@@ -107,11 +107,11 @@
     {{-- LEFT: Production Entries / Salary Info --}}
     <div class="lg:col-span-2 space-y-4">
 
-        @if($employee->type === 'salary')
+        @if($monthSalary > 0 && $entries->isEmpty())
         {{-- Salary employee: show attendance summary for this month --}}
         @php
             $attRecs = \App\Models\Attendance::where('employee_id', $employee->id)
-                ->whereBetween('attendance_date', [$from, $to])
+                ->whereBetween('attendance_date', [$from, \Carbon\Carbon::parse($to)->endOfDay()])
                 ->orderBy('attendance_date')->get();
         @endphp
         <div class="bg-white dark:bg-slate-800 rounded-xl border border-gray-100 dark:border-slate-700 overflow-hidden">
@@ -189,7 +189,7 @@
                     <tr>
                         <td colspan="4" class="px-4 py-2.5 font-bold text-gray-900 dark:text-white text-xs">Total</td>
                         <td class="px-4 py-2.5 text-center font-bold text-gray-900 dark:text-white">{{ $entries->sum('quantity') }}</td>
-                        <td class="px-4 py-2.5 text-right font-bold text-primary-700 dark:text-primary-400">৳{{ number_format($monthEarned) }}</td>
+                        <td class="px-4 py-2.5 text-right font-bold text-primary-700 dark:text-primary-400">৳{{ number_format($entries->sum('amount')) }}</td>
                     </tr>
                 </tfoot>
             </table>
@@ -247,7 +247,7 @@
                             <td colspan="4" class="px-4 py-2.5 font-bold text-gray-900 dark:text-white text-xs">P.Bill</td>
                             <td class="px-4 py-2.5 text-center font-bold text-gray-900 dark:text-white">{{ $entries->sum('quantity') }}</td>
                             <td class="hidden sm:table-cell"></td>
-                            <td class="px-4 py-2.5 text-right font-bold text-primary-700 dark:text-primary-400 text-base">৳{{ number_format($monthEarned) }}</td>
+                            <td class="px-4 py-2.5 text-right font-bold text-primary-700 dark:text-primary-400 text-base">৳{{ number_format($entries->sum('amount')) }}</td>
                         </tr>
                     </tfoot>
                 </table>
@@ -286,7 +286,7 @@
                 @endforeach
             </div>
             <div class="px-4 py-2.5 bg-green-50 dark:bg-green-900/10 flex items-center justify-between border-t-2 border-green-100 dark:border-green-900/30">
-                <span class="text-xs font-bold text-gray-700 dark:text-slate-300">Total Paid</span>
+                <span class="text-xs font-bold text-gray-700 dark:text-slate-300">Salary / advance paid</span>
                 <span class="font-bold text-green-700 dark:text-green-400">৳{{ number_format($monthPaid) }}</span>
             </div>
             @else
@@ -298,7 +298,7 @@
         <div class="bg-white dark:bg-slate-800 rounded-xl border border-gray-100 dark:border-slate-700 p-4 space-y-3">
             <h3 class="text-sm font-semibold text-gray-900 dark:text-white mb-2">Summary</h3>
             <div class="flex justify-between text-sm">
-                <span class="text-gray-600 dark:text-slate-400">P.Bill</span>
+                <span class="text-gray-600 dark:text-slate-400">Earned</span>
                 <span class="font-bold text-primary-600 dark:text-primary-400">৳{{ number_format($monthEarned) }}</span>
             </div>
             @if($carryOver != 0)
@@ -313,6 +313,18 @@
                 <span class="text-gray-600 dark:text-slate-400">Paid</span>
                 <span class="font-bold text-green-600 dark:text-green-400">৳{{ number_format($monthPaid) }}</span>
             </div>
+            @if($monthBonus > 0)
+            <div class="flex justify-between text-sm">
+                <span class="text-gray-600 dark:text-slate-400">Bonus paid (separate)</span>
+                <span>৳{{ number_format($monthBonus) }}</span>
+            </div>
+            @endif
+            @if($monthDeduction > 0)
+            <div class="flex justify-between text-sm">
+                <span class="text-gray-600 dark:text-slate-400">Deductions (-)</span>
+                <span>৳{{ number_format($monthDeduction) }}</span>
+            </div>
+            @endif
             <div class="border-t border-gray-100 dark:border-slate-700 pt-3 flex justify-between">
                 <span class="font-bold text-gray-900 dark:text-white text-sm">{{ $isOverpay ? 'Over Pay' : 'Due' }}</span>
                 <span class="font-black text-lg {{ $isOverpay ? 'text-purple-600 dark:text-purple-400' : 'text-red-600 dark:text-red-400' }}">

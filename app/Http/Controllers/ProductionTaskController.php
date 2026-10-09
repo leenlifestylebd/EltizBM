@@ -77,10 +77,11 @@ class ProductionTaskController extends Controller
             'employee_id'        => ['required', \Illuminate\Validation\Rule::exists('employees', 'id')->where('business_id', $bizId)],
             // Rate is optional — assign work even before a pay rate is set up. Without a
             // rate the worker's submission simply earns 0 until a rate is added.
-            'production_rate_id' => ['nullable', \Illuminate\Validation\Rule::exists('production_rates', 'id')->where('business_id', $bizId)],
+            'production_rate_id' => ['nullable', \Illuminate\Validation\Rule::exists('production_rates', 'id')->where('business_id', $bizId)->where('is_active', true)],
             'product_name'       => 'required|string|max:255',
             'assigned_quantity'  => 'required|integer|min:1',
             'deadline'           => 'nullable|date|after_or_equal:today',
+            'assigned_date'      => 'nullable|date|before_or_equal:today',
         ]);
 
         $employee = Employee::where('business_id', $bizId)->findOrFail($request->employee_id);
@@ -94,7 +95,7 @@ class ProductionTaskController extends Controller
             if ($src) $sourceTaskId = $src->id;
         }
 
-        ProductionTask::create([
+        ProductionTask::assignWithCurrentRate([
             'business_id'        => $bizId,
             'employee_id'        => $employee->id,
             'assigned_by'        => auth()->id(),
@@ -109,7 +110,9 @@ class ProductionTaskController extends Controller
             'status'             => 'assigned',
             'deadline'           => $request->deadline ?: null,
             'notes'              => $request->notes,
-            'assigned_at'        => now(),
+            'assigned_at'        => $request->filled('assigned_date')
+                ? \Carbon\Carbon::parse($request->assigned_date)->setTimeFrom(now())
+                : now(),
         ]);
 
         $details = $request->product_name
@@ -201,14 +204,14 @@ class ProductionTaskController extends Controller
 
         $request->validate([
             'employee_id'        => ['required', Rule::exists('employees', 'id')->where('business_id', $bizId)],
-            'production_rate_id' => ['nullable', Rule::exists('production_rates', 'id')->where('business_id', $bizId)->where('stage', $nextStage)],
+            'production_rate_id' => ['nullable', Rule::exists('production_rates', 'id')->where('business_id', $bizId)->where('stage', $nextStage)->where('is_active', true)],
             'quantity'           => ['required', 'integer', 'min:1', "max:{$forwardable}"],
             'notes'              => 'nullable|string|max:500',
         ]);
 
         $worker = Employee::where('business_id', $bizId)->findOrFail($request->employee_id);
 
-        $nextTask = ProductionTask::create([
+        $nextTask = ProductionTask::assignWithCurrentRate([
             'business_id'        => $bizId,
             'employee_id'        => $worker->id,
             'assigned_by'        => auth()->id(),

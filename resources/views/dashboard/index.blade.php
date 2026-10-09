@@ -149,9 +149,8 @@
         </div>
         <div>
             <p class="text-xs text-gray-500 dark:text-slate-400">Net Profit/Loss</p>
-            @php $profit = ($stats['income'] ?? 0) - ($stats['expenses'] ?? 0); @endphp
-            <p class="text-sm font-bold {{ $profit >= 0 ? 'text-green-600 dark:text-green-400' : 'text-red-600 dark:text-red-400' }}">
-                ৳{{ number_format($profit) }} {{ $profit >= 0 ? 'profit' : 'loss' }}
+            <p class="text-sm font-bold {{ $stats['profit'] >= 0 ? 'text-green-600 dark:text-green-400' : 'text-red-600 dark:text-red-400' }}">
+                ৳{{ number_format($stats['profit']) }} {{ $stats['profit'] >= 0 ? 'profit' : 'loss' }}
             </p>
         </div>
     </div>

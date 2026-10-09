@@ -14,6 +14,7 @@ use Illuminate\Support\Facades\DB;
 use Illuminate\Support\Facades\Log;
 use Illuminate\Support\Facades\Mail;
 use Illuminate\Support\Str;
+use Illuminate\Validation\ValidationException;
 
 /**
  * Centralised business logic for Order create / cancel / payment workflows.
@@ -36,22 +37,29 @@ class OrderService
     public function create(array $data, int $bizId, string $source = 'manual'): Order
     {
         return DB::transaction(function () use ($data, $bizId, $source) {
-            $subtotal = collect($data['items'])->sum('total');
+            $items    = $this->resolveItems($data['items'], $bizId);
+            $subtotal = collect($items)->sum('total');
             $discount = (float) ($data['discount'] ?? 0);
             $shipping = (float) ($data['shipping_charge'] ?? $data['shipping_cost'] ?? 0);
-            $total    = $subtotal - $discount + $shipping;
-            $paid     = (float) ($data['paid_amount'] ?? 0);
-            $due      = max(0, $total - $paid);
+            $total    = max(0, $subtotal - min($discount, $subtotal) + $shipping);
+
+            // paid_amount may be omitted (POS defaults to paid-in-full) or supplied.
+            $paidInput = $data['paid_amount'] ?? null;
+            if ($paidInput === null) {
+                $paidInput = !empty($data['pay_in_full']) ? $total : 0;
+            }
+            $paid = min($total, max(0, (float) $paidInput));
+            $due  = max(0, $total - $paid);
 
             $payStatus = 'unpaid';
-            if ($paid >= $total) $payStatus = 'paid';
-            elseif ($paid > 0)   $payStatus = 'partial';
+            if ($total > 0 && $paid >= $total) $payStatus = 'paid';
+            elseif ($paid > 0)                 $payStatus = 'partial';
 
             $order = Order::create([
                 'business_id'       => $bizId,
                 'customer_id'       => $data['customer_id'] ?? null,
                 'created_by'        => $data['created_by'] ?? auth()->id(),
-                'order_number'      => 'ORD-' . strtoupper(Str::random(8)),
+                'order_number'      => $data['order_number'] ?? ('ORD-' . strtoupper(Str::random(8))),
                 'source'            => $source,
                 'status'            => $data['status'] ?? 'pending',
                 'payment_status'    => $payStatus,
@@ -70,9 +78,14 @@ class OrderService
                 'notes'             => $data['notes'] ?? null,
             ]);
 
-            $this->syncItems($order, $data['items'], deductStock: true);
+            $this->syncItems($order, $items);
+            if ($order->holdsStock()) {
+                app(StockService::class)->deductForOrder($order->load('items'));
+            }
 
-            if ($paid > 0) {
+            // An order created already terminal (cancelled/returned/refunded) must not
+            // book money or touch the customer ledger.
+            if ($paid > 0 && $order->holdsStock()) {
                 Transaction::create([
                     'business_id'      => $bizId,
                     'created_by'       => $data['created_by'] ?? auth()->id(),
@@ -85,7 +98,9 @@ class OrderService
                 ]);
             }
 
-            $this->updateCustomerTotals($order, $total, $due);
+            if ($order->holdsStock()) {
+                $this->updateCustomerTotals($order, $total, $due);
+            }
 
             return $order;
         });
@@ -99,30 +114,42 @@ class OrderService
      */
     public function collectPayment(Order $order, float $amount): void
     {
-        $newPaid = min($order->total, $order->paid_amount + $amount);
-        $newDue  = max(0, $order->total - $newPaid);
-        $payStatus = $newDue <= 0 ? 'paid' : 'partial';
+        DB::transaction(function () use ($order, $amount) {
+            // Only the outstanding due can be collected; never over-collect or
+            // over-decrement the customer ledger.
+            $applied = min(max(0, $amount), (float) $order->due_amount);
+            if ($applied <= 0) {
+                return;
+            }
 
-        $order->update([
-            'paid_amount'    => $newPaid,
-            'due_amount'     => $newDue,
-            'payment_status' => $payStatus,
-        ]);
+            $newPaid = min((float) $order->total, (float) $order->paid_amount + $applied);
+            $newDue  = max(0, (float) $order->total - $newPaid);
+            $payStatus = $newDue <= 0 ? 'paid' : 'partial';
 
-        Transaction::create([
-            'business_id'      => $order->business_id,
-            'created_by'       => auth()->id(),
-            'order_id'         => $order->id,
-            'type'             => 'income',
-            'title'            => 'Payment collected for Order #' . $order->order_number,
-            'amount'           => $amount,
-            'payment_method'   => $order->payment_method,
-            'transaction_date' => today(),
-        ]);
+            $order->update([
+                'paid_amount'    => $newPaid,
+                'due_amount'     => $newDue,
+                'payment_status' => $payStatus,
+            ]);
 
-        if ($order->customer_id) {
-            Customer::where('id', $order->customer_id)->decrement('due_amount', $amount);
-        }
+            Transaction::create([
+                'business_id'      => $order->business_id,
+                'created_by'       => auth()->id(),
+                'order_id'         => $order->id,
+                'type'             => 'income',
+                'title'            => 'Payment collected for Order #' . $order->order_number,
+                'amount'           => $applied,
+                'payment_method'   => $order->payment_method,
+                'transaction_date' => today(),
+            ]);
+
+            if ($order->customer_id) {
+                $customer = Customer::where('business_id', $order->business_id)->find($order->customer_id);
+                if ($customer && (float) $customer->due_amount > 0) {
+                    $customer->decrement('due_amount', min($applied, (float) $customer->due_amount));
+                }
+            }
+        });
     }
 
     // =============================================
@@ -133,6 +160,13 @@ class OrderService
      */
     public function completeCod(Order $order): void
     {
+        // Book only the amount still outstanding; any earlier partial payment already
+        // created its own income entry, so using the full total would double-count.
+        $outstanding = max(0, (float) $order->due_amount);
+        if ($outstanding <= 0) {
+            return;
+        }
+
         $order->update([
             'paid_amount'    => $order->total,
             'due_amount'     => 0,
@@ -145,10 +179,18 @@ class OrderService
             'order_id'         => $order->id,
             'type'             => 'income',
             'title'            => 'COD collected for Order #' . $order->order_number,
-            'amount'           => $order->total,
+            'amount'           => $outstanding,
             'payment_method'   => 'cod',
             'transaction_date' => today(),
         ]);
+
+        // The customer's due for this order is now settled.
+        if ($order->customer_id) {
+            $customer = Customer::where('business_id', $order->business_id)->find($order->customer_id);
+            if ($customer && (float) $customer->due_amount > 0) {
+                $customer->decrement('due_amount', min($outstanding, (float) $customer->due_amount));
+            }
+        }
     }
 
     // =============================================
@@ -160,12 +202,10 @@ class OrderService
      */
     public function cancel(Order $order, string $status = 'cancelled'): void
     {
-        // Restore stock
-        foreach ($order->items as $item) {
-            if ($item->product_id) {
-                Product::where('id', $item->product_id)
-                    ->increment('stock', $item->quantity);
-            }
+        // Only restore stock the order still holds — an RMA that already put the goods
+        // back (return_received) must not be restored a second time.
+        if ($order->holdsStock()) {
+            app(StockService::class)->restoreForOrder($order->load('items'));
         }
 
         // Refund transaction if already paid
@@ -244,21 +284,95 @@ class OrderService
     // =============================================
     // HELPERS
     // =============================================
-    private function syncItems(Order $order, array $items, bool $deductStock = true): void
+    /**
+     * Replace an order's lines using authoritative catalog values.
+     * Must be called inside a database transaction.
+     */
+    public function replaceItems(Order $order, array $items): float
+    {
+        // Lock every affected product in a stable order before restoring/deducting
+        // so concurrent edits cannot overwrite each other's stock calculation.
+        $productIds = $order->items->pluck('product_id')
+            ->merge(collect($items)->pluck('product_id'))
+            ->filter()->unique()->sort()->values();
+        Product::where('business_id', $order->business_id)
+            ->whereIn('id', $productIds)
+            ->orderBy('id')
+            ->lockForUpdate()
+            ->get();
+
+        if ($order->holdsStock()) {
+            app(StockService::class)->restoreForOrder($order->load('items'));
+        }
+        $order->items()->delete();
+
+        $resolved = $this->resolveItems($items, $order->business_id, $order->holdsStock());
+        $this->syncItems($order, $resolved);
+        if ($order->holdsStock()) {
+            app(StockService::class)->deductForOrder($order->load('items'));
+        }
+
+        return (float) collect($resolved)->sum('total');
+    }
+
+    /** Resolve names, prices and costs from this tenant's catalog and lock stock rows. */
+    private function resolveItems(array $items, int $businessId, bool $checkStock = true): array
+    {
+        // Aggregate demand per product first: two lines of the same product must be
+        // validated against the combined total, otherwise the order oversells.
+        $demand = collect($items)
+            ->filter(fn ($item) => (int) ($item['product_id'] ?? 0) > 0)
+            ->groupBy(fn ($item) => (int) $item['product_id'])
+            ->map(fn ($rows) => (int) $rows->sum(fn ($item) => (int) ($item['quantity'] ?? 0)));
+
+        return collect($items)->map(function (array $item, int $index) use ($businessId, $checkStock, $demand) {
+            $product = Product::where('business_id', $businessId)
+                ->whereKey($item['product_id'] ?? 0)
+                ->lockForUpdate()
+                ->first();
+
+            if (!$product) {
+                throw ValidationException::withMessages([
+                    "items.{$index}.product_id" => 'The selected product is unavailable for this business.',
+                ]);
+            }
+
+            $quantity = (int) ($item['quantity'] ?? 0);
+            if ($quantity < 1) {
+                throw ValidationException::withMessages([
+                    "items.{$index}.quantity" => 'Quantity must be at least 1.',
+                ]);
+            }
+
+            $required = $demand[$product->id] ?? $quantity;
+            if ($checkStock && $product->track_stock && (float) $product->stock < $required) {
+                throw ValidationException::withMessages([
+                    "items.{$index}.quantity" => "Only {$product->stock} unit(s) of {$product->name} are in stock.",
+                ]);
+            }
+
+            $price    = (float) $product->current_price;
+            $gross    = $price * $quantity;
+            $discount = min(max(0, (float) ($item['discount'] ?? 0)), $gross);
+
+            return [
+                'product_id'   => $product->id,
+                'product_name' => $product->name,
+                'price'        => $price,
+                'cost_price'   => (float) $product->cost_price,
+                'quantity'     => $quantity,
+                'discount'     => $discount,
+                'total'        => $gross - $discount,
+            ];
+        })->all();
+    }
+
+    private function syncItems(Order $order, array $items): void
     {
         foreach ($items as $item) {
-            // Only accept catalog products that belong to THIS business. A foreign
-            // product_id is treated as a custom (non-catalog) line so it can never
-            // touch another tenant's stock.
-            $product = !empty($item['product_id'])
-                ? Product::where('id', $item['product_id'])
-                    ->where('business_id', $order->business_id)
-                    ->first()
-                : null;
-
             OrderItem::create([
                 'order_id'     => $order->id,
-                'product_id'   => $product?->id,
+                'product_id'   => $item['product_id'],
                 'product_name' => $item['product_name'],
                 'price'        => $item['price'],
                 'cost_price'   => $item['cost_price'] ?? 0,
@@ -267,10 +381,6 @@ class OrderService
                 'total'        => $item['total'],
             ]);
 
-            if ($deductStock && $product && $product->track_stock) {
-                $newStock = max(0, $product->stock - (int) $item['quantity']);
-                $product->update(['stock' => $newStock]);
-            }
         }
     }
 
@@ -278,10 +388,14 @@ class OrderService
     {
         if (!$order->customer_id) return;
 
-        Customer::where('id', $order->customer_id)->increment('total_purchase', $total);
+        // Scope by business so a foreign customer_id can never touch another tenant.
+        $customer = Customer::where('business_id', $order->business_id)->find($order->customer_id);
+        if (!$customer) return;
+
+        $customer->increment('total_purchase', $total);
 
         if ($due > 0) {
-            Customer::where('id', $order->customer_id)->increment('due_amount', $due);
+            $customer->increment('due_amount', $due);
         }
     }
 }

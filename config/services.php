@@ -48,4 +48,8 @@ return [
         'business_id' => env('BOT_BUSINESS_ID'),
     ],
 
+    'steadfast' => [
+        'webhook_secret' => env('STEADFAST_WEBHOOK_SECRET'),
+    ],
+
 ];

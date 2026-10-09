@@ -6,6 +6,7 @@ use App\Models\Order;
 use App\Models\Product;
 use App\Models\Shipment;
 use App\Models\Transaction;
+use App\Services\StockService;
 use Illuminate\Http\Request;
 use Illuminate\Support\Facades\DB;
 
@@ -94,23 +95,34 @@ class ReturnController extends Controller
             'notes'     => 'nullable|string|max:500',
         ]);
 
-        $order->update([
-            'status'            => 'return_received',
-            'return_condition'  => $request->condition,
-            'return_notes'      => ($order->return_notes ? $order->return_notes . "\n" : '') . 'Received: ' . $request->notes,
-        ]);
-
-        // Restore stock if condition is good or partial
-        if (in_array($request->condition, ['good', 'partial'])) {
+        // Restore stock for good/partial returns. Quantity is aggregated per product
+        // and applied through StockService so it is business-scoped, row-locked and
+        // written to the stock_adjustments audit trail (the old raw increment was
+        // none of those, and re-ran on every receive).
+        $quantities = [];
+        if (in_array($request->condition, ['good', 'partial'], true)) {
             foreach ($order->items as $item) {
-                if ($item->product_id) {
-                    $restoreQty = $request->condition === 'partial'
-                        ? (int) ceil($item->quantity / 2)
-                        : $item->quantity;
-                    Product::where('id', $item->product_id)->increment('stock', $restoreQty);
-                }
+                if (!$item->product_id) continue;
+                $qty = $request->condition === 'partial'
+                    ? (int) ceil($item->quantity / 2)
+                    : (int) $item->quantity;
+                $quantities[$item->product_id] = ($quantities[$item->product_id] ?? 0) + $qty;
             }
         }
+
+        DB::transaction(function () use ($order, $request, $quantities) {
+            $order->update([
+                'status'            => 'return_received',
+                'return_condition'  => $request->condition,
+                'return_notes'      => ($order->return_notes ? $order->return_notes . "\n" : '') . 'Received: ' . $request->notes,
+            ]);
+
+            app(StockService::class)->restoreReturned(
+                $order,
+                $quantities,
+                'Return received - Order #' . $order->order_number,
+            );
+        });
 
         return back()->with('success', 'Goods received. Stock restored. Ready to process refund.');
     }
@@ -129,7 +141,10 @@ class ReturnController extends Controller
             'notes'          => 'nullable|string|max:500',
         ]);
 
-        DB::transaction(function () use ($request, $order) {
+        $orderDue = (float) $order->due_amount;
+        $refund   = min((float) $request->refund_amount, (float) $order->paid_amount);
+
+        DB::transaction(function () use ($request, $order, $refund, $orderDue) {
             // Record refund as expense transaction
             Transaction::create([
                 'business_id'      => $order->business_id,
@@ -137,28 +152,32 @@ class ReturnController extends Controller
                 'order_id'         => $order->id,
                 'type'             => 'expense',
                 'title'            => 'Refund for Order #' . $order->order_number,
-                'amount'           => $request->refund_amount,
+                'amount'           => $refund,
                 'payment_method'   => $request->refund_method,
                 'transaction_date' => today(),
                 'notes'            => $request->notes,
             ]);
 
-            // Update order financials
+            // A refunded order is closed: paid drops by the refund, and any remaining
+            // due is cancelled (it is no longer collectible).
             $order->update([
                 'status'         => 'refunded',
-                'paid_amount'    => max(0, $order->paid_amount - $request->refund_amount),
+                'paid_amount'    => max(0, (float) $order->paid_amount - $refund),
+                'due_amount'     => 0,
                 'payment_status' => 'refunded',
-                'return_notes'   => ($order->return_notes ? $order->return_notes . "\n" : '') . 'Refunded: ৳' . $request->refund_amount . ' via ' . $request->refund_method,
+                'return_notes'   => ($order->return_notes ? $order->return_notes . "\n" : '') . 'Refunded: ৳' . $refund . ' via ' . $request->refund_method,
             ]);
 
-            // Adjust customer due if applicable
-            if ($order->customer_id && $order->due_amount > 0) {
-                \App\Models\Customer::where('id', $order->customer_id)
-                    ->decrement('due_amount', min($order->due_amount, $request->refund_amount));
+            // Clear the outstanding due this order was holding against the customer.
+            if ($order->customer_id && $orderDue > 0) {
+                $customer = \App\Models\Customer::where('business_id', $order->business_id)->find($order->customer_id);
+                if ($customer && (float) $customer->due_amount > 0) {
+                    $customer->decrement('due_amount', min($orderDue, (float) $customer->due_amount));
+                }
             }
         });
 
-        return back()->with('success', '৳' . number_format($request->refund_amount, 2) . ' refund processed for Order #' . $order->order_number);
+        return back()->with('success', '৳' . number_format($refund, 2) . ' refund processed for Order #' . $order->order_number);
     }
 
     // =============================================

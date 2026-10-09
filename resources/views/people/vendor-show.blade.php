@@ -67,8 +67,8 @@
                     </div>
                     <div class="flex items-center justify-between">
                         <span class="text-xs text-gray-500 dark:text-slate-400">Due Amount</span>
-                        <span class="text-sm font-semibold {{ $vendor->due_amount > 0 ? 'text-red-600 dark:text-red-400' : 'text-gray-400' }}">
-                            {{ $vendor->due_amount > 0 ? '৳'.number_format($vendor->due_amount) : '৳0' }}
+                        <span class="text-sm font-semibold {{ $vendorDue > 0 ? 'text-red-600 dark:text-red-400' : 'text-gray-400' }}">
+                            {{ $vendorDue > 0 ? '৳'.number_format($vendorDue) : '৳0' }}
                         </span>
                     </div>
                 </div>

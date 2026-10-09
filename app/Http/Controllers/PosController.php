@@ -3,16 +3,12 @@
 namespace App\Http\Controllers;
 
 use App\Models\Order;
-use App\Models\OrderItem;
 use App\Models\Product;
-use App\Models\Customer;
-use App\Models\Transaction;
 use App\Models\Category;
 use App\Jobs\SyncWooCommerceStock;
 use App\Models\WoocommerceSetting;
 use Illuminate\Http\Request;
 use Illuminate\Support\Str;
-use Illuminate\Support\Facades\DB;
 
 class PosController extends Controller
 {
@@ -56,90 +52,34 @@ class PosController extends Controller
     // =============================================
     public function checkout(Request $request)
     {
+        // Only product/quantity come from the client; prices, totals, stock checks and
+        // the customer ledger are all resolved server-side by OrderService.
         $request->validate([
-            'items'          => 'required|array|min:1',
-            'items.*.product_id'   => 'required|integer',
-            'items.*.product_name' => 'required|string',
-            'items.*.price'        => 'required|numeric|min:0',
-            'items.*.quantity'     => 'required|integer|min:1',
-            'items.*.total'        => 'required|numeric|min:0',
-            'total'          => 'required|numeric|min:0',
-            'payment_method' => 'required|string',
+            'items'            => 'required|array|min:1',
+            'items.*.product_id' => 'required|integer',
+            'items.*.quantity'   => 'required|integer|min:1',
+            'items.*.discount'   => 'nullable|numeric|min:0',
+            'payment_method'   => 'required|string',
+            'paid_amount'      => 'nullable|numeric|min:0',
         ]);
 
         $bizId = auth()->user()->business_id;
 
         try {
-            $order = DB::transaction(function () use ($request, $bizId) {
-
-                $subtotal   = collect($request->items)->sum('total');
-                $discount   = floatval($request->discount ?? 0);
-                $shipping   = floatval($request->shipping_charge ?? 0);
-                $total      = floatval($request->total);
-                $paid       = floatval($request->paid_amount ?? $total);
-                $due        = max(0, $total - $paid);
-
-                $payStatus  = $paid >= $total ? 'paid' : ($paid > 0 ? 'partial' : 'unpaid');
-
-                // Create order
-                $order = Order::create([
-                    'business_id'    => $bizId,
-                    'customer_id'    => $request->customer_id ?: null,
-                    'created_by'     => auth()->id(),
-                    'order_number'   => 'POS-' . strtoupper(Str::random(7)),
-                    'source'         => 'pos',
-                    'status'         => 'completed',
-                    'payment_status' => $payStatus,
-                    'payment_method' => $request->payment_method,
-                    'customer_name'  => $request->customer_name ?? 'Walk-in Customer',
-                    'customer_phone' => $request->customer_phone,
-                    'subtotal'       => $subtotal,
-                    'discount'       => $discount,
-                    'shipping_charge'=> $shipping,
-                    'total'          => $total,
-                    'paid_amount'    => $paid,
-                    'due_amount'     => $due,
-                ]);
-
-                // Create items
-                foreach ($request->items as $item) {
-                    OrderItem::create([
-                        'order_id'     => $order->id,
-                        'product_id'   => $item['product_id'],
-                        'product_name' => $item['product_name'],
-                        'price'        => $item['price'],
-                        'cost_price'   => $item['cost_price'] ?? 0,
-                        'quantity'     => $item['quantity'],
-                        'discount'     => $item['discount'] ?? 0,
-                        'total'        => $item['total'],
-                    ]);
-                }
-
-                // Deduct stock (warehouse-aware)
-                app(\App\Services\StockService::class)->deductForOrder($order->load('items'));
-
-                // Income transaction
-                Transaction::create([
-                    'business_id'      => $bizId,
-                    'created_by'       => auth()->id(),
-                    'order_id'         => $order->id,
-                    'type'             => 'income',
-                    'title'            => 'POS Sale #' . $order->order_number,
-                    'amount'           => $paid,
-                    'payment_method'   => $request->payment_method,
-                    'transaction_date' => today(),
-                ]);
-
-                // Update customer due
-                if ($request->customer_id && $due > 0) {
-                    Customer::where('id', $request->customer_id)
-                        ->increment('due_amount', $due);
-                    Customer::where('id', $request->customer_id)
-                        ->increment('total_purchase', $total);
-                }
-
-                return $order;
-            });
+            $order = app(\App\Services\OrderService::class)->create([
+                'customer_id'     => $request->customer_id ?: null,
+                'created_by'      => auth()->id(),
+                'order_number'    => 'POS-' . strtoupper(Str::random(7)),
+                'status'          => 'completed',
+                'payment_method'  => $request->payment_method,
+                'customer_name'   => $request->customer_name ?? 'Walk-in Customer',
+                'customer_phone'  => $request->customer_phone,
+                'discount'        => $request->discount ?? 0,
+                'shipping_charge' => $request->shipping_charge ?? 0,
+                'paid_amount'     => $request->filled('paid_amount') ? $request->paid_amount : null,
+                'pay_in_full'     => !$request->filled('paid_amount'),
+                'items'           => $request->items,
+            ], $bizId, 'pos');
 
             // Push stock to WooCommerce in background if connected
             $wooSettings = WoocommerceSetting::where('business_id', $bizId)
@@ -158,6 +98,12 @@ class PosController extends Controller
                 'message'      => 'Sale completed!',
             ]);
 
+        } catch (\Illuminate\Validation\ValidationException $e) {
+            return response()->json([
+                'success' => false,
+                'message' => $e->getMessage(),
+                'errors'  => $e->errors(),
+            ], 422);
         } catch (\Exception $e) {
             return response()->json([
                 'success' => false,

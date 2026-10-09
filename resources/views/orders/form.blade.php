@@ -1,4 +1,4 @@
-﻿@extends('layouts.app')
+@extends('layouts.app')
 @section('title', isset($order) ? 'Edit Order' : 'New Order')
 
 @section('content')
@@ -20,6 +20,12 @@
           id="orderForm">
         @csrf
         @if(isset($order)) @method('PUT') @endif
+
+        @if($errors->any())
+            <div role="alert" class="mb-4 rounded-xl border border-red-200 bg-red-50 p-4 text-sm text-red-700">
+                <ul class="list-disc pl-5">@foreach($errors->all() as $error)<li>{{ $error }}</li>@endforeach</ul>
+            </div>
+        @endif
 
         <div class="grid grid-cols-1 lg:grid-cols-3 gap-4">
 
@@ -97,7 +103,7 @@
                                               'bg-red-100 text-red-700 dark:bg-red-900/40 dark:text-red-400': fraudResult?.risk === 'high',
                                               'bg-gray-100 text-gray-600 dark:bg-slate-600 dark:text-slate-300': fraudResult?.risk === 'new',
                                           }"
-                                          x-text="fraudResult?.success_rate !== null ? fraudResult.success_rate + '% success' : 'No history'">
+                                          x-text="fraudResult?.success_rate != null ? fraudResult.success_rate + '% success' : 'No history'">
                                     </span>
                                 </div>
                                 {{-- Stats --}}
@@ -159,6 +165,9 @@
                     </div>
                 </div>
 
+                <p x-show="stockProblem" x-cloak role="alert" class="mt-2 text-sm text-red-600" x-text="stockProblem"></p>
+                </div>
+
                 {{-- Product Search + Cart --}}
                 <div class="bg-white dark:bg-slate-800 rounded-xl border border-gray-100 dark:border-slate-700 p-4">
                     <h3 class="text-sm font-semibold text-gray-900 dark:text-white mb-3">Order Items</h3>
@@ -186,7 +195,7 @@
                                     </div>
                                     <div class="flex-1 min-w-0">
                                         <p class="text-sm font-medium text-gray-900 dark:text-white truncate" x-text="p.name"></p>
-                                        <p class="text-xs text-gray-400 dark:text-slate-500" x-text="'SKU: ' + (p.sku || 'N/A') + ' · Stock: ' + p.stock"></p>
+                                        <p class="text-xs text-gray-400 dark:text-slate-500" x-text="'SKU: ' + (p.sku || 'N/A') + ' · Available: ' + stockLabel(p.id)"></p>
                                     </div>
                                     <span class="text-sm font-semibold text-gray-900 dark:text-white flex-shrink-0" x-text="'৳' + p.price"></span>
                                 </div>
@@ -197,10 +206,12 @@
                     {{-- Cart Items --}}
                     <div class="space-y-2 mb-4" x-show="cart.length > 0">
                         <template x-for="(item, index) in cart" :key="index">
-                            <div class="flex items-center gap-2 p-3 bg-gray-50 dark:bg-slate-700/50 rounded-xl">
-                                <div class="flex-1 min-w-0">
+                            <div class="flex flex-wrap sm:flex-nowrap items-center gap-2 p-3 bg-gray-50 dark:bg-slate-700/50 rounded-xl">
+                                <div class="w-full sm:w-auto sm:flex-1 min-w-0">
                                     <p class="text-sm font-medium text-gray-900 dark:text-white truncate" x-text="item.name"></p>
                                     <p class="text-xs text-gray-400 dark:text-slate-500" x-text="'৳' + item.price + ' / ' + item.unit"></p>
+                                    <p class="text-xs" :class="isShort(item) ? 'text-red-600' : 'text-gray-500 dark:text-slate-300'"
+                                       x-text="'Available for this order: ' + stockLabel(item.product_id)"></p>
                                     <input type="hidden" :name="'items[' + index + '][product_id]'" :value="item.product_id">
                                     <input type="hidden" :name="'items[' + index + '][product_name]'" :value="item.name">
                                     <input type="hidden" :name="'items[' + index + '][price]'" :value="item.price">
@@ -336,7 +347,7 @@
                             </option>
                         @endforeach
                     </select>
-                    <button type="submit"
+                    <button type="submit" :disabled="!!stockProblem"
                             class="w-full mt-3 bg-primary-600 hover:bg-primary-700 text-white font-medium py-2.5 rounded-lg text-sm transition-colors">
                         {{ isset($order) ? 'Update Order' : 'Place Order' }}
                     </button>
@@ -353,12 +364,43 @@
 <script>
 function orderForm() {
     return {
-        cart: @json($cartItems ?? []),
+        cart: {{ \Illuminate\Support\Js::from(old('items') !== null ? collect(old('items'))->map(fn ($item) => [
+            'product_id' => (int) ($item['product_id'] ?? 0),
+            'name' => $item['product_name'] ?? '',
+            'price' => (float) ($item['price'] ?? 0),
+            'cost_price' => (float) ($item['cost_price'] ?? 0),
+            'qty' => (int) ($item['quantity'] ?? 1),
+            'discount' => (float) ($item['discount'] ?? 0),
+            'unit' => 'pcs',
+        ])->values() : ($cartItems ?? [])) }},
+        stockProducts: {{ \Illuminate\Support\Js::from($stockProducts) }},
+        heldStock: {{ \Illuminate\Support\Js::from($heldStock) }},
+        isNewOrder: @js(!isset($order)),
+        holdsStock: @js(!isset($order) || $order->holdsStock()),
+
+        available(productId) {
+            const product = this.stockProducts[productId];
+            if (!product || !product.track_stock) return null;
+            return Number(product.stock) + Number(this.heldStock[productId] || 0);
+        },
+        stockLabel(productId) {
+            const available = this.available(productId);
+            return available === null ? 'Not tracked' : available + ' pcs';
+        },
+        isShort(item) {
+            const available = this.available(item.product_id);
+            const requested = this.cart.filter(i => i.product_id === item.product_id).reduce((sum, i) => sum + i.qty, 0);
+            return this.holdsStock && available !== null && requested > available;
+        },
+get stockProblem() {
+            const item = this.cart.find(i => this.isShort(i));
+            return item ? item.name + ': পর্যাপ্ত stock নেই। Quantity কমান।' : '';
+        },
         productResults: [],
         customerResults: [],
-        discount: {{ old('discount', isset($order) ? $order->discount : 0) }},
-        shippingCharge: {{ old('shipping_charge', isset($order) ? $order->shipping_charge : 0) }},
-        paidAmount: {{ old('paid_amount', isset($order) ? $order->paid_amount : 0) }},
+        discount: {{ (float) old('discount', isset($order) ? $order->discount : 0) }},
+        shippingCharge: {{ (float) old('shipping_charge', isset($order) ? $order->shipping_charge : 0) }},
+        paidAmount: {{ (float) old('paid_amount', isset($order) ? $order->paid_amount : 0) }},
         subtotal: 0,
         total: 0,
         dueAmount: 0,

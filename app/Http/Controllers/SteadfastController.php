@@ -9,6 +9,7 @@ use App\Models\CourierSetting;
 use App\Services\SteadfastService;
 use Illuminate\Http\Request;
 use Illuminate\Support\Facades\Log;
+use Illuminate\Support\Facades\DB;
 
 class SteadfastController extends Controller
 {
@@ -28,24 +29,73 @@ class SteadfastController extends Controller
 
     private function addIncomeTransaction(Shipment $shipment, float $amount): void
     {
-        // Check if transaction already exists for this order
-        $exists = Transaction::where('order_id', $shipment->order_id)
-            ->where('type', 'income')
-            ->where('payment_method', 'cod')
-            ->exists();
+        if ($amount <= 0) return;
 
-        if (!$exists) {
-            Transaction::create([
-                'business_id'      => $shipment->business_id,
-                'created_by'       => auth()->id() ?? $shipment->order->created_by,
-                'order_id'         => $shipment->order_id,
-                'type'             => 'income',
-                'title'            => 'COD collected - Order #' . $shipment->order->order_number,
-                'amount'           => $amount,
-                'payment_method'   => 'cod',
-                'transaction_date' => today(),
-            ]);
+        $key = [
+            'business_id'      => $shipment->business_id,
+            'order_id'         => $shipment->order_id,
+            'type'             => 'income',
+            'reference'        => 'STEADFAST-COD-' . $shipment->id,
+        ];
+
+        // withTrashed: a soft-deleted COD row must still block a duplicate — otherwise
+        // replaying the delivery webhook re-inserts the income.
+        if (Transaction::withTrashed()->where($key)->exists()) {
+            return;
         }
+
+        Transaction::create($key + [
+            'created_by'       => auth()->id() ?? $shipment->order->created_by,
+            'title'            => 'COD collected - Order #' . $shipment->order->order_number,
+            'amount'           => $amount,
+            'payment_method'   => 'cod',
+            'transaction_date' => today(),
+        ]);
+    }
+
+    /**
+     * Book a courier delivery consistently and idempotently: only the amount actually
+     * collected (cod_amount, capped at the outstanding due) becomes income, the order is
+     * marked delivered/paid/partial, and the customer due is cleared. Skips if the
+     * shipment is already delivered or the order is already terminal.
+     */
+    private function applyDelivery(Shipment $shipment, float $reportedCod = 0): void
+    {
+        if ($shipment->status === 'delivered') {
+            return;
+        }
+
+        DB::transaction(function () use ($shipment, $reportedCod) {
+            $shipment = Shipment::whereKey($shipment->id)->lockForUpdate()->firstOrFail();
+            $order = Order::whereKey($shipment->order_id)->lockForUpdate()->firstOrFail();
+
+            if (in_array($order->status, ['cancelled', 'returned', 'refunded'], true)) {
+                return;
+            }
+
+            $maximum = (float) ($order->due_amount > 0 ? $order->due_amount : $order->total);
+            $cod     = $reportedCod > 0 ? min($maximum, $reportedCod) : $maximum;
+            $cod     = max(0, $cod);
+            $newDue  = max(0, (float) $order->due_amount - $cod);
+
+            $shipment->update(['status' => 'delivered', 'delivered_at' => now()]);
+            $order->update([
+                'status'         => 'delivered',
+                'paid_amount'    => min((float) $order->total, (float) $order->paid_amount + $cod),
+                'due_amount'     => $newDue,
+                'payment_status' => $newDue <= 0 ? 'paid' : 'partial',
+            ]);
+
+            $shipment->setRelation('order', $order->fresh());
+            $this->addIncomeTransaction($shipment, $cod);
+
+            if ($order->customer_id && $cod > 0) {
+                $customer = \App\Models\Customer::where('business_id', $order->business_id)->find($order->customer_id);
+                if ($customer && (float) $customer->due_amount > 0) {
+                    $customer->decrement('due_amount', min($cod, (float) $customer->due_amount));
+                }
+            }
+        });
     }
 
     public function index()
@@ -234,17 +284,11 @@ class SteadfastController extends Controller
 
             if ($shipment) {
                 $newStatus = SteadfastService::mapStatus($result['delivery_status']);
-                $shipment->update(['status' => $newStatus]);
 
                 if ($newStatus === 'delivered') {
-                    $amount = $shipment->order->total;
-                    $shipment->order->update([
-                        'status'         => 'delivered',
-                        'paid_amount'    => $amount,
-                        'due_amount'     => 0,
-                        'payment_status' => 'paid',
-                    ]);
-                    $this->addIncomeTransaction($shipment, $amount);
+                    $this->applyDelivery($shipment, (float) ($result['cod_amount'] ?? $shipment->cod_amount ?? 0));
+                } elseif ($newStatus !== $shipment->status) {
+                    $shipment->update(['status' => $newStatus]);
                 }
             }
         }
@@ -277,17 +321,10 @@ class SteadfastController extends Controller
                 $newStatus = SteadfastService::mapStatus($result['delivery_status']);
 
                 if ($newStatus !== $shipment->status) {
-                    $shipment->update(['status' => $newStatus]);
-
                     if ($newStatus === 'delivered') {
-                        $amount = $shipment->order->total;
-                        $shipment->order->update([
-                            'status'         => 'delivered',
-                            'paid_amount'    => $amount,
-                            'due_amount'     => 0,
-                            'payment_status' => 'paid',
-                        ]);
-                        $this->addIncomeTransaction($shipment, $amount);
+                        $this->applyDelivery($shipment, (float) ($result['cod_amount'] ?? $shipment->cod_amount ?? 0));
+                    } else {
+                        $shipment->update(['status' => $newStatus]);
                     }
                     $updated++;
                 }
@@ -327,19 +364,16 @@ class SteadfastController extends Controller
 
     public function webhook(Request $request)
     {
-        // Shared-secret gate. Configure STEADFAST_WEBHOOK_SECRET in .env and append
-        // ?secret=... (or send X-Webhook-Secret header) on the Steadfast dashboard URL.
-        // If no secret is configured yet, we log a warning but still process so the
-        // existing live integration is not broken mid-flight.
-        $expected = env('STEADFAST_WEBHOOK_SECRET');
-        if ($expected) {
-            $provided = $request->header('X-Webhook-Secret') ?: $request->query('secret');
-            if (!$provided || !hash_equals($expected, $provided)) {
-                Log::warning('Steadfast webhook: invalid or missing secret');
-                return response()->json(['status' => 'error', 'message' => 'Unauthorized'], 401);
-            }
-        } else {
-            Log::warning('Steadfast webhook processed WITHOUT a configured secret. Set STEADFAST_WEBHOOK_SECRET to secure this endpoint.');
+        $expected = (string) config('services.steadfast.webhook_secret');
+        if ($expected === '') {
+            Log::error('Steadfast webhook rejected: STEADFAST_WEBHOOK_SECRET is not configured.');
+            return response()->json(['status' => 'error', 'message' => 'Webhook is not configured'], 503);
+        }
+
+        $provided = (string) $request->header('X-Webhook-Secret', '');
+        if ($provided === '' || !hash_equals($expected, $provided)) {
+            Log::warning('Steadfast webhook: invalid or missing secret');
+            return response()->json(['status' => 'error', 'message' => 'Unauthorized'], 401);
         }
 
         $payload = $request->all();
@@ -354,9 +388,11 @@ class SteadfastController extends Controller
                 return response()->json(['status' => 'error', 'message' => 'Invalid consignment ID'], 400);
             }
 
+            // Exact consignment match only. The previous `notes LIKE %id%` branch could
+            // match a different tenant's shipment; order_number is globally unique so the
+            // invoice fallback stays tenant-correct.
             $shipment = Shipment::where('courier_name', 'Steadfast')
-                ->where(fn($q) => $q->where('consignment_id', $payload['consignment_id'])
-                    ->orWhere('notes', 'LIKE', '%' . $payload['consignment_id'] . '%'))
+                ->where('consignment_id', $payload['consignment_id'])
                 ->with('order')
                 ->first();
 
@@ -371,49 +407,78 @@ class SteadfastController extends Controller
             }
 
             if ($shipment) {
-                $newStatus = SteadfastService::mapStatus(strtolower($payload['status']));
-                $shipment->update(['status' => $newStatus]);
+                DB::transaction(function () use ($shipment, $payload) {
+                    $lockedShipment = Shipment::whereKey($shipment->id)->lockForUpdate()->firstOrFail();
+                    $order = Order::with('items')->whereKey($lockedShipment->order_id)->lockForUpdate()->firstOrFail();
+                    $incoming = strtolower((string) $payload['status']);
+                    $newStatus = SteadfastService::mapStatus($incoming);
+                    $previousOrderStatus = $order->status;
+                    $previousShipmentStatus = $lockedShipment->status;
 
-                if (strtolower($payload['status']) === 'delivered') {
-                    $shipment->update(['delivered_at' => now()]);
-                    $codAmount = $payload['cod_amount'] ?? $shipment->order->total;
-                    $shipment->order->update([
-                        'status'         => 'delivered',
-                        'paid_amount'    => $codAmount,
-                        'due_amount'     => 0,
-                        'payment_status' => 'paid',
-                    ]);
-                    $this->addIncomeTransaction($shipment, $codAmount);
-                }
+                    $lockedShipment->update(['status' => $newStatus]);
 
-                if (in_array(strtolower($payload['status']), ['cancelled', 'unknown'])) {
-                    // Restore stock
-                    foreach ($shipment->order->items as $item) {
-                        if ($item->product_id) {
-                            \App\Models\Product::where('id', $item->product_id)
-                                ->increment('stock', $item->quantity);
+                    if ($incoming === 'delivered') {
+                        // Idempotency keyed on the shipment's own prior state, not on
+                        // payment_status: a replayed partial-COD delivery would otherwise
+                        // credit paid_amount/due again while the income row is deduped.
+                        if ($previousShipmentStatus === 'delivered') {
+                            return;
                         }
+                        if (in_array($previousOrderStatus, ['cancelled', 'returned', 'refunded'], true)) {
+                            Log::warning('Ignored stale Steadfast delivery event', ['order_id' => $order->id]);
+                            return;
+                        }
+
+                        $lockedShipment->update(['delivered_at' => now()]);
+                        $maximum = (float) ($order->due_amount > 0 ? $order->due_amount : $order->total);
+                        $codAmount = min($maximum, max(0, (float) ($payload['cod_amount'] ?? $maximum)));
+                        $newDue = max(0, (float) $order->due_amount - $codAmount);
+                        $order->update([
+                            'status'         => 'delivered',
+                            'paid_amount'    => min((float) $order->total, (float) $order->paid_amount + $codAmount),
+                            'due_amount'     => $newDue,
+                            'payment_status' => $newDue <= 0 ? 'paid' : 'partial',
+                        ]);
+                        $lockedShipment->setRelation('order', $order->fresh());
+                        $this->addIncomeTransaction($lockedShipment, $codAmount);
                     }
-                    // Reverse income if already paid
-                    if ($shipment->order->paid_amount > 0) {
-                        Transaction::create([
-                            'business_id'      => $shipment->business_id,
-                            'created_by'       => auth()->id() ?? $shipment->order->created_by,
-                            'order_id'         => $shipment->order_id,
-                            'type'             => 'expense',
-                            'title'            => 'Return/Cancel - Order #' . $shipment->order->order_number,
-                            'amount'           => $shipment->order->paid_amount,
-                            'payment_method'   => 'cod',
-                            'transaction_date' => today(),
+
+                    if (in_array($incoming, ['cancelled', 'unknown'], true)) {
+                        if (in_array($previousOrderStatus, ['cancelled', 'returned', 'refunded'], true)) {
+                            return;
+                        }
+
+                        \App\Models\Product::where('business_id', $order->business_id)
+                            ->whereIn('id', $order->items->pluck('product_id')->filter())
+                            ->orderBy('id')
+                            ->lockForUpdate()
+                            ->get();
+                        app(\App\Services\StockService::class)->restoreForOrder($order);
+                        if ($order->paid_amount > 0) {
+                            Transaction::firstOrCreate(
+                                [
+                                    'business_id' => $lockedShipment->business_id,
+                                    'order_id'     => $lockedShipment->order_id,
+                                    'type'         => 'expense',
+                                    'reference'    => 'STEADFAST-RETURN-' . $lockedShipment->id,
+                                ],
+                                [
+                                    'created_by'       => $order->created_by,
+                                    'title'            => 'Return/Cancel - Order #' . $order->order_number,
+                                    'amount'           => $order->paid_amount,
+                                    'payment_method'   => 'cod',
+                                    'transaction_date' => today(),
+                                ]
+                            );
+                        }
+                        $order->update([
+                            'status'         => 'returned',
+                            'paid_amount'    => 0,
+                            'due_amount'     => 0,
+                            'payment_status' => 'refunded',
                         ]);
                     }
-                    $shipment->order->update([
-                        'status'         => 'returned',
-                        'paid_amount'    => 0,
-                        'due_amount'     => 0,
-                        'payment_status' => 'refunded',
-                    ]);
-                }
+                });
             }
         }
 

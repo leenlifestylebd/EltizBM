@@ -1,4 +1,4 @@
-﻿@extends('layouts.app')
+@extends('layouts.app')
 @section('title', 'Order #' . $order->order_number)
 
 @section('content')
@@ -52,6 +52,11 @@
                 Edit
             </a>
         </div>
+    </div>
+
+    <div class="mb-4 rounded-xl border border-gray-200 dark:border-slate-700 bg-white dark:bg-slate-800 p-4 text-sm text-gray-700 dark:text-slate-200">
+        <span class="font-semibold">Stock from / পণ্য যাবে যেখান থেকে:</span>
+        {{ $order->warehouse?->name ?? 'Main Warehouse' }}
     </div>
 
     {{-- Status Banner --}}

@@ -22,52 +22,121 @@ use Illuminate\Support\Facades\DB;
 class ReportQueryService
 {
     // =============================================
+    // SHARED DEFINITIONS
+    // =============================================
+    /**
+     * Exclude non-operating cash-book rows from a report query:
+     *   - account transfers (TRANSFER-) — moving money between accounts, not a cost/income
+     *   - supplier payments (PO-PAY-) — the inventory cost is COGS at sale, not the payment
+     *   - wage payments (EMPPAY-) — the labour cost is the accrual (see labourCost())
+     * Rows with a NULL reference (plain manual income/expense) are KEPT. The previous
+     * `whereNot(reference like ...)` dropped them because NOT (NULL LIKE x) is NULL.
+     */
+    private function excludeNonOperating($query)
+    {
+        return $query->where(function ($q) {
+            $q->whereNull('reference')
+              ->orWhere(function ($r) {
+                  $r->where('reference', 'not like', 'TRANSFER-%')
+                    ->where('reference', 'not like', 'PO-PAY-%')
+                    ->where('reference', 'not like', 'EMPPAY-%');
+              });
+        });
+    }
+
+    /** Exclude only internal transfers (used for income, where orders/payments are separate). */
+    private function excludeTransfers($query)
+    {
+        return $query->where(function ($q) {
+            $q->whereNull('reference')
+              ->orWhere('reference', 'not like', 'TRANSFER-%');
+        });
+    }
+
+    /** Base salary accrued across the months covered by [$from, $to]. */
+    private function baseSalaryAccrual(int $bizId, $from, $to): float
+    {
+        return (float) Employee::where('business_id', $bizId)->get()
+            ->sum(fn (Employee $employee) => $employee->salaryOwedForRange($from, $to));
+    }
+
+    /** Public: total operating expense for a period under the definitions above. */
+    public function getOperatingExpenseTotal(int $bizId, string $from, string $to): float
+    {
+        return (float) $this->excludeNonOperating(
+            Transaction::where('business_id', $bizId)
+                ->where('type', 'expense')
+                ->whereBetween('transaction_date', [$from, $to])
+        )->sum('amount');
+    }
+
+    /** Public: total labour cost for a period = production earned + base salary accrued. */
+    public function getLabourCost(int $bizId, string $from, string $to): float
+    {
+        $production = (float) ProductionEntry::where('business_id', $bizId)
+            ->whereBetween('entry_date', [$from, $to])
+            ->sum('amount');
+
+        return round($production + $this->baseSalaryAccrual($bizId, $from, $to), 2);
+    }
+
+    /**
+     * A 'Y-m-d' end date compared against a datetime column (created_at) truncates the
+     * final day (it becomes 00:00:00). Reports must include the whole last day.
+     */
+    private function endOfDay(string $to): Carbon
+    {
+        return Carbon::parse($to)->endOfDay();
+    }
+
+    // =============================================
     // PROFIT & LOSS
     // =============================================
     public function getProfitLoss(int $bizId, string $from, string $to, string $groupBy = 'day'): array
     {
         $revenue = Order::where('business_id', $bizId)
             ->whereIn('status', ['completed', 'delivered'])
-            ->whereBetween('created_at', [$from, $to])
+            ->whereBetween('created_at', [$from, $this->endOfDay($to)])
             ->sum('total');
 
         $cogs = OrderItem::whereHas('order', fn($q) =>
             $q->where('business_id', $bizId)
               ->whereIn('status', ['completed', 'delivered'])
-              ->whereBetween('created_at', [$from, $to])
+              ->whereBetween('created_at', [$from, $this->endOfDay($to)])
         )->selectRaw('SUM(cost_price * quantity) as total')->value('total') ?? 0;
 
-        $expenses = Transaction::where('business_id', $bizId)
-            ->where('type', 'expense')
-            ->whereBetween('transaction_date', [$from, $to])
-            ->whereNot(fn($q) => $q->where('reference', 'like', 'TRANSFER-%'))
-            ->sum('amount');
+        $expenses = $this->excludeNonOperating(
+            Transaction::where('business_id', $bizId)
+                ->where('type', 'expense')
+                ->whereBetween('transaction_date', [$from, $to])
+        )->sum('amount');
 
         // "Other income" = income NOT already counted as order revenue, and not an
         // internal account transfer. Order payments create income transactions that
         // belong to an order whose total is already in $revenue — counting them here
         // too would double-count sales.
-        $otherIncome = Transaction::where('business_id', $bizId)
-            ->where('type', 'income')
-            ->whereBetween('transaction_date', [$from, $to])
-            ->whereNull('order_id')
-            ->whereNot(fn($q) => $q->where('reference', 'like', 'TRANSFER-%'))
-            ->sum('amount');
+        $otherIncome = $this->excludeTransfers(
+            Transaction::where('business_id', $bizId)
+                ->where('type', 'income')
+                ->whereBetween('transaction_date', [$from, $to])
+                ->whereNull('order_id')
+        )->sum('amount');
 
-        $productionWages = ProductionEntry::where('business_id', $bizId)
-            ->whereBetween('entry_date', [$from, $to])
-            ->sum('amount');
+        // Labour is accrued once: production earned + base salary accrued for the
+        // period. Wage *payments* (EMPPAY-) are excluded from $expenses above so the
+        // same wages are not counted a second time.
+        $productionWages = $this->getLabourCost($bizId, $from, $to);
 
         $grossProfit = $revenue - $cogs;
         $netProfit   = $grossProfit + $otherIncome - $expenses - $productionWages;
         $grossMargin = $revenue > 0 ? round(($grossProfit / $revenue) * 100, 1) : 0;
         $netMargin   = $revenue > 0 ? round(($netProfit / $revenue) * 100, 1) : 0;
 
-        $expenseBreakdown = Transaction::where('business_id', $bizId)
-            ->where('type', 'expense')
-            ->whereBetween('transaction_date', [$from, $to])
-            ->whereNot(fn($q) => $q->where('reference', 'like', 'TRANSFER-%'))
-            ->with('category')
+        $expenseBreakdown = $this->excludeNonOperating(
+            Transaction::where('business_id', $bizId)
+                ->where('type', 'expense')
+                ->whereBetween('transaction_date', [$from, $to])
+        )->with('category')
             ->selectRaw('category_id, SUM(amount) as total, COUNT(*) as count')
             ->groupBy('category_id')
             ->orderByDesc('total')
@@ -80,16 +149,16 @@ class ReportQueryService
 
         $revenueTrend = Order::where('business_id', $bizId)
             ->whereIn('status', ['completed', 'delivered'])
-            ->whereBetween('created_at', [$from, $to])
+            ->whereBetween('created_at', [$from, $this->endOfDay($to)])
             ->selectRaw("{$trendExpr} as period, SUM(total) as total")
             ->groupBy('period')->orderBy('period')
             ->pluck('total', 'period');
 
-        $expenseTrend = Transaction::where('business_id', $bizId)
-            ->where('type', 'expense')
-            ->whereBetween('transaction_date', [$from, $to])
-            ->whereNot(fn($q) => $q->where('reference', 'like', 'TRANSFER-%'))
-            ->selectRaw("{$trendExprT} as period, SUM(amount) as total")
+        $expenseTrend = $this->excludeNonOperating(
+            Transaction::where('business_id', $bizId)
+                ->where('type', 'expense')
+                ->whereBetween('transaction_date', [$from, $to])
+        )->selectRaw("{$trendExprT} as period, SUM(amount) as total")
             ->groupBy('period')->orderBy('period')
             ->pluck('total', 'period');
 
@@ -123,10 +192,14 @@ class ReportQueryService
     // =============================================
     public function getExpenseCategory(int $bizId, string $from, string $to): array
     {
-        $breakdown = Transaction::where('business_id', $bizId)
-            ->where('type', 'expense')
-            ->whereBetween('transaction_date', [$from, $to])
-            ->with('category')
+        // Exclude internal account transfers (reference LIKE 'TRANSFER-%') — these are
+        // not real operating expenses; the same exclusion is applied in getProfitLoss()
+        // so both reports use a consistent definition of "expense".
+        $breakdown = $this->excludeNonOperating(
+            Transaction::where('business_id', $bizId)
+                ->where('type', 'expense')
+                ->whereBetween('transaction_date', [$from, $to])
+        )->with('category')
             ->selectRaw('category_id, SUM(amount) as total, COUNT(*) as count')
             ->groupBy('category_id')
             ->orderByDesc('total')
@@ -134,10 +207,11 @@ class ReportQueryService
 
         $totalExpense = $breakdown->sum('total');
 
-        $transactions = Transaction::where('business_id', $bizId)
-            ->where('type', 'expense')
-            ->whereBetween('transaction_date', [$from, $to])
-            ->with('category')
+        $transactions = $this->excludeNonOperating(
+            Transaction::where('business_id', $bizId)
+                ->where('type', 'expense')
+                ->whereBetween('transaction_date', [$from, $to])
+        )->with('category')
             ->orderBy('category_id')
             ->orderBy('transaction_date', 'desc')
             ->get()
@@ -151,10 +225,11 @@ class ReportQueryService
     // =============================================
     public function getIncomeSource(int $bizId, string $from, string $to): array
     {
-        $breakdown = Transaction::where('business_id', $bizId)
-            ->where('type', 'income')
-            ->whereBetween('transaction_date', [$from, $to])
-            ->with('category')
+        $breakdown = $this->excludeTransfers(
+            Transaction::where('business_id', $bizId)
+                ->where('type', 'income')
+                ->whereBetween('transaction_date', [$from, $to])
+        )->with('category')
             ->selectRaw('category_id, SUM(amount) as total, COUNT(*) as count')
             ->groupBy('category_id')
             ->orderByDesc('total')
@@ -170,17 +245,48 @@ class ReportQueryService
     // =============================================
     public function getBusinessOverview(int $bizId, int $year): array
     {
+        // One grouped query per metric instead of ~4 queries × 12 months (and an
+        // employee query per month). Salaries are accrued in memory from a single load.
+        $employees = Employee::where('business_id', $bizId)->with('salaries')->get();
+
+        $revenueByMonth = Order::where('business_id', $bizId)
+            ->whereIn('status', ['completed', 'delivered'])
+            ->whereYear('created_at', $year)
+            ->selectRaw(DbHelper::yearMonth('created_at') . ' as ym, SUM(total) as total')
+            ->groupBy('ym')->pluck('total', 'ym');
+
+        $expenseByMonth = $this->excludeNonOperating(
+            Transaction::where('business_id', $bizId)->where('type', 'expense')->whereYear('transaction_date', $year)
+        )->selectRaw(DbHelper::yearMonth('transaction_date') . ' as ym, SUM(amount) as total')
+            ->groupBy('ym')->pluck('total', 'ym');
+
+        $incomeByMonth = $this->excludeTransfers(
+            Transaction::where('business_id', $bizId)->where('type', 'income')
+                ->whereNull('order_id')->whereYear('transaction_date', $year)
+        )->selectRaw(DbHelper::yearMonth('transaction_date') . ' as ym, SUM(amount) as total')
+            ->groupBy('ym')->pluck('total', 'ym');
+
+        $wageByMonth = ProductionEntry::where('business_id', $bizId)
+            ->whereYear('entry_date', $year)
+            ->selectRaw(DbHelper::yearMonth('entry_date') . ' as ym, SUM(amount) as total')
+            ->groupBy('ym')->pluck('total', 'ym');
+
+        $ordersByMonth = Order::where('business_id', $bizId)
+            ->whereYear('created_at', $year)
+            ->selectRaw(DbHelper::yearMonth('created_at') . ' as ym, COUNT(*) as c')
+            ->groupBy('ym')->pluck('c', 'ym');
+
         $months = [];
         for ($m = 1; $m <= 12; $m++) {
             $start = Carbon::create($year, $m, 1)->startOfMonth();
-            $end   = Carbon::create($year, $m, 1)->endOfMonth();
+            $key   = $start->format('Y-m');
 
-            $rev    = Order::where('business_id', $bizId)->whereIn('status', ['completed', 'delivered'])->whereBetween('created_at', [$start, $end])->sum('total');
-            $exp    = Transaction::where('business_id', $bizId)->where('type', 'expense')->whereBetween('transaction_date', [$start, $end])->whereNot(fn($q) => $q->where('reference', 'like', 'TRANSFER-%'))->sum('amount');
-            $wages  = ProductionEntry::where('business_id', $bizId)->whereBetween('entry_date', [$start, $end])->sum('amount');
-            // Exclude order-linked income (already in $rev) and transfers to avoid double counting.
-            $inc    = Transaction::where('business_id', $bizId)->where('type', 'income')->whereBetween('transaction_date', [$start, $end])->whereNull('order_id')->whereNot(fn($q) => $q->where('reference', 'like', 'TRANSFER-%'))->sum('amount');
-            $orders = Order::where('business_id', $bizId)->whereBetween('created_at', [$start, $end])->count();
+            $rev   = (float) ($revenueByMonth[$key] ?? 0);
+            $exp   = (float) ($expenseByMonth[$key] ?? 0);
+            $inc   = (float) ($incomeByMonth[$key] ?? 0);
+            $wages = (float) ($wageByMonth[$key] ?? 0)
+                + (float) $employees->sum(fn (Employee $e) => $e->salaryForMonth($start));
+            $orders = (int) ($ordersByMonth[$key] ?? 0);
 
             $months[] = [
                 'month'   => $start->format('F'),
@@ -279,7 +385,7 @@ class ReportQueryService
     // =============================================
     public function getOrderAnalytics(int $bizId, string $from, string $to): array
     {
-        $base = Order::where('business_id', $bizId)->whereBetween('created_at', [$from, $to]);
+        $base = Order::where('business_id', $bizId)->whereBetween('created_at', [$from, $this->endOfDay($to)]);
 
         $stats = [
             'total'      => (clone $base)->count(),
@@ -315,7 +421,9 @@ class ReportQueryService
         }
 
         $topProducts = OrderItem::whereHas('order', fn($q) =>
-            $q->where('business_id', $bizId)->whereBetween('created_at', [$from, $to])
+            $q->where('business_id', $bizId)
+              ->whereIn('status', ['completed', 'delivered'])
+              ->whereBetween('created_at', [$from, $this->endOfDay($to)])
         )->selectRaw('product_name, SUM(quantity) as qty_sold, SUM(total) as revenue')
          ->groupBy('product_name')
          ->orderByDesc('revenue')
@@ -396,7 +504,7 @@ class ReportQueryService
     // =============================================
     public function getSalesChannel(int $bizId, string $from, string $to): array
     {
-        $base = Order::where('business_id', $bizId)->whereBetween('created_at', [$from, $to]);
+        $base = Order::where('business_id', $bizId)->whereBetween('created_at', [$from, $this->endOfDay($to)]);
 
         $bySource = (clone $base)
             ->selectRaw("COALESCE(NULLIF(source,''),'direct') as source,
@@ -435,8 +543,8 @@ class ReportQueryService
 
         $topBySource = OrderItem::whereHas('order', fn($q) =>
             $q->where('business_id', $bizId)
-              ->whereBetween('created_at', [$from, $to])
               ->whereIn('status', ['completed', 'delivered'])
+              ->whereBetween('created_at', [$from, $this->endOfDay($to)])
         )->join('orders', 'order_items.order_id', '=', 'orders.id')
          ->selectRaw("COALESCE(NULLIF(orders.source,''),'direct') as source, order_items.product_name, SUM(order_items.quantity) as qty, SUM(order_items.total) as revenue")
          ->groupBy('source', 'order_items.product_name')
@@ -461,7 +569,7 @@ class ReportQueryService
     {
         $stats = [
             'total'     => Customer::where('business_id', $bizId)->count(),
-            'new'       => Customer::where('business_id', $bizId)->whereBetween('created_at', [$from, $to])->count(),
+            'new'       => Customer::where('business_id', $bizId)->whereBetween('created_at', [$from, $this->endOfDay($to)])->count(),
             'with_due'  => Customer::where('business_id', $bizId)->where('due_amount', '>', 0)->count(),
             'total_due' => Customer::where('business_id', $bizId)->sum('due_amount'),
         ];

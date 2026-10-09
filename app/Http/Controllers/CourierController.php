@@ -53,6 +53,20 @@ class CourierController extends Controller
     public function update(Request $request, Shipment $shipment)
     {
         abort_if($shipment->business_id !== auth()->user()->business_id, 403);
+        if ($request->status === 'returned') {
+            \Illuminate\Support\Facades\DB::transaction(function () use ($shipment, $request) {
+                $lockedShipment = Shipment::whereKey($shipment->id)->lockForUpdate()->firstOrFail();
+                $order = Order::whereKey($lockedShipment->order_id)->lockForUpdate()->firstOrFail();
+                if ($order->holdsStock()) {
+                    app(\App\Services\OrderService::class)->cancel($order, 'returned');
+                }
+                $lockedShipment->update(['status' => 'returned', 'tracking_id' => $request->tracking_id ?? $lockedShipment->tracking_id]);
+            });
+            return back()->with('success', 'Shipment returned. Stock restored to its original location.');
+        }
+        if (!$shipment->order->holdsStock() && in_array($request->status, ['delivered', 'cancelled'], true)) {
+            return back()->with('error', 'A returned or cancelled order cannot be reopened by a shipment update.');
+        }
         $shipment->update(['status'=>$request->status??$shipment->status,'tracking_id'=>$request->tracking_id??$shipment->tracking_id,'delivered_at'=>$request->status==='delivered'?now():$shipment->delivered_at]);
         $orderStatus = match($request->status) { 'delivered'=>'delivered','returned'=>'returned','cancelled'=>'processing',default=>null };
         if ($orderStatus) {

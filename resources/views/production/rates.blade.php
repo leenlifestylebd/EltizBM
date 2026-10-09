@@ -1,4 +1,4 @@
-﻿@extends('layouts.app')
+@extends('layouts.app')
 @section('title', 'Production Rates')
 
 @section('content')
@@ -6,13 +6,21 @@
 <div class="flex items-center justify-between mb-4">
     <div>
         <h2 class="text-base font-semibold text-gray-900 dark:text-white">Production Rates</h2>
-        <p class="text-xs text-gray-500 dark:text-slate-400 mt-0.5">Set rates for each product/variant</p>
+        <p class="text-xs text-gray-500 dark:text-slate-400 mt-0.5">Edit rates for new assignments. Existing work keeps its original rate.</p>
     </div>
     <button onclick="document.getElementById('addRateModal').classList.remove('hidden')"
             class="flex items-center gap-1.5 px-3 py-2 text-xs font-medium text-white bg-primary-600 rounded-lg hover:bg-primary-700 transition-colors">
         + Add Rate
     </button>
 </div>
+
+@if($errors->any())
+<div class="mb-4 rounded-lg border border-red-200 bg-red-50 p-3 text-sm text-red-700" role="alert">
+    @foreach($errors->all() as $error)
+        <p>{{ $error }}</p>
+    @endforeach
+</div>
+@endif
 
 {{-- Rates Table --}}
 <div class="bg-white dark:bg-slate-800 rounded-xl border border-gray-100 dark:border-slate-700 overflow-hidden">
@@ -51,22 +59,33 @@
                     <td class="px-4 py-3 text-gray-600 dark:text-slate-300">{{ $rate->variant_name ?? '—' }}</td>
                     <td class="px-4 py-3 text-gray-600 dark:text-slate-300">{{ $rate->color ?? '—' }}</td>
                     <td class="px-4 py-3 text-gray-600 dark:text-slate-300">{{ $rate->size ?? '—' }}</td>
-                    <td class="px-4 py-3 text-right font-bold text-primary-600 dark:text-primary-400">৳{{ number_format($rate->rate) }}</td>
+                    <td class="px-4 py-3 text-right font-bold text-primary-600 dark:text-primary-400">৳{{ number_format($rate->rate, 2) }}</td>
                     <td class="px-4 py-3 text-center text-xs text-gray-500">{{ $rate->unit }}</td>
                     <td class="px-4 py-3 text-center">
                         <span class="inline-flex px-2 py-0.5 rounded-full text-xs font-medium {{ $rate->is_active ? 'bg-green-100 text-green-700' : 'bg-gray-100 text-gray-500' }}">
-                            {{ $rate->is_active ? 'Active' : 'Inactive' }}
+                            {{ $rate->is_active ? 'Active' : 'Archived' }}
                         </span>
                     </td>
                     <td class="px-4 py-3 text-center">
-                        <div class="flex items-center justify-center gap-1 opacity-0 group-hover:opacity-100 transition-opacity">
-                            <form method="POST" action="{{ route('production.rates.destroy', $rate) }}" onsubmit="return confirm('Delete?')">
+                        @if($rate->is_active)
+                        <div class="flex items-center justify-center gap-2">
+                            <button type="button" id="edit-rate-{{ $rate->id }}"
+                                    data-url="{{ route('production.rates.update', $rate) }}"
+                                    data-id="{{ $rate->id }}" data-rate="{{ $rate->rate }}"
+                                    data-product="{{ $rate->full_name }} ({{ ucfirst($rate->stage ?? 'sewing') }})"
+                                    data-unit="{{ $rate->unit }}" onclick="openRateEditor(this)"
+                                    class="px-3 py-1.5 text-xs font-medium text-primary-700 bg-primary-50 hover:bg-primary-100 rounded-lg">
+                                Edit
+                            </button>
+                            <form method="POST" action="{{ route('production.rates.destroy', $rate) }}"
+                                  onsubmit="return confirm('Archive this rate? Existing work and earnings will be preserved.')">
                                 @csrf @method('DELETE')
-                                <button type="submit" class="p-1.5 text-gray-400 hover:text-red-600 hover:bg-red-50 rounded-lg transition-colors">
-                                    <svg class="w-4 h-4" fill="none" stroke="currentColor" viewBox="0 0 24 24"><path stroke-linecap="round" stroke-linejoin="round" stroke-width="2" d="M19 7l-.867 12.142A2 2 0 0116.138 21H7.862a2 2 0 01-1.995-1.858L5 7m5 4v6m4-6v6m1-10V4a1 1 0 00-1-1h-4a1 1 0 00-1 1v3M4 7h16"/></svg>
-                                </button>
+                                <button type="submit" class="px-2 py-1.5 text-xs text-gray-500 hover:text-red-600 rounded-lg">Archive</button>
                             </form>
                         </div>
+                        @else
+                        <span class="text-xs text-gray-400">Saved for existing work</span>
+                        @endif
                     </td>
                 </tr>
                 @empty
@@ -76,6 +95,35 @@
         </table>
     </div>
 </div>
+
+{{-- Edit only the amount; product details remain attached to the original work. --}}
+<dialog id="editRateModal" aria-labelledby="editRateTitle"
+        class="w-full max-w-md rounded-2xl p-0 bg-white dark:bg-slate-800 text-gray-900 dark:text-white backdrop:bg-black/50">
+    <div class="flex items-center justify-between px-5 py-4 border-b border-gray-100 dark:border-slate-700">
+        <h3 id="editRateTitle" class="text-sm font-semibold">Edit Production Rate</h3>
+        <button type="button" onclick="document.getElementById('editRateModal').close()" aria-label="Close"
+                class="text-gray-400 hover:text-gray-600 text-xl">×</button>
+    </div>
+    <form id="editRateForm" method="POST" class="p-5 space-y-4">
+        @csrf @method('PUT')
+        <input type="hidden" name="_editing_rate_id" id="editingRateId">
+        <p id="editingRateProduct" class="text-sm font-medium"></p>
+        <p class="text-xs text-gray-500 dark:text-slate-400">The new rate applies to new assignments only. Previously assigned work and earnings keep the old rate.</p>
+        <div>
+            <label for="editingRateAmount" class="block text-xs font-medium mb-1.5">New rate (৳ / <span id="editingRateUnit"></span>)</label>
+            <input id="editingRateAmount" type="number" name="rate" required min="0" max="9999999999.99" step="0.01"
+                   class="w-full px-3 py-2.5 text-sm border border-gray-200 dark:border-slate-600 rounded-lg bg-white dark:bg-slate-700 focus:outline-none focus:ring-2 focus:ring-primary-500">
+        </div>
+        @error('rate')
+        <p class="text-sm text-red-600" role="alert">{{ $message }}</p>
+        @enderror
+        <div class="flex gap-3">
+            <button type="button" onclick="document.getElementById('editRateModal').close()"
+                    class="flex-1 py-2.5 text-sm border border-gray-200 dark:border-slate-600 rounded-lg">Cancel</button>
+            <button type="submit" class="flex-1 py-2.5 text-sm font-medium text-white bg-primary-600 hover:bg-primary-700 rounded-lg">Save Rate</button>
+        </div>
+    </form>
+</dialog>
 
 {{-- Add Rate Modal --}}
 <div id="addRateModal" class="hidden fixed inset-0 bg-black/50 z-50 flex items-center justify-center p-4">
@@ -145,3 +193,24 @@
 </div>
 
 @endsection
+@push('scripts')
+<script>
+function openRateEditor(button) {
+    document.getElementById('editRateForm').action = button.dataset.url;
+    document.getElementById('editingRateId').value = button.dataset.id;
+    document.getElementById('editingRateProduct').textContent = button.dataset.product;
+    document.getElementById('editingRateUnit').textContent = button.dataset.unit;
+    document.getElementById('editingRateAmount').value = button.dataset.rate;
+    document.getElementById('editRateModal').showModal();
+    document.getElementById('editingRateAmount').focus();
+    document.getElementById('editingRateAmount').select();
+}
+@if($errors->has('rate') && old('_editing_rate_id'))
+const failedRateButton = document.getElementById('edit-rate-' + {{ Illuminate\Support\Js::from(old('_editing_rate_id')) }});
+if (failedRateButton) {
+    openRateEditor(failedRateButton);
+    document.getElementById('editingRateAmount').value = {{ Illuminate\Support\Js::from(old('rate')) }};
+}
+@endif
+</script>
+@endpush

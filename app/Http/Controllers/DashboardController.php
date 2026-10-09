@@ -20,14 +20,21 @@ class DashboardController extends Controller
             'revenue'      => Order::where('business_id', $bizId)->whereDate('created_at', $today)
                                    ->whereIn('status', ['completed', 'delivered'])->sum('total'),
             'income'       => Transaction::where('business_id', $bizId)->where('type', 'income')
-                                         ->whereDate('transaction_date', $today)->sum('amount'),
+                                         ->whereDate('transaction_date', $today)
+                                         ->where(fn ($q) => $q->whereNull('reference')->orWhere('reference', 'not like', 'TRANSFER-%'))
+                                         ->sum('amount'),
             'expenses'     => Transaction::where('business_id', $bizId)->where('type', 'expense')
-                                         ->whereDate('transaction_date', $today)->sum('amount'),
+                                         ->whereDate('transaction_date', $today)
+                                         ->where(fn ($q) => $q->whereNull('reference')->orWhere('reference', 'not like', 'TRANSFER-%'))
+                                         ->sum('amount'),
             'products'     => Product::where('business_id', $bizId)->count(),
             'shipments'    => Shipment::where('business_id', $bizId)->whereDate('created_at', $today)->count(),
             'low_stock'    => Product::where('business_id', $bizId)->where('track_stock', true)
                                      ->whereRaw('stock <= low_stock_alert')->count(),
         ];
+
+        // Net cash profit for today, derived from the same income/expense figures shown.
+        $stats['profit'] = $stats['income'] - $stats['expenses'];
 
         $lowStockProducts = Product::where('business_id', $bizId)
             ->where('track_stock', true)

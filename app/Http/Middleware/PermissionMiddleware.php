@@ -18,7 +18,19 @@ class PermissionMiddleware
     {
         $user = auth()->user();
 
-        if (!$user || !$user->hasPermission($module)) {
+        // BusinessMiddleware already restricts employees to these worker routes.
+        // Let those exact routes pass without granting the whole employees module.
+        if ($user?->role === 'employee' && in_array($request->route()?->getName(), [
+            'production.worker.dashboard',
+            'production.tasks.submit',
+            'production.tasks.my',
+            'production.notifications.read',
+        ], true)) {
+            return $next($request);
+        }
+
+        $modules = array_filter(explode('|', $module));
+        if (!$user || !collect($modules)->contains(fn (string $candidate) => $user->hasPermission($candidate))) {
             abort(403, 'You do not have access to this section.');
         }
 

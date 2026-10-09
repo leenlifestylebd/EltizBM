@@ -1,4 +1,4 @@
-﻿@extends('layouts.app')
+@extends('layouts.app')
 @section('title', 'Inventory Overview')
 
 @section('content')
@@ -57,7 +57,6 @@
         ['route'=>'inventory.purchase-orders', 'icon'=>'M9 5H7a2 2 0 00-2 2v12a2 2 0 002 2h10a2 2 0 002-2V7a2 2 0 00-2-2h-2M9 5a2 2 0 002 2h2a2 2 0 002-2M9 5a2 2 0 012-2h2a2 2 0 012 2','label'=>'Purchase Orders','color'=>'green','active'=>false],
         ['route'=>'inventory.adjustments',     'icon'=>'M12 6v6m0 0v6m0-6h6m-6 0H6','label'=>'Adjustments','color'=>'orange','active'=>false],
         ['route'=>'inventory.barcode',         'icon'=>'M12 4v1m6 11h2m-6 0h-2v4m0-11v3m0 0h.01M12 12h4.01M16 20h4M4 12h4m12 0h.01M5 8h2a1 1 0 001-1V5a1 1 0 00-1-1H5a1 1 0 00-1 1v2a1 1 0 001 1zm12 0h2a1 1 0 001-1V5a1 1 0 00-1-1h-2a1 1 0 00-1 1v2a1 1 0 001 1zM5 20h2a1 1 0 001-1v-2a1 1 0 00-1-1H5a1 1 0 00-1 1v2a1 1 0 001 1z','label'=>'Barcode Print','color'=>'purple','active'=>false],
-        ['route'=>'inventory.transfers',       'icon'=>'M8 7h12m0 0l-4-4m4 4l-4 4m0 6H4m0 0l4 4m-4-4l4-4','label'=>'Transfers','color'=>'teal','active'=>false],
     ];
     @endphp
     @foreach($navItems as $nav)

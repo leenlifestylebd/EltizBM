@@ -12,10 +12,14 @@ return Application::configure(basePath: dirname(__DIR__))
         health: '/up',
     )
     ->withMiddleware(function (Middleware $middleware): void {
+        $middleware->web(append: [
+            \App\Http\Middleware\SetBusinessTimezone::class,
+        ]);
         $middleware->alias([
             'business'    => \App\Http\Middleware\BusinessMiddleware::class,
             'superadmin'  => \App\Http\Middleware\SuperAdminMiddleware::class,
             'permission'  => \App\Http\Middleware\PermissionMiddleware::class,
+            'role'        => \App\Http\Middleware\RoleMiddleware::class,
             'bot.token'   => \App\Http\Middleware\BotTokenMiddleware::class,
         ]);
         $middleware->validateCsrfTokens(except: [

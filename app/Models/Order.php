@@ -5,10 +5,22 @@ use Illuminate\Database\Eloquent\SoftDeletes;
 use Illuminate\Support\Str;
 class Order extends Model {
     use SoftDeletes;
-    protected $fillable = ['business_id','customer_id','created_by','order_number','source','status','payment_status','payment_method','payment_gateway','gateway_payment_id','gateway_trx_id','customer_name','customer_phone','shipping_address','shipping_area','shipping_district','subtotal','discount','shipping_charge','vat','tax','total','paid_amount','due_amount','notes','woo_order_id','woo_synced_at'];
+    protected $fillable = ['business_id','customer_id','created_by','order_number','source','status','payment_status','payment_method','payment_gateway','gateway_payment_id','gateway_trx_id','customer_name','customer_phone','shipping_address','shipping_area','shipping_district','subtotal','discount','shipping_charge','vat','tax','total','paid_amount','due_amount','notes','return_reason','return_notes','return_condition','woo_order_id','woo_synced_at'];
     protected $casts = ['subtotal'=>'decimal:2','discount'=>'decimal:2','shipping_charge'=>'decimal:2','vat'=>'decimal:2','tax'=>'decimal:2','total'=>'decimal:2','paid_amount'=>'decimal:2','due_amount'=>'decimal:2','woo_synced_at'=>'datetime'];
     protected static function booted(): void {
         static::creating(function (Order $order) { if (empty($order->order_number)) { $order->order_number = 'ORD-'.strtoupper(Str::random(8)); } });
+    }
+    public function warehouse()
+    {
+        // Legacy relation — stock is single-location now. Kept so historical
+        // orders dispatched from a former outlet still show their origin.
+        return $this->belongsTo(Warehouse::class);
+    }
+    public function holdsStock(): bool
+    {
+        // Once goods are cancelled/returned/refunded — or physically received back via
+        // an RMA — the order no longer holds stock, so it must not be restored again.
+        return !in_array($this->status, ['cancelled', 'returned', 'refunded', 'return_received'], true);
     }
     public function business() { return $this->belongsTo(Business::class); }
     public function customer() { return $this->belongsTo(Customer::class); }

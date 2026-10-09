@@ -111,9 +111,9 @@
 {{-- Summary Cards --}}
 <div class="summary-row">
     <div class="summary-card blue">
-        <div class="label">P.Bill (This Month)</div>
+        <div class="label">Earned (This Month)</div>
         <div class="value">৳{{ number_format($monthEarned) }}</div>
-        <div class="sub">{{ $entries->sum('quantity') }} pieces</div>
+        <div class="sub">৳{{ number_format($monthSalary) }} salary + ৳{{ number_format($entries->sum('amount')) }} production</div>
     </div>
     <div class="summary-card green">
         <div class="label">Paid (This Month)</div>
@@ -121,7 +121,7 @@
         <div class="sub">{{ $payments->count() }} payment(s)</div>
     </div>
     @php
-        $monthBalance = $monthEarned - $monthPaid;
+        $monthBalance = $monthEarned - $monthPaid - $monthDeduction;
     @endphp
     <div class="summary-card {{ $monthBalance > 0 ? 'red' : ($monthBalance < 0 ? 'purple' : 'gray') }}">
         <div class="label">{{ $monthBalance > 0 ? 'Due (This Month)' : ($monthBalance < 0 ? 'Overpay' : 'Status') }}</div>
@@ -129,7 +129,7 @@
         <div class="sub">current month only</div>
     </div>
     <div class="summary-card {{ $runningDue > 0 ? 'red' : ($runningDue < 0 ? 'purple' : 'gray') }}">
-        <div class="label">All-time Balance</div>
+        <div class="label">Balance through month</div>
         <div class="value">{{ $runningDue == 0 ? 'Clear' : '৳'.number_format(abs($runningDue)) }}</div>
         <div class="sub">{{ $runningDue > 0 ? 'due' : ($runningDue < 0 ? 'advance' : '') }}</div>
     </div>
@@ -163,12 +163,12 @@
         <tbody>
             @forelse($productBreakdown as $pb)
             <tr>
-                <td>{{ $pb->product_name ?? '—' }}</td>
-                <td>{{ $pb->color ?? '—' }}</td>
-                <td>{{ $pb->size ?? '—' }}</td>
-                <td class="right">{{ number_format($pb->total_qty) }}</td>
-                <td class="right">৳{{ number_format($pb->avg_rate, 2) }}</td>
-                <td class="right">৳{{ number_format($pb->total_amount) }}</td>
+                <td>{{ $pb['product_name'] ?? '—' }}</td>
+                <td>{{ $pb['color'] ?? '—' }}</td>
+                <td>{{ $pb['size'] ?? '—' }}</td>
+                <td class="right">{{ number_format($pb['qty']) }}</td>
+                <td class="right">৳{{ number_format($pb['rate'], 2) }}</td>
+                <td class="right">৳{{ number_format($pb['amount']) }}</td>
             </tr>
             @empty
             <tr><td colspan="6" class="center" style="color:#a0aec0; padding:10px;">No entries</td></tr>
@@ -178,9 +178,9 @@
         <tfoot>
             <tr>
                 <td colspan="3">Total</td>
-                <td class="right">{{ number_format($productBreakdown->sum('total_qty')) }}</td>
+                <td class="right">{{ number_format($productBreakdown->sum('qty')) }}</td>
                 <td></td>
-                <td class="right">৳{{ number_format($productBreakdown->sum('total_amount')) }}</td>
+                <td class="right">৳{{ number_format($productBreakdown->sum('amount')) }}</td>
             </tr>
         </tfoot>
         @endif
@@ -213,7 +213,7 @@
                             @if(optional($e->productionRate)->size) / {{ $e->productionRate->size }} @endif
                         </td>
                         <td class="right">{{ number_format($e->quantity) }}</td>
-                        <td class="right">{{ $e->productionRate ? '৳'.number_format($e->productionRate->rate_per_piece,2) : '—' }}</td>
+                        <td class="right">{{ $e->productionRate ? '৳'.number_format($e->productionRate->rate,2) : '—' }}</td>
                         <td class="right">৳{{ number_format($e->amount) }}</td>
                     </tr>
                     @empty
@@ -252,8 +252,8 @@
 
             @if($payments->isNotEmpty())
             <div class="payment-item" style="font-weight:bold; border-top: 1.5px solid #e2e8f0; margin-top:4px; padding-top:5px;">
-                <div>Total Paid</div>
-                <div style="color:#276749;">৳{{ number_format($payments->sum('amount')) }}</div>
+                <div>Salary / advance paid</div>
+                <div style="color:#276749;">৳{{ number_format($monthPaid) }}</div>
             </div>
             @endif
         </div>
@@ -265,21 +265,27 @@
                 <div class="balance-row">
                     <span>Carry-over {{ $carryOver > 0 ? '(advance)' : '(due)' }}</span>
                     <span style="{{ $carryOver > 0 ? 'color:#276749;' : 'color:#c53030;' }}">
-                        {{ $carryOver > 0 ? '+' : '-' }}৳{{ number_format(abs($carryOver)) }}
+                        {{ $carryOver > 0 ? '-' : '+' }}৳{{ number_format(abs($carryOver)) }}
                     </span>
                 </div>
                 @endif
                 <div class="balance-row">
-                    <span>P.Bill ({{ \Carbon\Carbon::parse($month.'-01')->format('M Y') }})</span>
+                    <span>Earned ({{ \Carbon\Carbon::parse($month.'-01')->format('M Y') }})</span>
                     <span style="color:#2b6cb0;">৳{{ number_format($monthEarned) }}</span>
                 </div>
                 <div class="balance-row">
                     <span>Paid ({{ \Carbon\Carbon::parse($month.'-01')->format('M Y') }})</span>
                     <span style="color:#276749;">- ৳{{ number_format($monthPaid) }}</span>
                 </div>
+                @if($monthBonus > 0)
+                <div class="balance-row"><span>Bonus paid (separate)</span><span>৳{{ number_format($monthBonus) }}</span></div>
+                @endif
+                @if($monthDeduction > 0)
+                <div class="balance-row"><span>Deductions</span><span>- ৳{{ number_format($monthDeduction) }}</span></div>
+                @endif
                 @php $allTimeBalance = $runningDue; @endphp
                 <div class="balance-row total {{ $allTimeBalance > 0 ? 'due' : ($allTimeBalance < 0 ? 'overpay' : 'clear') }}">
-                    <span>All-time Balance</span>
+                    <span>Balance through month</span>
                     <span>
                         @if($allTimeBalance == 0) ✓ Clear
                         @elseif($allTimeBalance > 0) ৳{{ number_format($allTimeBalance) }} Due

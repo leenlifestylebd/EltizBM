@@ -1,4 +1,4 @@
-﻿@extends('layouts.app')
+@extends('layouts.app')
 @section('title', 'Worker Ledger')
 @section('content')
 
@@ -27,7 +27,7 @@
 {{-- Summary Cards --}}
 <div class="grid grid-cols-2 sm:grid-cols-4 gap-3 mb-5">
     <div class="bg-primary-50 dark:bg-primary-900/20 rounded-xl p-4 border border-primary-100 dark:border-primary-900/40">
-        <p class="text-xs text-primary-600 dark:text-primary-400 font-medium mb-1">Total P.Bill</p>
+        <p class="text-xs text-primary-600 dark:text-primary-400 font-medium mb-1">Total Earned</p>
         <p class="text-xl font-bold text-primary-700 dark:text-primary-300">৳{{ number_format($totals['earned']) }}</p>
         <p class="text-xs text-primary-500 mt-1">{{ number_format($totals['qty']) }} pcs</p>
     </div>
@@ -37,7 +37,7 @@
     </div>
     <div class="bg-{{ $totals['balance'] > 0 ? 'red' : 'purple' }}-50 dark:bg-{{ $totals['balance'] > 0 ? 'red' : 'purple' }}-900/20 rounded-xl p-4 border border-{{ $totals['balance'] > 0 ? 'red' : 'purple' }}-100 dark:border-{{ $totals['balance'] > 0 ? 'red' : 'purple' }}-900/40">
         <p class="text-xs text-{{ $totals['balance'] > 0 ? 'red' : 'purple' }}-600 dark:text-{{ $totals['balance'] > 0 ? 'red' : 'purple' }}-400 font-medium mb-1">
-            {{ $totals['balance'] > 0 ? 'Total Due' : 'Total Overpay' }}
+            {{ $totals['balance'] > 0 ? 'Due this month' : 'Overpay this month' }}
         </p>
         <p class="text-xl font-bold text-{{ $totals['balance'] > 0 ? 'red' : 'purple' }}-700 dark:text-{{ $totals['balance'] > 0 ? 'red' : 'purple' }}-300">
             ৳{{ number_format(abs($totals['balance'])) }}
@@ -58,10 +58,10 @@
                 <tr>
                     <th class="text-left px-4 py-3 text-xs font-semibold text-gray-500 dark:text-slate-400">Worker</th>
                     <th class="text-center px-4 py-3 text-xs font-semibold text-gray-500 dark:text-slate-400">Pieces</th>
-                    <th class="text-right px-4 py-3 text-xs font-semibold text-gray-500 dark:text-slate-400">P.Bill</th>
+                    <th class="text-right px-4 py-3 text-xs font-semibold text-gray-500 dark:text-slate-400">Earned</th>
                     <th class="text-right px-4 py-3 text-xs font-semibold text-gray-500 dark:text-slate-400">Paid</th>
                     <th class="text-right px-4 py-3 text-xs font-semibold text-gray-500 dark:text-slate-400">Due / Overpay</th>
-                    <th class="text-right px-4 py-3 text-xs font-semibold text-gray-500 dark:text-slate-400 hidden sm:table-cell">All-time Due</th>
+                    <th class="text-right px-4 py-3 text-xs font-semibold text-gray-500 dark:text-slate-400 hidden sm:table-cell">Due through month</th>
                     <th class="text-right px-4 py-3 text-xs font-semibold text-gray-500 dark:text-slate-400"></th>
                 </tr>
             </thead>

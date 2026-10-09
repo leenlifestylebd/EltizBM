@@ -192,10 +192,33 @@ class PaymentController extends Controller
     //  PRIVATE HELPERS
     // ══════════════════════════════════════════════════════════
 
-    private function markOrderPaid(Order $order, string $gateway, string $paymentId, string $trxId, float $amount): void
+    /**
+     * Book a successful gateway payment against the order.
+     *
+     * Idempotent: a repeated callback for the same gateway transaction must never
+     * credit the order twice. Returns true when a new payment was recorded.
+     */
+    public function markOrderPaid(Order $order, string $gateway, string $paymentId, string $trxId, float $amount): bool
     {
-        DB::transaction(function () use ($order, $gateway, $paymentId, $trxId, $amount) {
-            $paid = min((float) $amount, $order->due_amount);
+        return DB::transaction(function () use ($order, $gateway, $paymentId, $trxId, $amount) {
+            $order = Order::whereKey($order->id)->lockForUpdate()->firstOrFail();
+
+            // Already processed this exact gateway transaction → nothing to do.
+            if ($trxId !== '' && $order->gateway_trx_id === $trxId) {
+                return false;
+            }
+
+            $reference = $gateway . '-' . ($trxId !== '' ? $trxId : $paymentId);
+            if (Transaction::where('business_id', $order->business_id)
+                ->where('reference', $reference)
+                ->exists()) {
+                return false;
+            }
+
+            $paid = min(max(0, (float) $amount), (float) $order->due_amount);
+            if ($paid <= 0) {
+                return false;
+            }
 
             $order->update([
                 'payment_gateway'    => $gateway,
@@ -207,15 +230,23 @@ class PaymentController extends Controller
                 'payment_method'     => $gateway,
             ]);
 
-            // Record transaction
+            // A valid cash-book entry: title and transaction_date are required and
+            // order_id ties the income to the order (so P&L counts it as revenue,
+            // not as "other income").
             Transaction::create([
-                'business_id'  => $order->business_id,
-                'type'         => 'income',
-                'amount'       => $paid,
-                'description'  => ucfirst($gateway) . " payment for order #{$order->order_number}. TrxID: {$trxId}",
-                'reference'    => $order->order_number,
-                'date'         => now()->toDateString(),
+                'business_id'      => $order->business_id,
+                'created_by'       => auth()->id(),
+                'order_id'         => $order->id,
+                'type'             => 'income',
+                'title'            => ucfirst($gateway) . ' payment for Order #' . $order->order_number
+                                        . ($trxId !== '' ? " (TrxID: {$trxId})" : ''),
+                'amount'           => $paid,
+                'payment_method'   => $gateway,
+                'reference'        => $reference,
+                'transaction_date' => today(),
             ]);
+
+            return true;
         });
     }
 }
