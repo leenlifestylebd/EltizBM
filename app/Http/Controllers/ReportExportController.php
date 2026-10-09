@@ -103,7 +103,9 @@ class ReportExportController extends Controller
         $rows = [
             ['Expense by Category — Detailed'],
             ['Period', Carbon::parse($from)->format('d M Y').' - '.Carbon::parse($to)->format('d M Y')],
-            ['Total Expenses', 'BDT '.number_format($d['totalExpense'], 2)],
+            ['Operating Expenses',    'BDT '.number_format($d['totalExpense'], 2)],
+            ['Production Wages (paid)','BDT '.number_format($d['wageExpense'], 2)],
+            ['Total Expenses',        'BDT '.number_format($d['grandTotal'], 2)],
             [],
         ];
         foreach ($d['breakdown'] as $e) {
@@ -123,7 +125,8 @@ class ReportExportController extends Controller
             $rows[] = ['  ', '  ', '  ', '  Subtotal', '  '.number_format($e->total, 2)];
             $rows[] = [];
         }
-        $rows[] = ['GRAND TOTAL', '', '', '', number_format($d['totalExpense'], 2)];
+        $rows[] = ['Production Wages (paid)', '', '', '', number_format($d['wageExpense'], 2)];
+        $rows[] = ['GRAND TOTAL (operating + wages)', '', '', '', number_format($d['grandTotal'], 2)];
         return $this->csvResponse($rows, "expenses-detail_{$from}_{$to}.csv");
     }
 

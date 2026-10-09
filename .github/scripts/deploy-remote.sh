@@ -19,6 +19,9 @@ git merge-base --is-ancestor "$previous" "$target"
 allowed_migrations=(
   database/migrations/2026_09_20_000001_add_warehouse_id_to_orders.php
   database/migrations/2026_10_05_000001_keep_single_main_warehouse.php
+  database/migrations/2026_10_08_000001_add_financial_composite_indexes.php
+  database/migrations/2026_10_08_000002_create_accounts_table.php
+  database/migrations/2026_10_08_000003_widen_operational_enums_on_sqlite.php
 )
 test -z "$(git diff --name-only "$previous" "$target" -- composer.json composer.lock)" || { echo 'Dependency change needs separate staging'; exit 1; }
 schema_changes=$(git diff --name-only "$previous" "$target" -- database/migrations)
