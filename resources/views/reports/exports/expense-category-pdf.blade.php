@@ -20,7 +20,7 @@
 <div class="summary">
   <div class="summary-card red">
     <div class="lbl">Total Expenses</div>
-    <div class="val">&#2547;{{ number_format($totalExpense) }}</div>
+    <div class="val">&#2547;{{ number_format($grandTotal) }}</div>
   </div>
   <div class="summary-card">
     <div class="lbl">Categories</div>
@@ -73,9 +73,23 @@ $colors = ['#ef4444','#f97316','#eab308','#22c55e','#3b82f6','#8b5cf6','#ec4899'
   </tbody>
   <tfoot>
     <tr>
-      <td colspan="2">Total</td>
+      <td colspan="2">Operating subtotal</td>
       <td class="right">{{ $breakdown->sum('count') }}</td>
       <td class="right">&#2547;{{ number_format($totalExpense) }}</td>
+      <td class="right">100%</td>
+      <td></td>
+    </tr>
+    <tr>
+      <td colspan="2"><strong>Production Wages (paid)</strong></td>
+      <td class="right">&mdash;</td>
+      <td class="right">&#2547;{{ number_format($wageExpense) }}</td>
+      <td class="right">&mdash;</td>
+      <td></td>
+    </tr>
+    <tr>
+      <td colspan="2"><strong>Grand Total</strong></td>
+      <td class="right">{{ $breakdown->sum('count') }}</td>
+      <td class="right"><strong>&#2547;{{ number_format($grandTotal) }}</strong></td>
       <td class="right">100%</td>
       <td></td>
     </tr>

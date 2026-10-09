@@ -30,4 +30,47 @@ class Transaction extends Model {
 
     public function business() { return $this->belongsTo(Business::class); }
     public function category() { return $this->belongsTo(AccountCategory::class, 'category_id'); }
+
+    // =============================================
+    // SHARED REPORT FILTERS
+    // =============================================
+    // Every report (P&L, Expense by Category, Income Source, Business Overview,
+    // dashboard summaries, CSV/PDF exports) must classify rows the same way, so the
+    // rules live here once. The "not" scopes are deliberately NULL-safe: a plain
+    // `whereNot(reference like ...)` compiles to `NOT (reference LIKE ...)`, which is
+    // NULL — and therefore drops the row — for genuine rows that have no reference.
+
+    /** Internal account-transfer legs; both legs share a TRANSFER-<timestamp> reference. */
+    public function scopeInternalTransfer($q)
+    {
+        return $q->where('reference', 'like', 'TRANSFER-%');
+    }
+
+    /** Everything that is NOT an internal transfer (rows with a NULL reference included). */
+    public function scopeNotInternalTransfer($q)
+    {
+        return $q->where(fn ($r) => $r->whereNull('reference')->orWhere('reference', 'not like', 'TRANSFER-%'));
+    }
+
+    /** Cash paid to workers (advance/salary/bonus) — reference EMPPAY-<employee_id>. */
+    public function scopeWorkerPayment($q)
+    {
+        return $q->where('reference', 'like', 'EMPPAY-%');
+    }
+
+    /** Everything that is NOT a worker payment (rows with a NULL reference included). */
+    public function scopeNotWorkerPayment($q)
+    {
+        return $q->where(fn ($r) => $r->whereNull('reference')->orWhere('reference', 'not like', 'EMPPAY-%'));
+    }
+
+    /**
+     * Operating expense: a real business expense for the period, excluding internal
+     * transfers and worker wage payments (the latter are reported separately as
+     * "Production Wages" so labour is never counted twice).
+     */
+    public function scopeOperatingExpense($q)
+    {
+        return $q->where('type', 'expense')->notInternalTransfer()->notWorkerPayment();
+    }
 }

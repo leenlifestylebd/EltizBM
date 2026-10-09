@@ -8,7 +8,6 @@ use App\Models\Order;
 use App\Models\Product;
 use App\Models\Shipment;
 use App\Models\Transaction;
-use App\Models\ProductionEntry;
 use Illuminate\Http\Request;
 
 class ReportController extends Controller
@@ -23,18 +22,21 @@ class ReportController extends Controller
         $bizId = auth()->user()->business_id;
         $from  = now()->startOfMonth()->format('Y-m-d');
         $to    = now()->endOfMonth()->format('Y-m-d');
+        $endOfDay = now()->endOfMonth();
 
-        $revenue  = Order::where('business_id', $bizId)->whereIn('status', ['completed','delivered'])->whereBetween('created_at', [$from, $to])->sum('total');
-        $expenses = Transaction::where('business_id', $bizId)->where('type', 'expense')->whereBetween('transaction_date', [$from, $to])->sum('amount');
-        $wages    = ProductionEntry::where('business_id', $bizId)->whereBetween('entry_date', [$from, $to])->sum('amount');
-        $orders   = Order::where('business_id', $bizId)->whereBetween('created_at', [$from, $to])->count();
+        // Reuse the P&L definitions so the hub can never drift from the P&L page.
+        // Wage payments are already inside the P&L expense total (operating + wages) —
+        // adding production_entries on top would deduct labour twice.
+        $pl = $this->rqs->getProfitLoss($bizId, $from, $to);
+
+        $orders    = Order::where('business_id', $bizId)->whereBetween('created_at', [$from, $endOfDay])->count();
         $customers = Customer::where('business_id', $bizId)->count();
         $totalDue  = Customer::where('business_id', $bizId)->sum('due_amount');
 
         $thisMonth = [
-            'revenue'   => $revenue,
-            'expenses'  => $expenses + $wages,
-            'profit'    => $revenue - $expenses - $wages,
+            'revenue'   => $pl['revenue'],
+            'expenses'  => $pl['expenses'] + $pl['productionWages'],
+            'profit'    => $pl['netProfit'],
             'orders'    => $orders,
             'customers' => $customers,
             'total_due' => $totalDue,

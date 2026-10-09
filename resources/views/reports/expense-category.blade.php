@@ -74,8 +74,8 @@ $presets = [
 <div class="grid grid-cols-2 sm:grid-cols-4 gap-3 mb-5">
     <div class="bg-gradient-to-br from-red-50 to-red-100 dark:from-red-900/30 dark:to-red-900/10 rounded-xl p-4 border border-red-100 dark:border-red-900/40">
         <p class="text-xs text-red-600 dark:text-red-400 font-medium mb-1">Total Expenses</p>
-        <p class="text-2xl font-bold text-red-700 dark:text-red-300">৳{{ number_format($totalExpense) }}</p>
-        <p class="text-xs text-red-500 mt-1">{{ \Carbon\Carbon::parse($from)->format('d M') }} – {{ \Carbon\Carbon::parse($to)->format('d M Y') }}</p>
+        <p class="text-2xl font-bold text-red-700 dark:text-red-300">৳{{ number_format($grandTotal) }}</p>
+        <p class="text-xs text-red-500 mt-1">Operating ৳{{ number_format($totalExpense) }} + wages ৳{{ number_format($wageExpense) }}</p>
     </div>
     <div class="bg-white dark:bg-slate-800 rounded-xl p-4 border border-gray-100 dark:border-slate-700">
         <p class="text-xs text-gray-500 dark:text-slate-400 font-medium mb-1">Categories</p>
@@ -106,7 +106,7 @@ $presets = [
             <div class="relative flex-shrink-0" style="width:180px; height:180px;">
                 <canvas id="expenseDonut"></canvas>
                 <div class="absolute inset-0 flex flex-col items-center justify-center">
-                    <p class="text-xs text-gray-400 dark:text-slate-500">Total</p>
+                    <p class="text-xs text-gray-400 dark:text-slate-500">Operating</p>
                     <p class="text-sm font-bold text-gray-900 dark:text-white">৳{{ number_format($totalExpense) }}</p>
                 </div>
             </div>
@@ -228,13 +228,22 @@ $presets = [
     </div>
     @endforeach
 
+    {{-- Production Wages (paid) — a separate line, never blended into a category --}}
+    <div class="bg-white dark:bg-slate-800 rounded-xl border border-gray-100 dark:border-slate-700 px-5 py-3.5 flex items-center justify-between">
+        <div>
+            <p class="text-sm font-semibold text-gray-900 dark:text-white">Production Wages (paid)</p>
+            <p class="text-xs text-gray-500 dark:text-slate-400 mt-0.5">Cash paid to workers · excluded from operating categories so labour is counted once</p>
+        </div>
+        <p class="text-lg font-bold text-purple-600 dark:text-purple-400">৳{{ number_format($wageExpense) }}</p>
+    </div>
+
     {{-- Grand Total --}}
     <div class="bg-red-50 dark:bg-red-900/20 rounded-xl border border-red-100 dark:border-red-900/40 px-5 py-4 flex items-center justify-between">
         <div>
             <p class="text-sm font-bold text-gray-900 dark:text-white">Grand Total</p>
-            <p class="text-xs text-gray-500 dark:text-slate-400 mt-0.5">{{ $breakdown->sum('count') }} transactions across {{ $breakdown->count() }} categories</p>
+            <p class="text-xs text-gray-500 dark:text-slate-400 mt-0.5">Operating ৳{{ number_format($totalExpense) }} + wages ৳{{ number_format($wageExpense) }} · {{ $breakdown->sum('count') }} transactions across {{ $breakdown->count() }} categories</p>
         </div>
-        <p class="text-2xl font-black text-red-700 dark:text-red-400">৳{{ number_format($totalExpense) }}</p>
+        <p class="text-2xl font-black text-red-700 dark:text-red-400">৳{{ number_format($grandTotal) }}</p>
     </div>
 </div>
 
