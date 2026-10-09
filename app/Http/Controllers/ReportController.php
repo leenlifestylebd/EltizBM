@@ -257,22 +257,66 @@ class ReportController extends Controller
     // =============================================
     // ACCOUNT BALANCE
     // =============================================
-    public function accountBalance()
+    public function accountBalance(Request $request)
     {
         $bizId = auth()->user()->business_id;
+        $from  = $request->from;
+        $to    = $request->to;
+
+        // Opening balances live in the additive `accounts` table (default 0).
+        $accountRows = \App\Models\Account::where('business_id', $bizId)->get()->keyBy('method');
+
+        // Include every method present in transactions or the accounts registry, plus
+        // the common defaults, so nothing is silently dropped.
+        $methods = Transaction::where('business_id', $bizId)
+            ->select('payment_method')->distinct()->pluck('payment_method')
+            ->merge($accountRows->keys())
+            ->merge(['cash', 'bkash', 'nagad', 'rocket', 'bank', 'card', 'cod', 'other'])
+            ->filter()->unique()->values();
 
         $balances = [];
-        foreach (['cash', 'bkash', 'nagad', 'rocket', 'bank', 'card', 'cod', 'other'] as $method) {
-            $income  = Transaction::where('business_id', $bizId)->where('type', 'income')->where('payment_method', $method)->sum('amount');
-            $expense = Transaction::where('business_id', $bizId)->where('type', 'expense')->where('payment_method', $method)->sum('amount');
+        foreach ($methods as $method) {
+            // Internal transfer legs move money between accounts; they are not income
+            // or expense, so exclude them from the per-method balance.
+            $noTransfers = fn ($q) => $q->whereNull('reference')->orWhere('reference', 'not like', 'TRANSFER-%');
+            $scope = fn ($q) => $q->where('business_id', $bizId)->where('payment_method', $method)->where($noTransfers)
+                ->when($from, fn ($qq) => $qq->where('transaction_date', '>=', $from))
+                ->when($to, fn ($qq) => $qq->where('transaction_date', '<=', $to));
+
+            $income  = $scope(Transaction::where('type', 'income'))->sum('amount');
+            $expense = $scope(Transaction::where('type', 'expense'))->sum('amount');
+            $opening = (float) ($accountRows[$method]->opening_balance ?? 0);
             $balances[$method] = [
-                'method'  => ucfirst($method),
+                'method'  => $accountRows[$method]->name ?? ucfirst($method),
+                'opening' => $opening,
                 'income'  => $income,
                 'expense' => $expense,
-                'balance' => $income - $expense,
+                'balance' => $opening + $income - $expense,
             ];
         }
 
-        return view('reports.account-balance', compact('balances'));
+        return view('reports.account-balance', compact('balances', 'from', 'to'));
+    }
+
+    /** Save opening balances (owner/admin only via route middleware). */
+    public function saveOpeningBalances(Request $request)
+    {
+        $bizId = auth()->user()->business_id;
+        $request->validate(['opening' => 'array', 'opening.*' => 'nullable|numeric']);
+
+        foreach ($request->input('opening', []) as $method => $amount) {
+            if (!is_string($method) || $method === '') {
+                continue;
+            }
+            $account = \App\Models\Account::firstOrNew(['business_id' => $bizId, 'method' => $method]);
+            if (!$account->exists) {
+                $account->name = ucfirst($method);
+                $account->type = 'other';
+            }
+            $account->opening_balance = (float) $amount;
+            $account->save();
+        }
+
+        return back()->with('success', 'Opening balances saved.');
     }
 }

@@ -25,3 +25,12 @@ _ide_helper.php
 Homestead.json
 Homestead.yaml
 Thumbs.db
+
+# Local tooling, scratch scripts, and one-off artifacts.
+/.claire/
+/.commandcode/
+/.local-backups/
+/probe_db.php
+/verify_migration.php
+/report-source.md
+/leen-homepage-fixed.html
