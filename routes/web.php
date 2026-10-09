@@ -97,8 +97,8 @@ Route::middleware(['auth', 'business'])->group(function () {
         Route::get('/{order}',     [OrderController::class, 'show'])->name('show');
         Route::get('/{order}/edit',[OrderController::class, 'edit'])->name('edit');
         Route::put('/{order}',     [OrderController::class, 'update'])->name('update');
-        Route::delete('/{order}',  [OrderController::class, 'destroy'])->name('destroy');
-        Route::post('/{order}/status', [OrderController::class, 'updateStatus'])->name('status');
+        Route::delete('/{order}',  [OrderController::class, 'destroy'])->name('destroy')->middleware('role:owner,admin,manager');
+        Route::post('/{order}/status', [OrderController::class, 'updateStatus'])->name('status')->middleware('role:owner,admin,manager');
         Route::post('/{order}/partial-return', [OrderController::class, 'partialReturn'])->name('partial-return');
         Route::get('/{order}/exchange',  [OrderController::class, 'exchangeForm'])->name('exchange');
         Route::post('/{order}/exchange', [OrderController::class, 'exchangeStore'])->name('exchange.store');
@@ -165,11 +165,11 @@ Route::middleware(['auth', 'business'])->group(function () {
 
     Route::prefix('returns')->name('returns.')->middleware('permission:orders')->group(function () {
         Route::get('/',                                   [\App\Http\Controllers\ReturnController::class, 'index'])->name('index');
-        Route::post('/orders/{order}/request',            [\App\Http\Controllers\ReturnController::class, 'requestReturn'])->name('request');
-        Route::post('/orders/{order}/approve',            [\App\Http\Controllers\ReturnController::class, 'approve'])->name('approve');
-        Route::post('/orders/{order}/receive',            [\App\Http\Controllers\ReturnController::class, 'receive'])->name('receive');
-        Route::post('/orders/{order}/refund',             [\App\Http\Controllers\ReturnController::class, 'refund'])->name('refund');
-        Route::post('/orders/{order}/reject',             [\App\Http\Controllers\ReturnController::class, 'reject'])->name('reject');
+        Route::post('/orders/{order}/request',            [\App\Http\Controllers\ReturnController::class, 'requestReturn'])->name('request')->middleware('role:owner,admin,manager');
+        Route::post('/orders/{order}/approve',            [\App\Http\Controllers\ReturnController::class, 'approve'])->name('approve')->middleware('role:owner,admin,manager');
+        Route::post('/orders/{order}/receive',            [\App\Http\Controllers\ReturnController::class, 'receive'])->name('receive')->middleware('role:owner,admin,manager');
+        Route::post('/orders/{order}/refund',             [\App\Http\Controllers\ReturnController::class, 'refund'])->name('refund')->middleware('role:owner,admin,manager');
+        Route::post('/orders/{order}/reject',             [\App\Http\Controllers\ReturnController::class, 'reject'])->name('reject')->middleware('role:owner,admin,manager');
     });
 
     // ---- INVENTORY ----
@@ -183,8 +183,8 @@ Route::middleware(['auth', 'business'])->group(function () {
         Route::get('/cutting-list/export', [InventoryController::class, 'exportCuttingList'])->name('cutting-list.export');
         Route::post('/cutting-list/send',  [InventoryController::class, 'sendToCutting'])->name('cutting-list.send');
         Route::get('/adjustments',      [InventoryController::class, 'adjustments'])->name('adjustments');
-        Route::post('/adjustments',     [InventoryController::class, 'storeAdjustment'])->name('adjustments.store');
-        Route::post('/quick-adjust',    [InventoryController::class, 'quickAdjust'])->name('quick-adjust');
+        Route::post('/adjustments',     [InventoryController::class, 'storeAdjustment'])->name('adjustments.store')->middleware('role:owner,admin,manager');
+        Route::post('/quick-adjust',    [InventoryController::class, 'quickAdjust'])->name('quick-adjust')->middleware('role:owner,admin,manager');
         Route::get('/barcode',          [InventoryController::class, 'barcode'])->name('barcode');
         Route::post('/barcode/print',   [InventoryController::class, 'printBarcode'])->name('barcode.print');
     });
@@ -203,7 +203,7 @@ Route::middleware(['auth', 'business'])->group(function () {
         Route::get('/payment-transfer',  [AccountController::class, 'paymentTransfer'])->name('payment-transfer');
         Route::post('/payment-transfer', [AccountController::class, 'storeTransfer'])->name('payment-transfer.store');
         Route::put('/transactions/{transaction}',    [AccountController::class, 'updateTransaction'])->name('transactions.update');
-        Route::delete('/transactions/{transaction}', [AccountController::class, 'destroyTransaction'])->name('transactions.destroy');
+        Route::delete('/transactions/{transaction}', [AccountController::class, 'destroyTransaction'])->name('transactions.destroy')->middleware('role:owner,admin');
     });
 
     // ---- REPORTS ----
@@ -221,6 +221,7 @@ Route::middleware(['auth', 'business'])->group(function () {
         Route::get('/return-refund',     [ReportController::class, 'returnRefund'])->name('return-refund');
         Route::get('/purchase-orders',   [ReportController::class, 'purchaseOrders'])->name('purchase-orders');
         Route::get('/account-balance',       [ReportController::class, 'accountBalance'])->name('account-balance');
+        Route::post('/account-balance/opening', [ReportController::class, 'saveOpeningBalances'])->name('account-balance.opening')->middleware('role:owner,admin');
         Route::get('/employee-production',   [ReportController::class, 'employeeProduction'])->name('employee-production');
         Route::get('/sales-channel',         [ReportController::class, 'salesChannel'])->name('sales-channel');
 
