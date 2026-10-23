@@ -1,4 +1,4 @@
-const CACHE_NAME = 'eltiz-bm-v1';
+const CACHE_NAME = 'eltiz-bm-v2';
 
 // Assets to cache on install (shell only — keeps it small)
 const SHELL_ASSETS = [
@@ -29,18 +29,19 @@ self.addEventListener('fetch', event => {
 
     // Only handle GET requests to our own origin
     if (request.method !== 'GET') return;
-    if (!request.url.startsWith(self.location.origin)) return;
+    if (new URL(request.url).origin !== self.location.origin) return;
 
     // Skip API / admin / auth routes from caching
     const url = new URL(request.url);
-    const skipPaths = ['/api/', '/sanctum/', '/telescope/', '/_debugbar/'];
+    const skipPaths = ['/settings/automation', '/api/', '/sanctum/', '/telescope/', '/_debugbar/'];
     if (skipPaths.some(p => url.pathname.startsWith(p))) return;
 
     event.respondWith(
         fetch(request)
             .then(response => {
                 // Cache successful HTML & static responses
-                if (response.ok && (
+                const cacheControl = response.headers.get('Cache-Control') || '';
+                if (response.ok && !/no-store|private/i.test(cacheControl) && (
                     request.destination === 'document' ||
                     request.destination === 'style' ||
                     request.destination === 'script' ||
