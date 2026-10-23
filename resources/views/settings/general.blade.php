@@ -8,6 +8,7 @@
     {{-- Tabs --}}
     <div class="flex gap-1 mb-5 bg-gray-100 dark:bg-slate-700 p-1 rounded-xl overflow-x-auto scrollbar-hide">
         @foreach([
+            ... (auth()->user()->isAdmin() ? [['route'=>'settings.automation', 'label'=>'API & Automation']] : []),
             ['route'=>'settings.general',        'label'=>'Profile'],
             ['route'=>'settings.business',       'label'=>'Business'],
             ['route'=>'settings.user-management','label'=>'Users'],

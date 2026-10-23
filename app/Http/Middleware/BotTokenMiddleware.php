@@ -3,38 +3,32 @@
 namespace App\Http\Middleware;
 
 use App\Models\Business;
+use App\Models\BusinessAutomation;
+use App\Models\User;
 use Closure;
 use Illuminate\Http\Request;
-use Symfony\Component\HttpFoundation\Response;
 
-/**
- * Authenticates the SufiAI bot (n8n) by a static bearer token and pins the
- * request to a single ERP business. No session, no DB token table — the token
- * lives in config/services.php (env BOT_API_TOKEN).
- */
 class BotTokenMiddleware
 {
-    public function handle(Request $request, Closure $next): Response
+    public function handle(Request $request, Closure $next)
     {
-        $expected = (string) config('services.bot.token');
-        $provided = $request->bearerToken() ?: (string) $request->header('X-Bot-Token');
-
-        if ($expected === '' || $provided === '' || ! hash_equals($expected, $provided)) {
-            return response()->json([
-                'error' => ['code' => 'unauthorized', 'message' => 'Invalid or missing bot token.'],
-            ], 401);
+        $request->headers->set('Accept', 'application/json');
+        $provided = (string) ($request->bearerToken() ?: $request->header('X-Bot-Token'));
+        if ($provided === '' || strlen($provided) > 512) {
+            return response()->json(['error' => ['code' => 'unauthorized', 'message' => 'Invalid or missing bot token.']], 401);
         }
-
-        $businessId = config('services.bot.business_id') ?: Business::min('id');
-
-        if (! $businessId) {
-            return response()->json([
-                'error' => ['code' => 'no_business', 'message' => 'No business configured for the bot.'],
-            ], 500);
+        $record = BusinessAutomation::where('token_hash', hash('sha256', $provided))->where('enabled', true)->first();
+        $actor = $record ? User::where('id', $record->issued_by)->where('business_id', $record->business_id)
+            ->where('is_active', true)->whereIn('role', ['owner', 'admin'])->first() : null;
+        if (! $record || ! $actor || ! Business::whereKey($record->business_id)->exists()) {
+            return response()->json(['error' => ['code' => 'unauthorized', 'message' => 'Invalid, disabled or revoked bot token.']], 401);
         }
+        $request->attributes->set('business_id', (int) $record->business_id);
+        $request->attributes->set('bot_actor_id', (int) $actor->id);
+        $request->attributes->set('bot_automation', $record);
+        $response = $next($request);
+        $response->headers->set('Cache-Control', 'no-store, private');
 
-        $request->attributes->set('business_id', (int) $businessId);
-
-        return $next($request);
+        return $response;
     }
 }

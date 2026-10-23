@@ -31,6 +31,10 @@ class AppServiceProvider extends ServiceProvider
      */
     public function boot(): void
     {
+        \Illuminate\Support\Facades\RateLimiter::for('bot-api', function (\Illuminate\Http\Request $request) {
+            return \Illuminate\Cache\RateLimiting\Limit::perMinute(60)->by('business:'.$request->attributes->get('business_id'));
+        });
+
         // Register audit observer on all key models
         // This activates the ActivityLog for all create/update/delete on these models
         Order::observe(AuditObserver::class);

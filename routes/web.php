@@ -322,6 +322,12 @@ Route::middleware(['auth', 'business'])->group(function () {
 
     // ---- SETTINGS ----
     Route::prefix('settings')->name('settings.')->middleware('permission:settings')->group(function () {
+        Route::middleware('role:owner,admin')->group(function () {
+            Route::get('/automation', [\App\Http\Controllers\AutomationSettingsController::class, 'edit'])->name('automation');
+            Route::post('/automation', [\App\Http\Controllers\AutomationSettingsController::class, 'update'])->name('automation.update');
+            Route::post('/automation/token', [\App\Http\Controllers\AutomationSettingsController::class, 'rotate'])->name('automation.token');
+            Route::delete('/automation/token', [\App\Http\Controllers\AutomationSettingsController::class, 'revoke'])->name('automation.revoke');
+        });
         Route::get('/general',        [SettingsController::class, 'general'])->name('general');
         Route::post('/general',       [SettingsController::class, 'updateGeneral'])->name('general.update');
         Route::get('/business',       [SettingsController::class, 'business'])->name('business');

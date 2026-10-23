@@ -17,6 +17,7 @@ git merge-base --is-ancestor "$previous" "$target"
 # Only additive, restore-tested migrations are permitted here. Each one is
 # reviewed against a restored production database before being listed.
 allowed_migrations=(
+  database/migrations/2026_10_23_000001_create_business_automations.php
   database/migrations/2026_09_20_000001_add_warehouse_id_to_orders.php
   database/migrations/2026_10_05_000001_keep_single_main_warehouse.php
   database/migrations/2026_10_08_000001_add_financial_composite_indexes.php
