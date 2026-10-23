@@ -48,7 +48,7 @@ recover() {
   trap - EXIT
   cd "$app"
   if [[ "$result" != 0 && "$changed" == 1 ]]; then
-    git reset --hard "$previous"
+    (umask 022; git reset --hard "$previous")
     php artisan config:clear
     php artisan route:clear
     php artisan view:clear
@@ -64,7 +64,9 @@ bash "$backup_dir/backup-remote.sh" "$backup_id"
 (cd "$backup_dir" && sha256sum -c SHA256SUMS && sha256sum -c backup.cms.sha256)
 php "$backup_dir/verify-order-stock.php" "$app" before "$backup_dir/order-stock-before.json"
 changed=1
-git reset --hard "$target"
+# Public tracked assets must be readable by the static web server.
+# Keep the restrictive outer umask for backups and credential files.
+(umask 022; git reset --hard "$target")
 php artisan config:clear
 php artisan route:clear
 php artisan view:clear
