@@ -35,6 +35,15 @@ return [
         ],
     ],
 
+    'facebook' => [
+        'client_id' => env('META_APP_ID'),
+        'client_secret' => env('META_APP_SECRET'),
+        'config_id' => env('META_LOGIN_CONFIG_ID'),
+        'redirect' => env('META_REDIRECT_URI'),
+        'version' => env('META_GRAPH_VERSION', 'v24.0'),
+        'cache_store' => env('META_OAUTH_CACHE_STORE', 'file'),
+    ],
+
     'google' => [
         'client_id'     => env('GOOGLE_CLIENT_ID'),
         'client_secret' => env('GOOGLE_CLIENT_SECRET'),

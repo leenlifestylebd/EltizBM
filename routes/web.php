@@ -323,6 +323,12 @@ Route::middleware(['auth', 'business'])->group(function () {
     // ---- SETTINGS ----
     Route::prefix('settings')->name('settings.')->middleware('permission:settings')->group(function () {
         Route::middleware('role:owner,admin')->group(function () {
+            Route::get('/automation/facebook/connect', [\App\Http\Controllers\FacebookConnectionController::class, 'start'])->middleware('throttle:20,1')->name('facebook.start');
+            Route::get('/automation/facebook/callback', [\App\Http\Controllers\FacebookConnectionController::class, 'callback'])->middleware('throttle:20,1')->name('facebook.callback');
+            Route::get('/automation/facebook/pages', [\App\Http\Controllers\FacebookConnectionController::class, 'pages'])->middleware('throttle:20,1')->name('facebook.pages');
+            Route::post('/automation/facebook/pages', [\App\Http\Controllers\FacebookConnectionController::class, 'select'])->middleware('throttle:20,1')->name('facebook.select');
+            Route::post('/automation/facebook/check', [\App\Http\Controllers\FacebookConnectionController::class, 'check'])->middleware('throttle:20,1')->name('facebook.check');
+            Route::delete('/automation/facebook/disconnect', [\App\Http\Controllers\FacebookConnectionController::class, 'disconnect'])->middleware('throttle:20,1')->name('facebook.disconnect');
             Route::get('/automation', [\App\Http\Controllers\AutomationSettingsController::class, 'edit'])->name('automation');
             Route::post('/automation', [\App\Http\Controllers\AutomationSettingsController::class, 'update'])->name('automation.update');
             Route::post('/automation/token', [\App\Http\Controllers\AutomationSettingsController::class, 'rotate'])->name('automation.token');

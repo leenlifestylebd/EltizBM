@@ -18,3 +18,4 @@ jobs:
           coverage: none
       - run: composer install --no-interaction --prefer-dist --no-progress
       - run: vendor/bin/phpunit
+      - run: node --test tests/service-worker-cache.cjs

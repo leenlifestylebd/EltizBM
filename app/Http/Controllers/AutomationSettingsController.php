@@ -3,6 +3,7 @@
 namespace App\Http\Controllers;
 
 use App\Models\BusinessAutomation;
+use App\Services\FacebookPageConnection;
 use Illuminate\Http\Request;
 use Illuminate\Support\Facades\DB;
 use Illuminate\Support\Facades\Validator;
@@ -26,6 +27,7 @@ class AutomationSettingsController extends Controller
             'automation' => $record, 'settings' => $record?->settings ?? [],
             'configured' => array_fill_keys(array_keys($stored), true),
             'abilities' => BusinessAutomation::ABILITIES, 'newToken' => $newToken,
+            'facebookReady' => app(FacebookPageConnection::class)->ready(),
         ])->header('Cache-Control', 'no-store, private');
     }
 
@@ -56,7 +58,11 @@ class AutomationSettingsController extends Controller
             DB::table('businesses')->where('id', $request->user()->business_id)->lockForUpdate()->first();
             $record = BusinessAutomation::firstOrNew(['business_id' => $request->user()->business_id]);
             $secrets = $record->secrets ?? [];
+            $oauth = ($record->settings['facebook_connection_mode'] ?? '') === 'oauth';
             foreach (BusinessAutomation::SECRET_FIELDS as $key) {
+                if ($oauth && in_array($key, ['facebook_page_token', 'facebook_app_secret', 'facebook_verify_token'])) {
+                    continue;
+                }
                 if (in_array($key, $data['clear_secrets'] ?? [], true)) {
                     unset($secrets[$key]);
                 } elseif (! empty($data[$key])) {
@@ -66,7 +72,9 @@ class AutomationSettingsController extends Controller
             $record->fill([
                 'enabled' => $request->boolean('enabled'),
                 'abilities' => array_values(array_unique($data['abilities'] ?? [])),
-                'settings' => array_intersect_key($data, array_flip(self::PUBLIC_FIELDS)),
+                'settings' => array_merge($record->settings ?? [], array_intersect_key(
+                    $oauth ? array_diff_key($data, ['facebook_page_id' => true]) : $data, array_flip(self::PUBLIC_FIELDS)
+                )),
                 'secrets' => $secrets,
             ])->save();
         });
