@@ -3,8 +3,8 @@
 ## Status and rollout
 
 Implemented in code; this change does not deploy to production, register provider webhooks,
-connect Meta accounts, or start n8n workflows. The production migration gate is intentionally
-unchanged until an isolated restore/rehearsal verifies the new migration.
+connect Meta accounts, or start n8n workflows. The new migration is allowlisted after an isolated MariaDB restore rehearsal.
+Production deployment must still capture a fresh backup during maintenance.
 
 1. Capture and independently verify current production backups, including APP_KEY.
 2. Rehearse `2026_10_23_000001_create_business_automations.php` against an isolated restored
@@ -120,3 +120,14 @@ ordinary expenses to bypass their ledgers. Approval and ambiguity handling belon
 
 Tests use an isolated in-memory SQLite database, not local or production business data.
 MariaDB restore/rehearsal and live provider/n8n end-to-end tests remain required before deployment.
+
+## Production-copy rehearsal (2026-10-24)
+
+A fresh read-only production SQL snapshot was restored into a separate local MariaDB instance.
+The exact migration ran twice successfully. All 48 original tables were restored and checked;
+every pre-existing business table retained its full-table checksum and row count (the migration
+tracking table gains the expected record). Exactly the two intended new tables were added.
+Blade views compiled successfully, and the temporary database server was shut down.
+Private evidence and the full application/configuration archive remain outside version control.
+The online backup is not an atomic database-plus-files snapshot; the deployment workflow must
+still take its maintenance-mode backup. No production data was modified by this rehearsal.
