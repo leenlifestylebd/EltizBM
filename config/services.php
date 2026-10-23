@@ -41,13 +41,6 @@ return [
         'redirect'      => env('GOOGLE_REDIRECT_URI'),
     ],
 
-    // SufiAI bot API (consumed by n8n). Token guards /api/v1/bot/* ; business_id
-    // scopes all data. Falls back to the first business if BOT_BUSINESS_ID unset.
-    'bot' => [
-        'token'       => env('BOT_API_TOKEN'),
-        'business_id' => env('BOT_BUSINESS_ID'),
-    ],
-
     // Read via config() (not env()) so these survive `php artisan config:cache`.
     'steadfast' => [
         'webhook_secret' => env('STEADFAST_WEBHOOK_SECRET'),

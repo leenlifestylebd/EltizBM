@@ -9,7 +9,6 @@ use App\Models\OrderItem;
 use App\Models\Product;
 use App\Models\ProductVariant;
 use App\Models\Transaction;
-use App\Models\User;
 use Illuminate\Http\Request;
 use Illuminate\Support\Facades\DB;
 use Illuminate\Support\Facades\Storage;
@@ -85,9 +84,9 @@ class BotApiController extends Controller
                 'variant_id' => $variant->id,
                 'name'       => $variant->name,
                 'attributes' => $variant->attributes,
-                'stock'      => (int) $variant->stock,
-                'in_stock'   => (int) $variant->stock > 0,
-                'price'      => (float) ($variant->price ?: optional($variant->product)->current_price),
+                'stock'      => (int) $variant->product->stock,
+                'in_stock'   => !$variant->product->track_stock || (int) $variant->product->stock > 0,
+                'price'      => (float) ($variant->price ?? optional($variant->product)->current_price),
             ]);
         }
 
@@ -131,21 +130,22 @@ class BotApiController extends Controller
             'customer.address'   => 'nullable|string|max:255',
             'customer.area'      => 'nullable|string|max:120',
             'customer.district'  => 'nullable|string|max:120',
-            'items'              => 'required|array|min:1',
+            'items'              => 'required|array|min:1|max:100',
             'items.*.product_id' => 'required|integer',
             'items.*.variant_id' => 'nullable|integer',
-            'items.*.quantity'   => 'required|integer|min:1',
-            'payment_method'     => 'nullable|string|max:30',
-            'shipping_charge'    => 'nullable|numeric|min:0',
-            'paid_amount'        => 'nullable|numeric|min:0',
-            'source'             => 'nullable|string|max:30',
+            'items.*.quantity'   => 'required|integer|min:1|max:1000000',
+            'payment_method'     => 'nullable|in:cash,card,bkash,nagad,rocket,bank,cod,other',
+            'shipping_charge'    => 'nullable|numeric|min:0|max:9999999999.99|decimal:0,2',
+            'paid_amount'        => 'nullable|numeric|min:0|max:9999999999.99|decimal:0,2',
+            'source'             => 'nullable|in:telegram,messenger,web,manual',
             'notes'              => 'nullable|string|max:1000',
         ]);
 
         // Resolve each line against ERP (authoritative price + stock).
         $lines = [];
+        $requestedStock = [];
         foreach ($data['items'] as $it) {
-            $product = Product::where('business_id', $bizId)->find($it['product_id']);
+            $product = Product::where('business_id', $bizId)->where('is_active', true)->lockForUpdate()->find($it['product_id']);
             if (! $product) {
                 return response()->json(['error' => ['code' => 'product_not_found', 'message' => "Product {$it['product_id']} not found."]], 422);
             }
@@ -155,17 +155,18 @@ class BotApiController extends Controller
             $available = (int) $product->stock;
 
             if (! empty($it['variant_id'])) {
-                $variant = ProductVariant::where('product_id', $product->id)->find($it['variant_id']);
+                $variant = ProductVariant::where('product_id', $product->id)->lockForUpdate()->find($it['variant_id']);
                 if (! $variant) {
                     return response()->json(['error' => ['code' => 'variant_not_found', 'message' => "Variant {$it['variant_id']} not found."]], 422);
                 }
-                if ($variant->price) {
+                if ($variant->price !== null) {
                     $price = (float) $variant->price;
                 }
-                $available = (int) $variant->stock;
             }
 
-            if ($product->track_stock && $available < (int) $it['quantity']) {
+            $stockKey = (string) $product->id;
+            $requestedStock[$stockKey] = ($requestedStock[$stockKey] ?? 0) + (int) $it['quantity'];
+            if ($product->track_stock && $available < $requestedStock[$stockKey]) {
                 return response()->json([
                     'error' => ['code' => 'out_of_stock', 'message' => "{$product->name}: not enough stock.", 'available' => $available],
                 ], 409);
@@ -178,7 +179,12 @@ class BotApiController extends Controller
         $paid     = (float) ($data['paid_amount'] ?? 0);
         $source   = $data['source'] ?? 'messenger';
         $payMethod = $data['payment_method'] ?? 'cod';
-        $createdBy = User::where('business_id', $bizId)->value('id'); // system attribution fallback
+        $createdBy = $request->attributes->get('bot_actor_id');
+
+        $expectedTotal = collect($lines)->sum(fn ($line) => $line['price'] * $line['quantity']) + $shipping;
+        if ($paid > $expectedTotal || $expectedTotal > 9999999999.99) {
+            return response()->json(['error' => ['code' => 'invalid_total', 'message' => 'Payment exceeds order total, or order total is too large.']], 422);
+        }
 
         $order = DB::transaction(function () use ($bizId, $data, $lines, $shipping, $paid, $source, $payMethod, $createdBy) {
             $customer = Customer::firstOrCreate(
@@ -233,14 +239,9 @@ class BotApiController extends Controller
                     'total'        => $l['price'] * $l['quantity'],
                 ]);
 
-                if ($l['product']->track_stock) {
-                    if ($l['variant']) {
-                        ProductVariant::where('id', $l['variant']->id)->decrement('stock', $l['quantity']);
-                    } else {
-                        Product::where('id', $l['product']->id)->decrement('stock', $l['quantity']);
-                    }
-                }
             }
+
+            app(\App\Services\StockService::class)->deductForOrder($order->load('items'));
 
             if ($paid > 0) {
                 Transaction::create([
@@ -326,9 +327,9 @@ class BotApiController extends Controller
                 'name'       => $v->name,
                 'sku'        => $v->sku,
                 'attributes' => $v->attributes,
-                'price'      => (float) ($v->price ?: $p->current_price),
-                'stock'      => (int) $v->stock,
-                'in_stock'   => (int) $v->stock > 0,
+                'price'      => (float) ($v->price ?? $p->current_price),
+                'stock'      => (int) $p->stock,
+                'in_stock'   => !$p->track_stock || (int) $p->stock > 0,
             ])->values(),
         ];
     }

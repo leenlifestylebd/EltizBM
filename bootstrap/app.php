@@ -12,6 +12,12 @@ return Application::configure(basePath: dirname(__DIR__))
         health: '/up',
     )
     ->withMiddleware(function (Middleware $middleware): void {
+        // Resolve tenant identity before the per-business API rate limiter runs.
+        $middleware->prependToPriorityList([
+            \Illuminate\Routing\Middleware\ThrottleRequests::class,
+            \Illuminate\Routing\Middleware\ThrottleRequestsWithRedis::class,
+        ], \App\Http\Middleware\BotTokenMiddleware::class);
+
         // Baseline security headers on every web response, then set the tenant's
         // timezone for the request (only applies when BUSINESS_TIMEZONE_ENABLED=true).
         $middleware->web(append: [
@@ -25,6 +31,8 @@ return Application::configure(basePath: dirname(__DIR__))
             'permission'  => \App\Http\Middleware\PermissionMiddleware::class,
             'role'        => \App\Http\Middleware\RoleMiddleware::class,
             'bot.token'   => \App\Http\Middleware\BotTokenMiddleware::class,
+            'bot.ability' => \App\Http\Middleware\BotAbilityMiddleware::class,
+            'bot.idempotency' => \App\Http\Middleware\BotIdempotencyMiddleware::class,
         ]);
         $middleware->validateCsrfTokens(except: [
             'webhooks/woocommerce',
