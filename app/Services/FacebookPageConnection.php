@@ -124,6 +124,30 @@ class FacebookPageConnection
         return $messages && $comments;
     }
 
+    public function subscribe(string $id, string $token): void
+    {
+        $this->verifyPage($id, $token);
+        $current = $this->get($id.'/subscribed_apps', ['fields' => 'id,subscribed_fields'], $token);
+        $fields = ['messages', 'feed'];
+        foreach ($current['data'] ?? [] as $app) {
+            if ((string) ($app['id'] ?? '') === (string) config('services.facebook.client_id')) {
+                $fields = array_merge($fields, is_array($app['subscribed_fields'] ?? null) ? $app['subscribed_fields'] : []);
+            }
+        }
+        try {
+            $response = Http::acceptJson()->asForm()->withToken($token)->connectTimeout(5)->timeout(20)->withoutRedirecting()
+                ->post('https://graph.facebook.com/'.config('services.facebook.version').'/'.$id.'/subscribed_apps', [
+                    'subscribed_fields' => implode(',', array_unique($fields)),
+                    'appsecret_proof' => hash_hmac('sha256', $token, config('services.facebook.client_secret')),
+                ]);
+        } catch (ConnectionException) {
+            throw new RuntimeException('Facebook subscription could not be confirmed. Please try again.');
+        }
+        if (! $response->successful() || $response->json('success') !== true) {
+            throw new RuntimeException('Facebook did not confirm the subscription. Check the Meta webhook configuration and Page permissions.');
+        }
+    }
+
     public function verifyPage(string $id, string $token): array
     {
         if (! ctype_digit($id)) {

@@ -23,7 +23,7 @@
     <div class="p-5 rounded-xl border border-gray-200 dark:border-slate-700 bg-white dark:bg-slate-800 space-y-3">
         <h2 class="font-semibold text-gray-900 dark:text-white">ERP API access</h2>
         <p class="text-sm text-gray-600 dark:text-slate-300">Status: {{ $automation?->enabled && $automation?->token_hash ? 'Enabled' : 'Disabled' }}
-            @if($automation?->token_suffix) Ã‚Â· Token ending {{ $automation->token_suffix }} @endif
+            @if($automation?->token_suffix) Ãƒâ€šÃ‚Â· Token ending {{ $automation->token_suffix }} @endif
         </p>
         <label for="api-base" class="block text-sm">API base URL</label>
         <input id="api-base" readonly value="{{ url('/api/v1/bot') }}" class="w-full p-3 border rounded-lg bg-gray-50 dark:bg-slate-900 dark:border-slate-600 text-gray-900 dark:text-white">
@@ -56,6 +56,14 @@
         @else
             <p class="text-sm text-gray-600 dark:text-slate-300">Connect your Facebook account, then choose the Page for this business. No access token to copy.</p>
         @endif
+        <a href="{{ route('settings.facebook.inbox') }}" class="inline-flex px-4 py-2 border rounded-lg">Open Facebook review inbox</a>
+        @if($facebookConnected)
+            <p class="text-sm">Message intake: {{ !empty($settings['facebook_receive_enabled']) ? 'Enabled — review only' : 'Paused' }}. No automatic replies.</p>
+            <form method="POST" action="{{ route(!empty($settings['facebook_receive_enabled']) ? 'settings.facebook.pause' : 'settings.facebook.subscribe') }}">
+                @csrf
+                <button class="px-4 py-2 rounded-lg border border-gray-300 dark:border-slate-600">{{ !empty($settings['facebook_receive_enabled']) ? 'Pause intake' : 'Enable message and comment intake' }}</button>
+            </form>
+        @endif
         @if($facebookReady)
             <a href="{{ route('settings.facebook.start') }}" class="inline-flex px-4 py-2.5 rounded-lg bg-blue-600 text-white font-medium">{{ $facebookConnected ? 'Reconnect / Change Page' : 'Connect Facebook' }}</a>
             @if($facebookConnected)
@@ -65,7 +73,7 @@
                 </form>
             @endif
         @else
-            <button disabled class="px-4 py-2.5 rounded-lg bg-gray-200 text-gray-600 dark:bg-slate-700 dark:text-slate-300 cursor-not-allowed">Connect Facebook — setup pending</button>
+            <button disabled class="px-4 py-2.5 rounded-lg bg-gray-200 text-gray-600 dark:bg-slate-700 dark:text-slate-300 cursor-not-allowed">Connect Facebook â€” setup pending</button>
             <p role="status" class="text-sm text-amber-800 dark:text-amber-200">The service owner needs to finish the Meta app setup. You do not need to create a developer app or paste keys here.</p>
         @endif
         @if($facebookConnected || isset($configured['facebook_page_token']))
@@ -95,7 +103,7 @@
         @php
             $groups = [
                 'OpenRouter' => [
-                    ['openrouter_api_key', 'API key', 'sk-or-v1-Ã¢â‚¬Â¦', true],
+                    ['openrouter_api_key', 'API key', 'sk-or-v1-ÃƒÂ¢Ã¢â€šÂ¬Ã‚Â¦', true],
                     ['openrouter_model', 'Model ID', 'provider/model:free', false],
                 ],
                 'Telegram' => [
@@ -124,7 +132,7 @@
                 @foreach($fields as [$field, $label, $placeholder, $secret])
                     <div>
                         <label for="{{ $field }}" class="block text-sm font-medium text-gray-700 dark:text-slate-300">{{ $label }}
-                            @if($secret && isset($configured[$field])) <span class="text-green-700 dark:text-green-300"> Ã‚Â· Saved</span> @endif
+                            @if($secret && isset($configured[$field])) <span class="text-green-700 dark:text-green-300"> Ãƒâ€šÃ‚Â· Saved</span> @endif
                         </label>
                         <input id="{{ $field }}" name="{{ $field }}" type="{{ $secret ? 'password' : ($field === 'n8n_webhook_url' ? 'url' : 'text') }}"
                             value="{{ $secret ? '' : old($field, $settings[$field] ?? '') }}"

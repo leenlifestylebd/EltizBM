@@ -39,6 +39,7 @@ return [
         'client_id' => env('META_APP_ID'),
         'client_secret' => env('META_APP_SECRET'),
         'config_id' => env('META_LOGIN_CONFIG_ID'),
+        'webhook_verify_token' => env('META_WEBHOOK_VERIFY_TOKEN'),
         'redirect' => env('META_REDIRECT_URI'),
         'version' => env('META_GRAPH_VERSION', 'v24.0'),
         'cache_store' => env('META_OAUTH_CACHE_STORE', 'file'),

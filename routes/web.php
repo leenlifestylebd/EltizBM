@@ -329,6 +329,9 @@ Route::middleware(['auth', 'business'])->group(function () {
             Route::post('/automation/facebook/pages', [\App\Http\Controllers\FacebookConnectionController::class, 'select'])->middleware('throttle:20,1')->name('facebook.select');
             Route::post('/automation/facebook/check', [\App\Http\Controllers\FacebookConnectionController::class, 'check'])->middleware('throttle:20,1')->name('facebook.check');
             Route::delete('/automation/facebook/disconnect', [\App\Http\Controllers\FacebookConnectionController::class, 'disconnect'])->middleware('throttle:20,1')->name('facebook.disconnect');
+            Route::get('/automation/facebook/inbox', [\App\Http\Controllers\FacebookConnectionController::class, 'inbox'])->name('facebook.inbox');
+            Route::post('/automation/facebook/subscribe', [\App\Http\Controllers\FacebookConnectionController::class, 'subscribe'])->middleware('throttle:5,1')->name('facebook.subscribe');
+            Route::post('/automation/facebook/pause', [\App\Http\Controllers\FacebookConnectionController::class, 'pause'])->name('facebook.pause');
             Route::get('/automation', [\App\Http\Controllers\AutomationSettingsController::class, 'edit'])->name('automation');
             Route::post('/automation', [\App\Http\Controllers\AutomationSettingsController::class, 'update'])->name('automation.update');
             Route::post('/automation/token', [\App\Http\Controllers\AutomationSettingsController::class, 'rotate'])->name('automation.token');
