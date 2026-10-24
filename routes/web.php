@@ -330,6 +330,10 @@ Route::middleware(['auth', 'business'])->group(function () {
             Route::post('/automation/facebook/check', [\App\Http\Controllers\FacebookConnectionController::class, 'check'])->middleware('throttle:20,1')->name('facebook.check');
             Route::delete('/automation/facebook/disconnect', [\App\Http\Controllers\FacebookConnectionController::class, 'disconnect'])->middleware('throttle:20,1')->name('facebook.disconnect');
             Route::get('/automation/facebook/inbox', [\App\Http\Controllers\FacebookConnectionController::class, 'inbox'])->name('facebook.inbox');
+            Route::get('/automation/facebook/rules', [\App\Http\Controllers\FacebookRulesController::class, 'index'])->name('facebook.rules');
+            Route::post('/automation/facebook/rules', [\App\Http\Controllers\FacebookRulesController::class, 'store'])->name('facebook.rules.store');
+            Route::delete('/automation/facebook/rules/{id}', [\App\Http\Controllers\FacebookRulesController::class, 'destroy'])->whereNumber('id')->name('facebook.rules.destroy');
+            Route::post('/automation/facebook/inbox/{id}/send', [\App\Http\Controllers\FacebookReplyController::class, 'send'])->whereNumber('id')->middleware('throttle:10,1')->name('facebook.reply');
             Route::post('/automation/facebook/subscribe', [\App\Http\Controllers\FacebookConnectionController::class, 'subscribe'])->middleware('throttle:5,1')->name('facebook.subscribe');
             Route::post('/automation/facebook/pause', [\App\Http\Controllers\FacebookConnectionController::class, 'pause'])->name('facebook.pause');
             Route::get('/automation', [\App\Http\Controllers\AutomationSettingsController::class, 'edit'])->name('automation');

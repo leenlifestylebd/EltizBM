@@ -156,4 +156,15 @@ class FacebookInboxTest extends TestCase
         $this->post(route('settings.facebook.pause'))->assertRedirect();
         $this->assertFalse($this->connection->fresh()->settings['facebook_receive_enabled']);
     }
+
+    public function test_separate_ad_referral_is_applied_to_next_message_only_for_same_sender(): void
+    {
+        $body = ['object'=>'page','entry'=>[['id'=>'1234','messaging'=>[['sender'=>['id'=>'999'],'recipient'=>['id'=>'1234'],'referral'=>['ad_id'=>'555','source'=>'ADS']]]]]];
+        $this->deliver($body)->assertOk();
+        $this->assertDatabaseCount('facebook_inbox_events',0);
+        $this->deliver($this->body())->assertOk();
+        $this->assertSame('555',FacebookInboxEvent::firstOrFail()->payload['ad_id']);
+        $body=$this->body();$body['entry'][0]['messaging'][0]['sender']['id']='888';$body['entry'][0]['messaging'][0]['message']['mid']='different';
+        $this->deliver($body)->assertOk();$this->assertSame('',FacebookInboxEvent::latest('id')->first()->payload['ad_id']);
+    }
 }

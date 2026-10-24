@@ -9,6 +9,7 @@ use Illuminate\Support\Facades\Route;
 // Credentials and scope are managed by each business in Settings > API & Automation.
 Route::prefix('v1/bot')->middleware(['bot.token', 'throttle:bot-api'])->group(function () {
     Route::post('/facebook-events/claim', [FacebookInboxController::class, 'claim'])->middleware('bot.ability:automation:write');
+    Route::post('/facebook-events/{id}/auto-reply', [FacebookInboxController::class, 'automatic'])->whereNumber('id')->middleware('bot.ability:facebook:send');
     Route::post('/facebook-events/{id}/draft', [FacebookInboxController::class, 'draft'])->whereNumber('id')->middleware('bot.ability:automation:write');
     Route::get('/health', [BotApiController::class, 'health']);
     Route::get('/products', [BotApiController::class, 'products'])->middleware('bot.ability:catalog:read');

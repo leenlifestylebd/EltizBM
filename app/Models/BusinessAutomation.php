@@ -7,6 +7,7 @@ use Illuminate\Database\Eloquent\Model;
 class BusinessAutomation extends Model
 {
     public const ABILITIES = [
+        'facebook:send' => 'Send automatic Facebook price/stock replies for owner-enabled product rules',
         'automation:write' => 'Process Facebook inbox and save reply drafts (no sending)',
         'catalog:read' => 'Read products and stock',
         'orders:read' => 'Read order status',
