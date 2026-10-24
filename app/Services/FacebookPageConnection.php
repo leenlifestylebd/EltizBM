@@ -67,20 +67,35 @@ class FacebookPageConnection
             throw new RuntimeException('Some required Page permissions were not granted. Reconnect and allow messages and comments, or contact the service owner about Meta approval.');
         }
         $pages = [];
+        $returned = 0;
+        $missingToken = 0;
         $after = null;
         for ($batch = 0; $batch < 20; $batch++) {
             $data = $this->get('me/accounts', array_filter(['fields' => 'id,name,access_token,tasks', 'limit' => 100, 'after' => $after]), $token);
             foreach ($data['data'] ?? [] as $page) {
+                $returned++;
+                if (is_array($page) && empty($page['access_token'])) {
+                    $missingToken++;
+                }
                 if (! is_array($page) || ! ctype_digit((string) ($page['id'] ?? '')) || empty($page['name']) || empty($page['access_token'])) {
                     continue;
                 }
-                $tasks = $page['tasks'] ?? [];
-                if (! in_array('MANAGE', $tasks) && (array_diff(['MESSAGING', 'MODERATE'], $tasks))) {
+                if (! $this->hasMessagingAndModerationAccess($page['tasks'] ?? null)) {
                     continue;
                 }
                 $pages[(string) $page['id']] = ['id' => (string) $page['id'], 'name' => (string) $page['name'], 'token' => (string) $page['access_token']];
             }
             if (empty($data['paging']['next'])) {
+                if (! $pages) {
+                    if ($returned === 0) {
+                        throw new RuntimeException('Facebook returned an empty Page list. Reconnect and review the Pages shared with this app. If the Page belongs to a Business Portfolio, ask the service owner to check its asset access and login configuration. [FB_PAGES_EMPTY]');
+                    }
+                    if ($missingToken === $returned) {
+                        throw new RuntimeException('Facebook returned Pages without Page access tokens. Check your Page access and the Pages shared with this app, then reconnect. [FB_PAGE_TOKEN_MISSING]');
+                    }
+                    throw new RuntimeException('Facebook returned Pages, but none included both messaging and comment-moderation access. Check your Page tasks and reconnect. [FB_PAGE_TASKS_INSUFFICIENT]');
+                }
+
                 return array_values($pages);
             }
             // Ignore Meta's next URL: only send credentials to our fixed Graph host.
@@ -91,6 +106,22 @@ class FacebookPageConnection
             $after = $next;
         }
         throw new RuntimeException('The Page list could not be completed. Retry with fewer selected Pages.');
+    }
+
+    private function hasMessagingAndModerationAccess(mixed $tasks): bool
+    {
+        if (! is_array($tasks)) {
+            return false;
+        }
+        // Meta's New Pages Experience uses PROFILE_PLUS_* task names.
+        // Never treat generic Facebook access, ads or analytics as write access.
+        if (in_array('MANAGE', $tasks, true) || in_array('PROFILE_PLUS_FULL_CONTROL', $tasks, true)) {
+            return true;
+        }
+        $messages = in_array('MESSAGING', $tasks, true) || in_array('PROFILE_PLUS_MESSAGING', $tasks, true);
+        $comments = in_array('MODERATE', $tasks, true) || in_array('PROFILE_PLUS_MODERATE', $tasks, true);
+
+        return $messages && $comments;
     }
 
     public function verifyPage(string $id, string $token): array

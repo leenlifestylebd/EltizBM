@@ -28,3 +28,8 @@ No schema migration or existing business-data rewrite. Settings updates preserve
 Meta developer documentation returned HTTP 429 during implementation. Verify current dashboard requirements and production approval with the real app before enabling the connection.
 
 The service worker excludes automation settings/OAuth routes and respects `private` and `no-store`. Cache version v2 removes the previous cache at activation. Run `node --test tests/service-worker-cache.cjs` to verify these rules.
+
+## Page-list troubleshooting
+The connector accepts classic MANAGE or both MESSAGING/MODERATE tasks, and New Pages Experience PROFILE_PLUS_FULL_CONTROL or both PROFILE_PLUS_MESSAGING/PROFILE_PLUS_MODERATE (mixed classic/modern pairs also work). Ads, analytics and generic Facebook access alone never authorize this connection. Supported task names: https://github.com/facebook/facebook-python-business-sdk/blob/main/facebook_business/adobjects/page.py
+
+Errors distinguish FB_PAGES_EMPTY (Meta returned zero Pages), FB_PAGE_TOKEN_MISSING (all returned Pages lack tokens) and FB_PAGE_TASKS_INSUFFICIENT (no eligible Page). Do not assume an empty list is a task-filter bug; inspect the user consent, Page/portfolio asset assignments and app configuration. No token, Page name, or provider response is included in these diagnostic messages.

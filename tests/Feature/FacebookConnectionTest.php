@@ -242,4 +242,41 @@ class FacebookConnectionTest extends TestCase
         $this->get(route('settings.facebook.pages'))->assertOk()->assertSee('First')->assertSee('Second');
         Http::assertNotSent(fn ($r) => parse_url($r->url(), PHP_URL_HOST) !== 'graph.facebook.com');
     }
+
+    public function test_new_pages_experience_tasks_are_supported_without_allowing_read_only_access(): void
+    {
+        $this->fakeMeta();
+        $this->metaOverrides['/v24.0/me/accounts'] = fn () => Http::response(['data' => [
+            ['id' => '2001', 'name' => 'Modern messaging page', 'access_token' => 'modern-token', 'tasks' => ['PROFILE_PLUS_MESSAGING', 'PROFILE_PLUS_MODERATE']],
+            ['id' => '2002', 'name' => 'Full control page', 'access_token' => 'full-token', 'tasks' => ['PROFILE_PLUS_FULL_CONTROL']],
+            ['id' => '2003', 'name' => 'Read only page', 'access_token' => 'read-token', 'tasks' => ['PROFILE_PLUS_ANALYZE', 'PROFILE_PLUS_ADVERTISE', 'PROFILE_PLUS_FACEBOOK_ACCESS']],
+            ['id' => '2004', 'name' => 'Messaging only page', 'access_token' => 'message-token', 'tasks' => ['PROFILE_PLUS_MESSAGING']],
+            ['id' => '2005', 'name' => 'Malformed tasks page', 'access_token' => 'malformed-token', 'tasks' => 'MANAGE'],
+        ]]);
+        $this->consent();
+        $this->get(route('settings.facebook.pages'))->assertOk()->assertSee('Modern messaging page')->assertSee('Full control page')
+            ->assertDontSee('Read only page')->assertDontSee('Messaging only page')->assertDontSee('Malformed tasks page')->assertDontSee('modern-token');
+        $this->metaOverrides['/v24.0/2001'] = fn () => Http::response(['id' => '2001', 'name' => 'Modern messaging page']);
+        $this->post(route('settings.facebook.select'), ['page_id' => '2001'])->assertRedirect(route('settings.automation'));
+        $this->assertSame('2001', BusinessAutomation::firstOrFail()->settings['facebook_page_id']);
+    }
+
+    public function test_empty_missing_token_and_insufficient_tasks_have_distinct_safe_errors(): void
+    {
+        $this->fakeMeta();
+        foreach ([
+            [[], 'FB_PAGES_EMPTY'],
+            [[['id' => '1001', 'name' => 'Page', 'tasks' => ['MANAGE']]], 'FB_PAGE_TOKEN_MISSING'],
+            [[['id' => '1001', 'name' => 'Private Page Name', 'access_token' => 'private-token', 'tasks' => ['ANALYZE']]], 'FB_PAGE_TASKS_INSUFFICIENT'],
+        ] as [$pages,$code]) {
+            $this->metaOverrides['/v24.0/me/accounts'] = fn () => Http::response(['data' => $pages]);
+            $state = $this->start();
+            $this->get(route('settings.facebook.callback', ['state' => $state, 'code' => 'oauth-code']))->assertSessionHasErrors('facebook');
+            $error = session('errors')->first('facebook');
+            $this->assertStringContainsString($code, $error);
+            $this->assertStringNotContainsString('private-token', $error);
+            $this->assertStringNotContainsString('Private Page Name', $error);
+        }
+        $this->assertDatabaseCount('business_automations', 0);
+    }
 }
