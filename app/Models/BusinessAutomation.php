@@ -7,6 +7,7 @@ use Illuminate\Database\Eloquent\Model;
 class BusinessAutomation extends Model
 {
     public const ABILITIES = [
+        'automation:write' => 'Process Facebook inbox and save reply drafts (no sending)',
         'catalog:read' => 'Read products and stock',
         'orders:read' => 'Read order status',
         'orders:write' => 'Create orders',

@@ -3,7 +3,9 @@
 namespace App\Http\Controllers;
 
 use App\Models\BusinessAutomation;
+use App\Models\FacebookInboxEvent;
 use App\Services\FacebookPageConnection;
+use Illuminate\Contracts\Cache\LockTimeoutException;
 use Illuminate\Contracts\Encryption\DecryptException;
 use Illuminate\Http\Request;
 use Illuminate\Support\Facades\Cache;
@@ -144,6 +146,7 @@ class FacebookConnectionController extends Controller
             $record->settings = array_merge($record->settings ?? [], [
                 'facebook_page_id' => $page['id'], 'facebook_page_name' => $page['name'],
                 'facebook_connection_mode' => 'oauth', 'facebook_connection_status' => 'connected',
+                'facebook_receive_enabled' => ($record->settings['facebook_page_id'] ?? null) === $page['id'] ? ($record->settings['facebook_receive_enabled'] ?? false) : false,
                 'facebook_connected_at' => now()->toIso8601String(), 'facebook_checked_at' => now()->toIso8601String(),
             ]);
             $record->secrets = array_merge($record->secrets ?? [], ['facebook_page_token' => $selected['token']]);
@@ -180,6 +183,58 @@ class FacebookConnectionController extends Controller
         return $this->back('Page access verified. This check does not send messages or test automatic replies.');
     }
 
+    public function subscribe(Request $request, FacebookPageConnection $facebook)
+    {
+        if (! $facebook->ready() || strlen((string) config('services.facebook.webhook_verify_token')) < 32) {
+            return $this->back('The service owner must configure the Facebook webhook first.', true);
+        }
+        try {
+            return Cache::store(config('services.facebook.cache_store'))->lock('facebook-page-routing', 60)->block(5, function () use ($request, $facebook) {
+                return DB::transaction(function () use ($request, $facebook) {
+                    DB::table('businesses')->where('id', $request->user()->business_id)->lockForUpdate()->first();
+                    $record = BusinessAutomation::where('business_id', $request->user()->business_id)->first();
+                    $page = $record?->settings['facebook_page_id'] ?? null;
+                    $token = $record?->secrets['facebook_page_token'] ?? null;
+                    if (! $page || ! $token) {
+                        return $this->back('Connect a Facebook Page first.', true);
+                    }
+                    $duplicate = BusinessAutomation::where('business_id', '!=', $record->business_id)->where('settings->facebook_page_id', $page)->where('settings->facebook_receive_enabled', true)->exists();
+                    if ($duplicate) {
+                        return $this->back('This Page already receives events for another business. Pause that connection first.', true);
+                    }
+                    $facebook->subscribe($page, $token);
+                    $record->settings = array_merge($record->settings ?? [], ['facebook_receive_enabled' => true]);
+                    $record->save();
+
+                    return $this->back('Facebook subscription confirmed. New messages and comments can enter the review inbox once Meta webhook setup is complete. No replies are sent automatically.');
+                });
+            });
+        } catch (RuntimeException|LockTimeoutException $e) {
+            return $this->back('Facebook subscription could not be completed. Check the webhook setup and Page permissions, then retry.', true);
+        }
+    }
+
+    public function pause(Request $request)
+    {
+        DB::transaction(function () use ($request) {
+            DB::table('businesses')->where('id', $request->user()->business_id)->lockForUpdate()->first();
+            $record = BusinessAutomation::where('business_id', $request->user()->business_id)->first();
+            if ($record) {
+                $record->settings = array_merge($record->settings ?? [], ['facebook_receive_enabled' => false]);
+                $record->save();
+            }
+        });
+
+        return $this->back('Facebook intake paused. Saved messages remain available for review.');
+    }
+
+    public function inbox(Request $request)
+    {
+        $events = FacebookInboxEvent::where('business_id', $request->user()->business_id)->latest('id')->paginate(20);
+
+        return response()->view('settings.facebook-inbox', ['events' => $events])->header('Cache-Control', 'no-store, private');
+    }
+
     public function disconnect(Request $request)
     {
         DB::transaction(function () use ($request) {
@@ -189,7 +244,7 @@ class FacebookConnectionController extends Controller
                 return;
             }
             $settings = $record->settings ?? [];
-            foreach (['facebook_page_id', 'facebook_page_name', 'facebook_connection_mode', 'facebook_connection_status', 'facebook_connected_at', 'facebook_checked_at'] as $key) {
+            foreach (['facebook_receive_enabled', 'facebook_page_id', 'facebook_page_name', 'facebook_connection_mode', 'facebook_connection_status', 'facebook_connected_at', 'facebook_checked_at'] as $key) {
                 unset($settings[$key]);
             }
             $secrets = $record->secrets ?? [];
