@@ -57,12 +57,24 @@ class FacebookWebhookController extends Controller
                     if ((string) ($item['recipient']['id'] ?? '') !== $page) {
                         continue;
                     }
+                    $sender = (string) ($item['sender']['id'] ?? '');
+                    $ad = (string) ($item['message']['referral']['ad_id'] ?? $item['referral']['ad_id'] ?? '');
+                    if (ctype_digit($sender) && strlen($sender) <= 64) {
+                        $key = ['business_id' => $record->business_id, 'page_id' => $page, 'sender_hash' => hash('sha256', $sender)];
+                        if (ctype_digit($ad) && strlen($ad) <= 64) {
+                            DB::table('facebook_conversation_contexts')->updateOrInsert($key, ['ad_id' => $ad, 'seen_at' => now()]);
+                        } elseif ($ad === '') {
+                            $ad = (string) (DB::table('facebook_conversation_contexts')->where($key)->where('seen_at', '>=', now()->subHours(24))->value('ad_id') ?? '');
+                        }
+                    }
+
                     if (isset($item['message']['mid'])) {
                         $text = $item['message']['text'] ?? '';
                         $this->store($record, $page, 'message', (string) $item['message']['mid'], [
                             'text' => is_string($text) ? mb_substr($text, 0, 8000) : '',
                             'sender_id' => (string) ($item['sender']['id'] ?? ''),
-                            'ad_id' => (string) ($item['message']['referral']['ad_id'] ?? $item['referral']['ad_id'] ?? ''),
+                            'ad_id' => $ad,
+                            'occurred_at' => is_numeric($item['timestamp'] ?? null) ? (int) floor((float) $item['timestamp'] / 1000) : null,
                             'post_id' => '', 'external_id' => (string) $item['message']['mid'],
                         ]);
                     }

@@ -230,7 +230,7 @@ class FacebookConnectionController extends Controller
 
     public function inbox(Request $request)
     {
-        $events = FacebookInboxEvent::where('business_id', $request->user()->business_id)->latest('id')->paginate(20);
+        $events = FacebookInboxEvent::with('reply')->where('business_id', $request->user()->business_id)->latest('id')->paginate(20);
 
         return response()->view('settings.facebook-inbox', ['events' => $events])->header('Cache-Control', 'no-store, private');
     }

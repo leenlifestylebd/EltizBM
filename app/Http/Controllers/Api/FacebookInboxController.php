@@ -31,7 +31,10 @@ class FacebookInboxController extends Controller
             $lease = bin2hex(random_bytes(32));
             $event->update(['status' => 'processing', 'attempts' => $event->attempts + 1, 'lease_hash' => hash('sha256', $lease), 'lease_until' => now()->addMinutes(10)]);
 
-            return response()->json(['event' => ['id' => $event->id, 'kind' => $event->kind, 'page_id' => $event->page_id, 'payload' => $event->payload], 'lease_token' => $lease]);
+            $mapping = app(\App\Services\FacebookAutomaticReply::class)->context($event);
+            $product = $mapping?->product;
+            $context = $product ? ['id'=>$product->id,'name'=>$product->name,'sku'=>$product->sku,'price'=>(float)$product->current_price,'in_stock'=>!$product->track_stock || (int)$product->stock>0] : null;
+            return response()->json(['event' => ['id' => $event->id, 'kind' => $event->kind, 'page_id' => $event->page_id, 'payload' => $event->payload, 'product_context'=>$context], 'lease_token' => $lease]);
         });
     }
 
@@ -49,4 +52,5 @@ class FacebookInboxController extends Controller
             return response()->json(['id' => $event->id, 'status' => $event->status, 'sent' => false]);
         });
     }
+    public function automatic(Request $request, int $id, \App\Services\FacebookAutomaticReply $replies) { return response()->json($replies->attempt((int)$request->attributes->get('business_id'),$id)); }
 }

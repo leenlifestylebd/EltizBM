@@ -14,4 +14,9 @@ class FacebookInboxEvent extends Model
     {
         return ['payload' => 'encrypted:array', 'draft' => 'encrypted', 'lease_until' => 'datetime'];
     }
+
+    public function reply()
+    {
+        return $this->hasOne(FacebookReply::class, 'event_id');
+    }
 }

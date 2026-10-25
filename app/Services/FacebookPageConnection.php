@@ -128,7 +128,7 @@ class FacebookPageConnection
     {
         $this->verifyPage($id, $token);
         $current = $this->get($id.'/subscribed_apps', ['fields' => 'id,subscribed_fields'], $token);
-        $fields = ['messages', 'feed'];
+        $fields = ['messages', 'feed', 'messaging_referrals'];
         foreach ($current['data'] ?? [] as $app) {
             if ((string) ($app['id'] ?? '') === (string) config('services.facebook.client_id')) {
                 $fields = array_merge($fields, is_array($app['subscribed_fields'] ?? null) ? $app['subscribed_fields'] : []);
